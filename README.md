@@ -1,21 +1,21 @@
 # Near-EAC
 ​
-#### Requirements
+## Requirements
 - node 14
 - postgres 12
 
 create DB with name ```near_eac``` and user/password ```postgres/postgres```
 ​
-#### Run commands
-##### Install dependency
+## Run commands
+### Install dependency
 ```npm install```
 ​
-##### Run in prod mode 
+### Run in prod mode 
 ```npm run build```
 ​
-##### Run in dev mode
+### Run in dev mode
 ```npm run start:debug```
 ​
-##### API will be available on port 3030
+#### API will be available on port 3030
 ​
 ​
