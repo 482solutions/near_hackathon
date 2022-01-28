@@ -23,32 +23,28 @@ export class StationService {
     ) { }
 
     public async getAllStations(organisations: Organisation[]): Promise<Station[]> {
-        //  const { energyType, search } = filterDto;
         const query = this.stationRepository.createQueryBuilder('station');
-        // if (energyType) {
-        //     query.andWhere('station.energyType = :energyType', { energyType })
-        // }
-
-        // if (search) {
-        //     query.andWhere('station.name LIKE :search OR station.placement LIKE :search', { search: `%${search}%` })
-        // }
-
         try {
-            query.where('station.organisationId IN (:organisationIds)', { organisationIds: organisations.reduce((acc, curr) => { return [...acc, curr.id]}, []).toString() })
+            query.where('station.organisationId IN (:organisationIds)',
+              { organisationIds: organisations.reduce((acc, curr) => { return [...acc, curr.id]}, []).toString() });
             return await query.getMany();
         } catch (error) {
             this.logger.error(`Failed to get all stations`, error.stack)
             throw new InternalServerErrorException();
-        };
+        }
     }
 
-    public async getStationById(id: number, userId: string): Promise<Station> {
-        const found = await this.stationRepository.findOne({ where: { id, userId: userId } });
-        if (!found) {
-            this.logger.error(`Failed to get station by ID ${id}`)
-            throw new NotFoundException(`Station with ${id} not found `);
+    public async getStationById(id: number, organisations: Organisation[]): Promise<Station> {
+        const query = this.stationRepository.createQueryBuilder('station');
+        try {
+            query.where('station.id = :id AND station.organisationId IN (:organisationIds)',
+              { organisationIds: organisations.reduce((acc, curr) => { return [...acc, curr.id]}, []).toString(),
+                id: id});
+            return await query.getOne();
+        } catch (error) {
+            this.logger.error(`Failed to get all stations`, error.stack)
+            throw new InternalServerErrorException();
         }
-        return found;
     }
 
     public async createStation(stationInput: CreateStationDto, userId: string, organisation: Organisation): Promise<Station> {
@@ -63,16 +59,18 @@ export class StationService {
         return station;
     }
 
-    public async deleteStation(id: number): Promise<void> {
-        const result = await this.stationRepository.delete(id);
-        if (result.affected === 0) {
-            this.logger.error(`Failed to get station by ID ${id}`)
-            throw new NotFoundException(`Station with ID "${id}" not found`)
-        }
+    public async deleteStation(id: number, organisations: Organisation[]): Promise<void> {
+      try {
+          this.stationRepository.createQueryBuilder('station').delete().where('id = :id AND organisationId IN (:organisationIds)',
+            { id: id, organisationIds: organisations.reduce((acc, curr) => { return [...acc, curr.id]}, []).toString()}).execute();
+      } catch (error) {
+        this.logger.error(`Failed to get all stations`, error.stack)
+        throw new InternalServerErrorException();
+      }
     }
 
-    public async updateStationType(id: number, energyType: EEnergyType, userId: string): Promise<Station> {
-        const station = await this.getStationById(id, userId);
+    public async updateStationType(id: number, energyType: EEnergyType, organisations: Organisation[]): Promise<Station> {
+        const station = await this.getStationById(id, organisations);
         station.stationEnergyType = energyType;
         try {
             station.save();
@@ -82,7 +80,6 @@ export class StationService {
         }
         return station;
     }
-
 
     public async createCountry(countryInput: Country): Promise<Country> {
         let country = this.countryRepository.create(countryInput);
@@ -94,7 +91,6 @@ export class StationService {
         }
         return country;
     }
-
 
     public async deleteCountry(id: number): Promise<void> {
         const result = await this.countryRepository.delete(id);
