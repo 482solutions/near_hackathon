@@ -7,8 +7,9 @@ import { UserRepository } from 'src/auth/user.repository';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([OrganisationRepository,UserRepository]),
+    TypeOrmModule.forFeature([OrganisationRepository, UserRepository]),
   ],
+  exports: [OrganisationService],
   controllers: [OrganisationController],
   providers: [OrganisationService]
 })

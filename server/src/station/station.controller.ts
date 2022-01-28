@@ -1,4 +1,4 @@
-import { Body, Controller, Delete, Get, Logger, Param, Patch, Post, Query, UseGuards, UsePipes, ValidationPipe } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Logger, Param, Patch, Post, Req, UseGuards, UsePipes, ValidationPipe } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { GetUser } from 'src/auth/get-user.decorator';
@@ -10,13 +10,14 @@ import { EEnergyType } from './station-energyType.enum';
 import { Station } from './station.entity';
 import { StationService } from './station.service'
 import { Organisation } from "../organisation/dto/organisation.entity";
+import { OrganisationService } from "../organisation/organisation.service";
 
 @Controller('station')
 // @UseGuards(AuthGuard())
 @ApiTags('Stations')
 export class StationController {
     private logger = new Logger('StationController');
-    constructor(private stationService: StationService) {}
+    constructor(private stationService: StationService, private organisationService: OrganisationService) {}
 
     @Get('/region')
     getAllRegions(): Promise<Region[]> {
@@ -29,9 +30,10 @@ export class StationController {
     }
 
     @Get()
-    getAllStations(@GetUser() publicKey: string): Promise<Station[]> {
+    async getAllStations(@GetUser() publicKey: string): Promise<Station[]> {
         this.logger.verbose(`Retrieving all Stations`)
-        return this.stationService.getAllStations(publicKey);
+        let userOrganisations = await this.organisationService.getAllOrganisations(publicKey);
+        return this.stationService.getAllStations(userOrganisations);
     }
 
     @Get(':id')
@@ -42,9 +44,10 @@ export class StationController {
 
     @Post()
     // @ApiBearerAuth('access-token')
-    createStation(@Body(ValidationPipe) createStationDto: CreateStationDto, @GetUser() publicKey: string, organisation: Organisation): Promise<Station> {
+    async createStation(@Body(ValidationPipe) createStationDto: CreateStationDto, @GetUser() publicKey: string, @Req() req): Promise<Station> {
         this.logger.verbose(`Creating new Station. Data : ${JSON.stringify(createStationDto)}`);
-        return this.stationService.createStation(createStationDto, publicKey, organisation);
+        let org = await this.organisationService.getOrganisationById(req.body.organisationId, publicKey);
+        return this.stationService.createStation(createStationDto, publicKey, org);
     }
 
     @Delete(':id')
@@ -61,7 +64,6 @@ export class StationController {
 
     @Post('/country')
     createCountry(@Body(ValidationPipe) createCountryDto: Country): Promise<Country> {
-
         this.logger.verbose(`Creating new Country. Data : ${JSON.stringify(createCountryDto)}`);
         return this.stationService.createCountry(createCountryDto);
     }
