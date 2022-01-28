@@ -37,9 +37,10 @@ export class StationController {
     }
 
     @Get(':id')
-    getStationById(@Param('id') id: number, @GetUser() publicKey: string): Promise<Station> {
-        this.logger.verbose(`Retrieving Station by ID   + ${id}`)
-        return this.stationService.getStationById(id, publicKey);
+    async getStationById(@Param('id') id: number, @GetUser() publicKey: string): Promise<Station> {
+        this.logger.verbose(`Retrieving Station by ID   + ${id}`);
+        let org = await this.organisationService.getAllOrganisations(publicKey);
+        return this.stationService.getStationById(id, org);
     }
 
     @Post()
@@ -51,15 +52,17 @@ export class StationController {
     }
 
     @Delete(':id')
-    deleteStation(@Param('id') id: number): Promise<void> {
-        this.logger.verbose(`Deleting Station by ID   + ${id}`)
-        return this.stationService.deleteStation(id);
+    async deleteStation(@Param('id') id: number,  @GetUser() publicKey: string): Promise<void> {
+        this.logger.verbose(`Deleting Station by ID   + ${id}`);
+        let org = await this.organisationService.getAllOrganisations(publicKey);
+        return this.stationService.deleteStation(id, org);
     }
 
     @Patch(':id/energyType')
-    updateStationType(@Param('id') id: number, @Body('energyType') energyType: EEnergyType, @GetUser() publicKey: string): Promise<Station> {
-        this.logger.verbose(`Updating  StationType`)
-        return this.stationService.updateStationType(id, energyType, publicKey);
+    async updateStationType(@Param('id') id: number, @Body('energyType') energyType: EEnergyType, @GetUser() publicKey: string): Promise<Station> {
+        this.logger.verbose(`Updating  StationType`);
+        let org = await this.organisationService.getAllOrganisations(publicKey);
+        return this.stationService.updateStationType(id, energyType, org);
     }
 
     @Post('/country')
