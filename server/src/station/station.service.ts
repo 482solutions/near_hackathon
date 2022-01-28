@@ -19,9 +19,10 @@ export class StationService {
         @InjectRepository(CountryRepository)
         private countryRepository: CountryRepository,
         @InjectRepository(RegionRepository)
-        private regionRepository: RegionRepository) { }
+        private regionRepository: RegionRepository
+    ) { }
 
-    public async getAllStations(userId: string): Promise<Station[]> {
+    public async getAllStations(organisations: Organisation[]): Promise<Station[]> {
         //  const { energyType, search } = filterDto;
         const query = this.stationRepository.createQueryBuilder('station');
         // if (energyType) {
@@ -33,7 +34,7 @@ export class StationService {
         // }
 
         try {
-            query.where('station.userId = :userId', { userId: userId })
+            query.where('station.organisationId IN (:organisationIds)', { organisationIds: organisations.reduce((acc, curr) => { return [...acc, curr.id]}, []).toString() })
             return await query.getMany();
         } catch (error) {
             this.logger.error(`Failed to get all stations`, error.stack)
