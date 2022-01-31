@@ -1,22 +1,28 @@
-import { Station } from "src/station/station.entity";
-import { BaseEntity, Column, Entity, ManyToOne, OneToMany, PrimaryGeneratedColumn, Unique } from "typeorm";
-
+import { Station } from 'src/station/station.entity';
+import {
+    BaseEntity,
+    Column,
+    Entity,
+    JoinTable,
+    OneToMany,
+    PrimaryGeneratedColumn,
+    Unique,
+} from 'typeorm';
 
 @Unique(['userId'])
 @Entity()
 export class Organisation extends BaseEntity {
-
     @PrimaryGeneratedColumn()
     id: number;
 
     @Column()
     name: string;
-    
+
     @Column()
     registerNumber: string;
 
     @Column()
-    userId: string
+    userId: string;
 
     @Column()
     businessType: string;
@@ -36,6 +42,9 @@ export class Organisation extends BaseEntity {
     @Column()
     signatoryEmail: string;
 
-    @OneToMany(type => Station, station => station.organisation)
-    stations: Station[];
+    @OneToMany((type) => Station, (station) => station.organisation, {
+        eager: false,
+    })
+    @JoinTable()
+    stations: Promise<Station[]>;
 }
