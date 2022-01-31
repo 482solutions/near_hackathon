@@ -1,240 +1,112 @@
-//! # FT 
-//! 
-//! Smart-contract for transfering tokens and storing metadata
-
+/*! FungibleToken contract for EACs trading platform
+ * Fungible Token implementation with JSON serialization.
+NOTES:
+  - The maximum balance value is limited by U128 (2**128 - 1).
+  - JSON calls should pass U128 as a base-10 string. E.g. "100".
+  - The contract optimizes the inner trie structure by hashing account IDs. It will prevent some
+    abuse of deep tries. Shouldn't be an issue, once NEAR clients implement full hashing of keys.
+  - The contract tracks the change in storage before and after the call. If the storage increases,
+    the contract requires the caller of the contract to attach enough deposit to the function call
+    to cover the storage cost.
+    This is done to prevent a denial of service attack on the contract by taking all available storage.
+    If the storage decreases, the contract will issue a refund for the cost of the released storage.
+    The unused tokens from the attached deposit are also refunded, so it's safe to
+    attach more deposit than required.
+  - To prevent the deployed contract from being modified or deleted, it should not have any access
+    keys on its account.
+*/
 use near_contract_standards::fungible_token::metadata::{
     FungibleTokenMetadata, FungibleTokenMetadataProvider, FT_METADATA_SPEC,
 };
+use near_contract_standards::fungible_token::FungibleToken;
 use near_sdk::borsh::{self, BorshDeserialize, BorshSerialize};
-use near_sdk::collections::{LazyOption, LookupMap, UnorderedMap};
-use near_sdk::json_types::U128;
-use near_sdk::{
-    env, log, near_bindgen, require, AccountId, Balance, IntoStorageKey, PanicOnDefault,
-    StorageUsage,
+use near_sdk::collections::LazyOption;
+use near_sdk::env::sha256;
+use near_sdk::json_types::{Base64VecU8, U128};
+use near_sdk::{require, AccountId, Balance, BorshStorageKey, PanicOnDefault,
+    PromiseOrValue, ext_contract, PromiseResult
 };
+use near_sdk::env;
+use near_sdk::log;
+use near_sdk::near_bindgen;
 
-/// Struct for storing origin of given tokens
-#[derive(BorshDeserialize, BorshSerialize, PanicOnDefault, Clone)]
-pub struct Origin {
-    /// Acoount that produced tokens
-    pub id: AccountId,
-    pub station: String,
-}
-
-/// Struct for storing infromation about the produces quantity and origin
-#[derive(BorshDeserialize, BorshSerialize, PanicOnDefault, Clone)]
-pub struct Batch {
-    /// Amount of tokens that was given
-    amount: Balance,
-
-    /// What station and company produced it
-    origin: Origin,
-}
-
-/// Struct for storing info about user balances and total supply of tokens
-#[derive(BorshDeserialize, BorshSerialize, PanicOnDefault)]
-pub struct Token {
-    // AccountId -> { id -> Batch }
-    pub accounts: LookupMap<AccountId, UnorderedMap<u64, Batch>>,
-
-    pub total_supply: Balance,
-    /// The storage size in bytes for one account.
-    pub account_storage_usage: StorageUsage,
-}
-
-impl Token {
-    pub fn new<S>(prefix: S) -> Self
-    where
-        S: IntoStorageKey,
-    {
-        let mut this = Self {
-            accounts: LookupMap::new(prefix),
-            total_supply: 0,
-            account_storage_usage: 0,
-        };
-        this.measure_account_storage_usage();
-        this
-    }
-
-    fn measure_account_storage_usage(&mut self) {
-        let initial_storage_usage = env::storage_usage();
-        let tmp_account_id = AccountId::new_unchecked("a".repeat(64));
-        let mut tmp_map = UnorderedMap::new(b"a".to_vec());
-        tmp_map.insert(
-            &1,
-            &Batch {
-                amount: 1,
-                origin: Origin {
-                    id: tmp_account_id.clone(),
-                    station: "".to_string(),
-                },
-            },
-        );
-
-        self.accounts.insert(&tmp_account_id, &tmp_map);
-        self.account_storage_usage = env::storage_usage() - initial_storage_usage;
-        self.accounts.remove(&tmp_account_id);
-    }
-
-    pub fn internal_unwrap_balance_of(&self, account_id: &AccountId) -> Balance {
-        match self.accounts.get(account_id) {
-            Some(balance) => balance
-                .iter()
-                .fold(0, |total, (_, batch)| total + batch.amount),
-            None => {
-                env::panic_str(format!("The account {} is not registered", &account_id).as_str())
-            }
-        }
-    }
-
-    pub fn internal_deposit(&mut self, account_id: &AccountId, batch: &Batch, id: u64) {
-        let balance = self.internal_unwrap_balance_of(account_id);
-        match balance.checked_add(batch.amount) {
-            Some(_) => {
-                self.accounts.get(account_id).unwrap().insert(&id, &batch);
-                self.total_supply = self
-                    .total_supply
-                    .checked_add(batch.amount)
-                    .unwrap_or_else(|| env::panic_str("Total supply overflow"));
-            }
-            None => {
-                env::panic_str("Balance overflow");
-            }
-        }
-    }
-
-    pub fn calc_remain(&mut self, batch: &Batch, amount: Balance) -> Option<u128> {
-        batch.amount.checked_sub(amount)
-    }
-
-    pub fn internal_withdraw(&mut self, account_id: &AccountId, batch_id: u64, amount: Balance) {
-        let batch = self
-            .accounts
-            .get(account_id)
-            .unwrap()
-            .get(&batch_id)
-            .unwrap_or_else(|| env::panic_str("No such batch"));
-        match self.calc_remain(&batch, amount) {
-            Some(left) => {
-                if left == 0 {
-                    self.accounts.get(account_id).unwrap().remove(&batch_id);
-                } else {
-                    self.accounts
-                        .get(account_id)
-                        .unwrap()
-                        .get(&batch_id)
-                        .unwrap()
-                        .amount = left
-                }
-                // TODO: should i sub from total supply after that ?
-            }
-            None => env::panic_str("Not enough tokens in batch"),
-        }
-    }
-
-    pub fn internal_transfer(
-        &mut self,
-        sender_id: &AccountId,
-        receiver_id: &AccountId,
-        amount: Balance,
-        batch_id: u64,
-        memo: Option<String>,
-    ) {
-        require!(
-            sender_id != receiver_id,
-            "Sender and receiver should be different"
-        );
-        require!(amount > 0, "The amount should be a positive number");
-        // TODO: How id should be picked ???
-
-        let batch = &self
-            .accounts
-            .get(sender_id)
-            .unwrap()
-            .get(&batch_id)
-            .unwrap();
-        let remains = self.calc_remain(batch, amount);
-
-        match remains {
-            Some(left) => {
-                // TODO: Id should be different to not cause interferrence
-             
-                let mut new_batch = batch.clone();
-                new_batch.amount = left;
-                self.internal_deposit(receiver_id, &new_batch, batch_id);
-                self.internal_withdraw(sender_id, batch_id, amount)
-            }
-            None => env::panic_str("Sender batch does not have tokens"),
-        }
-
-        log!("Transfer {} of batch {} from {} to {}", amount, batch_id, sender_id, receiver_id);
-        if let Some(memo) = memo {
-            log!("Memo: {}", memo);
-        }
-    }
-
-    pub fn internal_register_account(&mut self, account_id: &AccountId) {
-        if self
-            .accounts
-            .insert(account_id, &UnorderedMap::new(b"b".to_vec()))
-            .is_some()
-        {
-            env::panic_str("The account is already registered");
-        }
-    }
+#[ext_contract(ext_checker)]
+pub trait Checker {
+   fn is_registered(&self) -> bool;
 }
 
 #[near_bindgen]
 #[derive(BorshDeserialize, BorshSerialize, PanicOnDefault)]
 pub struct Contract {
-    token: Token,
+    token: FungibleToken,
     metadata: LazyOption<FungibleTokenMetadata>,
+}
+
+#[derive(BorshSerialize, BorshStorageKey)]
+enum StorageKey {
+    FungibleToken,
+    Metadata,
 }
 
 #[near_bindgen]
 impl Contract {
     /// Initializes the contract with the given total supply owned by the given `owner_id` with
-    /// default metadata (for example purposes only).
-    #[init]
-    pub fn new_default_meta(owner_id: AccountId, total_supply: U128) -> Self {
-        Self::new(
-            owner_id,
-            total_supply,
-            FungibleTokenMetadata {
-                spec: FT_METADATA_SPEC.to_string(),
-                name: "MWh NEAR Fungible token".to_string(),
-                symbol: "MWh".to_string(),
-                // TODO: Add icon
-                icon: None,
-                reference: None,
-                reference_hash: None,
-                decimals: 24,
-            },
-        )
-    }
-
-    /// Initializes the contract with the given total supply owned by the given `owner_id` with
     /// the given fungible token metadata.
     #[init]
-    pub fn new(owner_id: AccountId, total_supply: U128, metadata: FungibleTokenMetadata) -> Self {
-        assert!(!env::state_exists(), "Already initialized");
+    pub fn new_with_reference(owner_id: AccountId, reference: String) -> Self {
+        require!(!env::state_exists(), "Already initialized");
+
+        let hashed = sha256(&reference.bytes().collect::<Vec<u8>>());
+        log!("Reference: {}, Hashed: {:?}", &reference, &hashed,);
+        let base64vec = Base64VecU8::from(hashed);
+
+        let metadata = FungibleTokenMetadata {
+            spec: FT_METADATA_SPEC.to_string(),
+            name: "EACs Funigle tokn".to_string(),
+            symbol: "ECO".to_string(),
+            icon: None,
+            reference: Some(reference),
+            // TODO: Check if this ok
+            reference_hash: Some(base64vec),
+            decimals: 24,
+        };
+        Self::new(owner_id, metadata)
+    }
+
+    #[private]
+    pub fn register(&mut self, account_id: AccountId) {
+        self.token.internal_register_account(&account_id);
+    }
+
+    #[private]
+    pub fn is_registered(&self) -> bool {
+        require!(env::promise_results_count() == 1, "Too manr result");
+        
+        match env::promise_result(0) {
+            PromiseResult::NotReady => unreachable!(),
+            PromiseResult::Successful(val) => {
+                if let Ok(is_registered) = near_sdk::serde_json::from_slice::<bool>(&val) {
+                    return is_registered;
+                } else {
+                    env::panic_str("Wrong value received")
+                }
+            },
+            PromiseResult::Failed => env::panic_str("Call failed")
+        }
+    }
+
+    #[private]
+    #[init]
+    pub fn new(owner_id: AccountId, metadata: FungibleTokenMetadata) -> Self {
+        require!(!env::state_exists(), "Already initialized");
         metadata.assert_valid();
         let mut this = Self {
-            token: Token::new(b"a".to_vec()),
-            metadata: LazyOption::new(b"m".to_vec(), Some(&metadata)),
+            token: FungibleToken::new(StorageKey::FungibleToken),
+            metadata: LazyOption::new(StorageKey::Metadata, Some(&metadata)),
         };
         this.token.internal_register_account(&owner_id);
-        this.token.internal_deposit(
-            &owner_id,
-            &Batch {
-                amount: total_supply.into(),
-                origin: Origin {
-                    id: owner_id.clone(),
-                    station: "test".to_string(),
-                },
-            },
-            1,
-        );
+        // We don't want to give user tokens from start
+        // this.token.internal_deposit(&owner_id, total_supply.into());
         this
     }
 
@@ -247,9 +119,83 @@ impl Contract {
     }
 }
 
+near_contract_standards::impl_fungible_token_core!(Contract, token, on_tokens_burned);
+near_contract_standards::impl_fungible_token_storage!(Contract, token, on_account_closed);
+
 #[near_bindgen]
 impl FungibleTokenMetadataProvider for Contract {
     fn ft_metadata(&self) -> FungibleTokenMetadata {
         self.metadata.get().unwrap()
+    }
+}
+
+#[cfg(all(test, not(target_arch = "wasm32")))]
+mod tests {
+    use near_sdk::test_utils::{accounts, VMContextBuilder};
+    use near_sdk::{testing_env, Balance};
+
+    use super::*;
+
+    const TOTAL_SUPPLY: Balance = 1_000_000_000_000_000;
+
+    fn get_context(predecessor_account_id: AccountId) -> VMContextBuilder {
+        let mut builder = VMContextBuilder::new();
+        builder
+            .current_account_id(accounts(0))
+            .signer_account_id(predecessor_account_id.clone())
+            .predecessor_account_id(predecessor_account_id);
+        builder
+    }
+
+    #[test]
+    fn test_new() {
+        let mut context = get_context(accounts(1));
+        testing_env!(context.build());
+        let contract = Contract::new_default_meta(accounts(1).into(), TOTAL_SUPPLY.into());
+        testing_env!(context.is_view(true).build());
+        assert_eq!(contract.ft_total_supply().0, TOTAL_SUPPLY);
+        assert_eq!(contract.ft_balance_of(accounts(1)).0, TOTAL_SUPPLY);
+    }
+
+    #[test]
+    #[should_panic(expected = "The contract is not initialized")]
+    fn test_default() {
+        let context = get_context(accounts(1));
+        testing_env!(context.build());
+        let _contract = Contract::default();
+    }
+
+    #[test]
+    fn test_transfer() {
+        let mut context = get_context(accounts(2));
+        testing_env!(context.build());
+        let mut contract = Contract::new_default_meta(accounts(2).into(), TOTAL_SUPPLY.into());
+        testing_env!(context
+            .storage_usage(env::storage_usage())
+            .attached_deposit(contract.storage_balance_bounds().min.into())
+            .predecessor_account_id(accounts(1))
+            .build());
+        // Paying for account registration, aka storage deposit
+        contract.storage_deposit(None, None);
+
+        testing_env!(context
+            .storage_usage(env::storage_usage())
+            .attached_deposit(1)
+            .predecessor_account_id(accounts(2))
+            .build());
+        let transfer_amount = TOTAL_SUPPLY / 3;
+        contract.ft_transfer(accounts(1), transfer_amount.into(), None);
+
+        testing_env!(context
+            .storage_usage(env::storage_usage())
+            .account_balance(env::account_balance())
+            .is_view(true)
+            .attached_deposit(0)
+            .build());
+        assert_eq!(
+            contract.ft_balance_of(accounts(2)).0,
+            (TOTAL_SUPPLY - transfer_amount)
+        );
+        assert_eq!(contract.ft_balance_of(accounts(1)).0, transfer_amount);
     }
 }
