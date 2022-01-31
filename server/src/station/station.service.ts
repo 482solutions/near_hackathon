@@ -1,13 +1,21 @@
-import { Injectable, InternalServerErrorException, Logger, NotFoundException } from "@nestjs/common";
-import { InjectRepository } from "@nestjs/typeorm";
-import { User } from "src/auth/user.entity";
-import { Country } from "./country.entity";
-import { CreateStationDto } from "./dto/create-station.dto";
-import { Region } from "./region.entity";
-import { EEnergyType } from "./station-energyType.enum";
-import { Station } from "./station.entity";
-import { CountryRepository, RegionRepository, StationRepository } from "./station.repository";
-import { Organisation } from "../organisation/dto/organisation.entity";
+import {
+    Injectable,
+    InternalServerErrorException,
+    Logger,
+    NotFoundException,
+} from '@nestjs/common';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Country } from './country.entity';
+import { CreateStationDto } from './dto/create-station.dto';
+import { Region } from './region.entity';
+import { EEnergyType } from './station-energyType.enum';
+import { Station } from './station.entity';
+import {
+    CountryRepository,
+    RegionRepository,
+    StationRepository,
+} from './station.repository';
+import { Organisation } from '../organisation/dto/organisation.entity';
 
 @Injectable()
 export class StationService {
@@ -19,63 +27,107 @@ export class StationService {
         @InjectRepository(CountryRepository)
         private countryRepository: CountryRepository,
         @InjectRepository(RegionRepository)
-        private regionRepository: RegionRepository
-    ) { }
+        private regionRepository: RegionRepository,
+    ) {}
 
-    public async getAllStations(organisations: Organisation[]): Promise<Station[]> {
+    public async getAllStations(
+        organisations: Organisation[],
+    ): Promise<Station[]> {
         const query = this.stationRepository.createQueryBuilder('station');
         try {
-            query.where('station.organisationId IN (:organisationIds)',
-              { organisationIds: organisations.reduce((acc, curr) => { return [...acc, curr.id]}, []).toString() });
+            query.where('station.organisationId IN (:organisationIds)', {
+                organisationIds: organisations
+                    .reduce((acc, curr) => {
+                        return [...acc, curr.id];
+                    }, [])
+                    .toString(),
+            });
             return await query.getMany();
         } catch (error) {
-            this.logger.error(`Failed to get all stations`, error.stack)
+            this.logger.error(`Failed to get all stations: `, error.stack);
             throw new InternalServerErrorException();
         }
     }
 
-    public async getStationById(id: number, organisations: Organisation[]): Promise<Station> {
+    public async getStationById(
+        id: number,
+        organisations: Organisation[],
+    ): Promise<Station> {
         const query = this.stationRepository.createQueryBuilder('station');
+        let found;
         try {
-            query.where('station.id = :id AND station.organisationId IN (:organisationIds)',
-              { organisationIds: organisations.reduce((acc, curr) => { return [...acc, curr.id]}, []).toString(),
-                id: id});
-            return await query.getOne();
+            query.where(
+                'station.id = :id AND station.organisationId IN (:organisationIds)',
+                {
+                    organisationIds: organisations
+                        .reduce((acc, curr) => {
+                            return [...acc, curr.id];
+                        }, [])
+                        .toString(),
+                    id: id,
+                },
+            );
+            found = await query.getOne();
         } catch (error) {
-            this.logger.error(`Failed to get all stations`, error.stack)
+            this.logger.error(`Failed to get station ${id}: `, error.stack);
             throw new InternalServerErrorException();
         }
+        if (!found) {
+            throw new NotFoundException(`Station with id: ${id} not found`);
+        }
+        return found;
     }
 
-    public async createStation(stationInput: CreateStationDto, userId: string, organisation: Organisation): Promise<Station> {
+    public async createStation(
+        stationInput: CreateStationDto,
+        userId: string,
+        organisation: Organisation,
+    ): Promise<Station> {
         let station = this.stationRepository.create(stationInput);
         try {
-            station.organisation = organisation;
+            station.organisation = Promise.resolve(organisation);
             await station.save();
         } catch (error) {
-            this.logger.error(`Failed to create a station`, error.stack)
+            this.logger.error(`Failed to create new station: `, error.stack);
             throw new InternalServerErrorException();
         }
         return station;
     }
 
-    public async deleteStation(id: number, organisations: Organisation[]): Promise<void> {
-      try {
-          this.stationRepository.createQueryBuilder('station').delete().where('id = :id AND organisationId IN (:organisationIds)',
-            { id: id, organisationIds: organisations.reduce((acc, curr) => { return [...acc, curr.id]}, []).toString()}).execute();
-      } catch (error) {
-        this.logger.error(`Failed to get all stations`, error.stack)
-        throw new InternalServerErrorException();
-      }
+    public async deleteStation(
+        id: number,
+        organisations: Organisation[],
+    ): Promise<void> {
+        try {
+            this.stationRepository
+                .createQueryBuilder('station')
+                .delete()
+                .where('id = :id AND organisationId IN (:organisationIds)', {
+                    id,
+                    organisationIds: organisations
+                        .reduce((acc, curr) => {
+                            return [...acc, curr.id];
+                        }, [])
+                        .toString(),
+                })
+                .execute();
+        } catch (error) {
+            this.logger.error(`Failed to delete station ${id}`, error.stack);
+            throw new InternalServerErrorException();
+        }
     }
 
-    public async updateStationType(id: number, energyType: EEnergyType, organisations: Organisation[]): Promise<Station> {
+    public async updateStationType(
+        id: number,
+        energyType: EEnergyType,
+        organisations: Organisation[],
+    ): Promise<Station> {
         const station = await this.getStationById(id, organisations);
         station.stationEnergyType = energyType;
         try {
             station.save();
         } catch (error) {
-            this.logger.error(`Failed to update a station`, error.stack)
+            this.logger.error(`Failed to update station ${id}: `, error.stack);
             throw new InternalServerErrorException();
         }
         return station;
@@ -86,7 +138,7 @@ export class StationService {
         try {
             await country.save();
         } catch (error) {
-            this.logger.error(`Failed to create a country`, error.stack)
+            this.logger.error(`Failed to create a country`, error.stack);
             throw new InternalServerErrorException();
         }
         return country;
@@ -95,15 +147,15 @@ export class StationService {
     public async deleteCountry(id: number): Promise<void> {
         const result = await this.countryRepository.delete(id);
         if (result.affected === 0) {
-            this.logger.error(`Failed to get country by ID ${id}`)
-            throw new NotFoundException(`Country with ID "${id}" not found`)
+            this.logger.error(`Failed to get country by id ${id}`);
+            throw new NotFoundException(`Country with id "${id}" not found`);
         }
     }
 
     public async getCountryById(id: number): Promise<Country> {
         const found = await this.countryRepository.findOne(id);
         if (!found) {
-            this.logger.error(`Failed to get Country by ID ${id}`)
+            this.logger.error(`Failed to get Country by ID ${id}`);
             throw new NotFoundException(`Country with ${id} not found `);
         }
         return found;
@@ -115,7 +167,6 @@ export class StationService {
     }
 
     public async getAllRegions(): Promise<Region[]> {
-
         const query = this.regionRepository.createQueryBuilder('Region');
         return await query.getMany();
     }
@@ -125,7 +176,7 @@ export class StationService {
         try {
             await region.save();
         } catch (error) {
-            this.logger.error(`Failed to create a region`, error.stack)
+            this.logger.error(`Failed to create a region`, error.stack);
             throw new InternalServerErrorException();
         }
         return region;
@@ -134,15 +185,15 @@ export class StationService {
     public async deleteRegion(id: number): Promise<void> {
         const result = await this.regionRepository.delete(id);
         if (result.affected === 0) {
-            this.logger.error(`Failed to get Region by ID ${id}`)
-            throw new NotFoundException(`Region with ID "${id}" not found`)
+            this.logger.error(`Failed to get Region by ID ${id}`);
+            throw new NotFoundException(`Region with ID "${id}" not found`);
         }
     }
 
     public async getRegionById(id: number): Promise<Region> {
         const found = await this.regionRepository.findOne(id);
         if (!found) {
-            this.logger.error(`Failed to get Region by ID ${id}`)
+            this.logger.error(`Failed to get Region by ID ${id}`);
             throw new NotFoundException(`Region with ${id} not found `);
         }
         return found;
