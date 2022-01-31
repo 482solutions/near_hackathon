@@ -21,19 +21,14 @@ use near_contract_standards::fungible_token::metadata::{
 use near_contract_standards::fungible_token::FungibleToken;
 use near_sdk::borsh::{self, BorshDeserialize, BorshSerialize};
 use near_sdk::collections::LazyOption;
+use near_sdk::env;
 use near_sdk::env::sha256;
 use near_sdk::json_types::{Base64VecU8, U128};
-use near_sdk::{require, AccountId, Balance, BorshStorageKey, PanicOnDefault,
-    PromiseOrValue, ext_contract, PromiseResult
-};
-use near_sdk::env;
 use near_sdk::log;
 use near_sdk::near_bindgen;
+use near_sdk::{require, AccountId, Balance, BorshStorageKey, PanicOnDefault, PromiseOrValue};
 
-#[ext_contract(ext_checker)]
-pub trait Checker {
-   fn is_registered(&self) -> bool;
-}
+use utils::utils;
 
 #[near_bindgen]
 #[derive(BorshDeserialize, BorshSerialize, PanicOnDefault)]
@@ -73,27 +68,20 @@ impl Contract {
         Self::new(owner_id, metadata)
     }
 
-    #[private]
+    /// Used in cross-contract call to add account of unregistered user
     pub fn register(&mut self, account_id: AccountId) {
-        self.token.internal_register_account(&account_id);
-    }
-
-    #[private]
-    pub fn is_registered(&self) -> bool {
-        require!(env::promise_results_count() == 1, "Too manr result");
-        
-        match env::promise_result(0) {
-            PromiseResult::NotReady => unreachable!(),
-            PromiseResult::Successful(val) => {
-                if let Ok(is_registered) = near_sdk::serde_json::from_slice::<bool>(&val) {
-                    return is_registered;
-                } else {
-                    env::panic_str("Wrong value received")
-                }
-            },
-            PromiseResult::Failed => env::panic_str("Call failed")
+        let registered = utils::resolve_promise_bool();
+        if !registered {
+            log!("User {} is not registered yet. Doing it now", &account_id);
+            self.token.internal_register_account(&account_id);
         }
     }
+
+    pub fn is_registered(&self, account_id: AccountId) -> bool {
+        self.token.accounts.contains_key(&account_id)
+    }
+
+    // TODO: Add method to securely give FT to users
 
     #[private]
     #[init]
