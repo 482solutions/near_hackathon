@@ -6,15 +6,10 @@ import {
     Logger,
     Param,
     Post,
-    Req,
-    UseGuards,
-    UsePipes,
-    ValidationPipe
-} from "@nestjs/common";
-import { AuthGuard } from '@nestjs/passport';
+    ValidationPipe,
+} from '@nestjs/common';
 import { ApiTags } from '@nestjs/swagger';
 import { GetUser } from 'src/auth/get-user.decorator';
-import { User } from 'src/auth/user.entity';
 import { CreateOrganisationDto } from './dto/create-organisation.dto';
 import { Organisation } from './dto/organisation.entity';
 import { OrganisationService } from './organisation.service';
@@ -33,20 +28,29 @@ export class OrganisationController {
     }
 
     @Get(':id')
-    getOrganisationById(@Param('id') id: number, @GetUser() publicKey: string): Promise<Organisation> {
+    getOrganisationById(
+        @Param('id') id: number,
+        @GetUser() publicKey: string,
+    ): Promise<Organisation> {
         return this.organisationService.getOrganisationById(id, publicKey);
     }
 
     @Post()
-    createOrganisation(@Body(ValidationPipe) createOrganisationDto: CreateOrganisationDto, @GetUser() publicKey): Promise<Organisation> {
-        return this.organisationService.createOrganisation(createOrganisationDto, publicKey);
+    createOrganisation(
+        @Body(ValidationPipe) createOrganisationDto: CreateOrganisationDto,
+        @GetUser() publicKey,
+    ): Promise<Organisation> {
+        return this.organisationService.createOrganisation(
+            createOrganisationDto,
+            publicKey,
+        );
     }
 
     @Delete(':id')
-    deleteOrganisation(@Param('id') id: number): Promise<void> {
-        return this.organisationService.deleteOrganisation(id);
+    deleteOrganisation(
+        @Param('id') id: number,
+        @GetUser() publicKey,
+    ): Promise<void> {
+        return this.organisationService.deleteOrganisation(id, publicKey);
     }
-
-
 }
-
