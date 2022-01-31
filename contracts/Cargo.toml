@@ -1,5 +1,5 @@
 [workspace]
-members = ["factory", "ft"]
+members = ["factory", "ft", "utils"]
 
 [profile.release]
 codegen-units = 1
