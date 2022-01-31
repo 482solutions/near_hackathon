@@ -1,5 +1,5 @@
 pub mod utils {
-    use near_sdk::{env, log, require, PromiseResult};
+    use near_sdk::{env, log, require, AccountId, PromiseResult};
 
     pub fn resolve_promise_bool() -> bool {
         require!(env::promise_results_count() == 1, "Too many results");
@@ -16,5 +16,8 @@ pub mod utils {
             }
             PromiseResult::Failed => env::panic_str("Call failed"),
         }
+    }
+    pub fn split_account(account_id: &AccountId) -> Vec<&str> {
+        account_id.as_str().split('.').collect()
     }
 }
