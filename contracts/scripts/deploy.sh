@@ -1,9 +1,15 @@
+if [[ -z "${CLEAN}" ]]; then
+  echo "Making clear deploy"
+  rm -rf neardev
+else
+  echo "Using previous dev-account"
+fi
+
 if [ -d neardev ]; then
     echo "Already logged in"
 else
     near login
 fi
-
 
 echo "Building contracts"
 sh scripts/build.sh
