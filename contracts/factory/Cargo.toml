@@ -11,3 +11,4 @@ crate-type = ["cdylib"]
 near-sdk = "4.0.0-pre.6"
 near-contract-standards = "4.0.0-pre.6"
 fungible-token = { path = "../ft" }
+utils = { path = "../utils" }
