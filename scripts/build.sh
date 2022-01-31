@@ -10,8 +10,8 @@ fi
 
 # Because we include bytes from FT contract we need to build it before factory
 
-cargo build --release --target ft
-cp target/wasm32-unknown-unknown/release/*.wasm $OUT_DIR
+cargo build --release -p fungible-token
+cp target/wasm32-unknown-unknown/release/fungible_token.wasm $OUT_DIR
 
-cargo build --release --target factory
-cp target/wasm32-unknown-unknown/release/*.wasm $OUT_DIR
+cargo build --release -p token-factory
+cp target/wasm32-unknown-unknown/release/token_factory.wasm $OUT_DIR
