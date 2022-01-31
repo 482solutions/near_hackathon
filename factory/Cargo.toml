@@ -1,5 +1,5 @@
 [package]
-name = "token-factory-connector"
+name = "token-factory"
 version = "0.0.1"
 edition = "2018"
 
@@ -10,3 +10,4 @@ crate-type = ["cdylib"]
 [dependencies]
 near-sdk = "4.0.0-pre.6"
 near-contract-standards = "4.0.0-pre.6"
+fungible-token = { path = "../ft" }
