@@ -2,6 +2,7 @@
 //!
 //! This module is used for creating sub accounts for use by companies.
 
+use crate::prices::TOKEN_INIT_BALANCE;
 use near_sdk::borsh::{self, BorshDeserialize, BorshSerialize};
 use near_sdk::serde_json::json;
 use near_sdk::{
@@ -12,20 +13,27 @@ use utils::utils;
 /* TODO: I should definitely later dive deeper into economics of NEAR
     to better understand how i can calc fee
 */
-const NO_DEPOSIT: Balance = 0;
 
-pub const FACTORY_CROSS_CALL: Gas = Gas(2_428_023_852_964);
+pub mod prices {
+    use near_sdk::{Balance, Gas};
 
-/// Gas to initialize Token contract.
-const TOKEN_NEW: Gas = Gas(10_000_000_000_000);
+    pub const NO_DEPOSIT: Balance = 0;
 
-/// Price per 1 byte of usage mainnet genesis config.
-const STORAGE_PRICE_PER_BYTE: Balance = 10_000_000_000_000_000_000; // 1e19yN, 0.00001N
+    pub const FACTORY_CROSS_CALL: Gas = Gas(2_428_023_852_964);
 
-/// Initial balance for the Token contract to cover usage and related.
-const TOKEN_INIT_BALANCE: Balance = 3_000_000_000_000_000_000_000_000; // 3e24yN, 3N
+    /// Gas to initialize Token contract.
+    pub const TOKEN_NEW: Gas = Gas(10_000_000_000_000);
+
+    /// Price per 1 byte of usage mainnet genesis config.
+    pub const STORAGE_PRICE_PER_BYTE: Balance = 10_000_000_000_000_000_000; // 1e19yN, 0.00001N
+
+    /// Initial balance for the Token contract to cover usage and related.
+    pub const TOKEN_INIT_BALANCE: Balance = 3_000_000_000_000_000_000_000_000; // 3e24yN, 3N
+}
 
 static CODE: &[u8] = include_bytes!("../../out/fungible_token.wasm");
+
+use prices::*;
 
 #[ext_contract(ext_self)]
 pub trait ExtSelf {
@@ -41,11 +49,11 @@ pub trait FT {
 /// Used for deploying child contracts and keeping track of them
 #[near_bindgen]
 #[derive(BorshDeserialize, BorshSerialize, PanicOnDefault)]
-pub struct Contract {}
+pub struct FactoryContract {}
 
 /// Smart-contract that used for: creating ft, transferring FT and $NEAR
 #[near_bindgen]
-impl Contract {
+impl FactoryContract {
     #[init]
     pub fn new() -> Self {
         Self {}
