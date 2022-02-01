@@ -21,3 +21,17 @@ pub mod utils {
         account_id.as_str().split('.').collect()
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use crate::utils::split_account;
+    use near_sdk::AccountId;
+
+    #[test]
+    fn should_split() {
+        assert_eq!(
+            vec!["i3ima", "testnet"],
+            split_account(&AccountId::new_unchecked("i3ima.testnet".to_string()))
+        )
+    }
+}
