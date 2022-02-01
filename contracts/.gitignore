@@ -12,11 +12,6 @@ yarn-debug.log*
 yarn-error.log*
 lerna-debug.log*
 
-# Rust
-target
-out
-neardev
-
 # OS
 .DS_Store
 
