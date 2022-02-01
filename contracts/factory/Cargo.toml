@@ -5,10 +5,14 @@ edition = "2018"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 [lib]
-crate-type = ["cdylib"]
+crate-type = ["cdylib", "rlib"]
 
 [dependencies]
 near-sdk = "4.0.0-pre.6"
 near-contract-standards = "4.0.0-pre.6"
 fungible-token = { path = "../ft" }
 utils = { path = "../utils" }
+
+[dev-dependencies]
+near-sdk = "4.0.0-pre.6"
+near-sdk-sim = "4.0.0-pre.6"
