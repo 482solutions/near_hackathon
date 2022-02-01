@@ -60,9 +60,9 @@ impl FactoryContract {
     }
 
     /// Will make cross-contract call to FT contract
-    pub fn check_registered(&mut self, account_id: AccountId, to_check: AccountId) -> Promise {
+    pub fn check_registered(&mut self, to_check: AccountId) -> Promise {
         let current_account = env::current_account_id();
-        let ft_contract = self.get_token_account_id(&account_id);
+        let ft_contract = self.get_token_account_id();
         ext_ft::is_registered(to_check, ft_contract, NO_DEPOSIT, FACTORY_CROSS_CALL).then(
             ext_self::callback_register(current_account, NO_DEPOSIT, FACTORY_CROSS_CALL),
         )
@@ -81,14 +81,10 @@ impl FactoryContract {
     /// * `account_id` - Name of account that wants to create FT, should be in format user.testnet/mainnet
     ///
     #[payable]
-    pub fn create_ft(&mut self, account_id: AccountId, reference: String) -> Promise {
-        // Split account by '.'
-        // Example i3ima.testnet -> ["i3ima", "testnet"]
-        let splitted = utils::split_account(&account_id);
-        // Create account id for subaccount
-        let prefix = AccountId::new_unchecked(splitted[0].to_string());
+    pub fn create_ft(&mut self, reference: String) -> Promise {
+        let account_id = env::current_account_id();
 
-        let subaccount_id = self.get_token_account_id(&prefix);
+        let subaccount_id = self.get_token_account_id();
 
         log!(
             "Trying to create subaccount: {}. {} yoctoNEAR required as deposit",
@@ -122,10 +118,8 @@ impl FactoryContract {
             )
     }
 
-    pub fn get_token_account_id(&self, prefix: &AccountId) -> AccountId {
-        let account_id =
-            AccountId::new_unchecked(format!("{}.{}", prefix, env::current_account_id()));
-        account_id
+    pub fn get_token_account_id(&self) -> AccountId {
+        AccountId::new_unchecked(format!("{}.{}", "ft", env::current_account_id()))
     }
 
     /// Used to transfer $NEAR to buyer and transfer FT to seller
@@ -151,18 +145,16 @@ impl FactoryContract {
 
         let prefix = AccountId::new_unchecked(splitted[0].to_string());
 
-        let seller_subaccount = self.get_token_account_id(&prefix);
+        let seller_subaccount = self.get_token_account_id();
 
         // First we check if buyer is registered in seller FT contract
         // and if not - register him
-        let check_register = self
-            .check_registered(prefix, buyer.clone())
-            .then(ext_ft::register(
-                buyer,
-                seller_subaccount,
-                NO_DEPOSIT,
-                FACTORY_CROSS_CALL,
-            ));
+        let check_register = self.check_registered(buyer.clone()).then(ext_ft::register(
+            buyer,
+            seller_subaccount,
+            NO_DEPOSIT,
+            FACTORY_CROSS_CALL,
+        ));
 
         // TODO: Add actual Promise for that
         // Then we can transfer FT to buyer
