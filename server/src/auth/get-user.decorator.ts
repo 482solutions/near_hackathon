@@ -8,7 +8,6 @@ import { KeyPair } from 'near-api-js';
 export const GetUser = createParamDecorator(
     (data, ctx: ExecutionContext): string => {
         const req = ctx.switchToHttp().getRequest();
-        const res = ctx.switchToHttp().getResponse();
         try {
             return KeyPair.fromString(req.body.privateKey)
                 .getPublicKey()
