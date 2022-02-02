@@ -4,6 +4,7 @@ import {
     BaseEntity,
     Column,
     Entity,
+    JoinColumn,
     JoinTable,
     ManyToOne,
     OneToMany,
@@ -15,8 +16,10 @@ import { Measurement } from '../measurements/entities/measurement.entity';
 @Entity()
 export class Station extends BaseEntity {
     @PrimaryColumn()
-    @ApiProperty({ example: 'testName' })
     name: string;
+
+    @PrimaryColumn()
+    organisationRegistryNumber: string;
 
     @Column()
     @ApiProperty({ example: EEnergyType.SOLAR })
@@ -55,6 +58,7 @@ export class Station extends BaseEntity {
         (organisation) => organisation.stations,
         { eager: false, onDelete: 'CASCADE' },
     )
+    @JoinColumn({ name: 'organisationRegistryNumber' })
     organisation: Promise<Organisation>;
 
     @OneToMany((type) => Measurement, (measurement) => measurement.station, {

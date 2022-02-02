@@ -5,10 +5,10 @@ import { BaseEntity, Column, Entity, JoinTable, OneToMany, PrimaryColumn } from 
 @Entity()
 export class Organisation extends BaseEntity {
     @PrimaryColumn()
-    name: string;
+    registryNumber: string;
 
     @Column()
-    registerNumber: string;
+    name: string;
 
     @Column()
     userId: string;
