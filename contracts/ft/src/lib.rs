@@ -27,6 +27,7 @@ use near_sdk::json_types::{Base64VecU8, U128};
 use near_sdk::log;
 use near_sdk::near_bindgen;
 use near_sdk::{require, AccountId, Balance, BorshStorageKey, PanicOnDefault, PromiseOrValue};
+use std::ops::Sub;
 
 use utils::utils;
 
@@ -57,7 +58,7 @@ impl Contract {
 
         let metadata = FungibleTokenMetadata {
             spec: FT_METADATA_SPEC.to_string(),
-            name: "EACs Funigle tokn".to_string(),
+            name: "EACs Fungible Token".to_string(),
             symbol: "ECO".to_string(),
             icon: None,
             reference: Some(reference),
@@ -82,6 +83,30 @@ impl Contract {
     }
 
     // TODO: Add method to securely give FT to users
+    /// Gives FT to user that called/deployed contract
+    pub fn ft_mint(&mut self, amount: Balance) -> U128 {
+        let current = env::current_account_id();
+
+        log!("{}", current);
+
+        let account_id = env::signer_account_id();
+
+        // Increase total supply if not enough
+        match self.token.total_supply.checked_sub(amount) {
+            Some(_) => {
+                log!("Decreasing total supply by {}", amount);
+                self.token.total_supply -= amount;
+            }
+            None => {
+                log!("Increasing total supply by {}", amount);
+                self.token.total_supply += amount
+            }
+        }
+
+        self.token.internal_deposit(&account_id, amount);
+
+        self.ft_balance_of(account_id)
+    }
 
     #[private]
     #[init]
