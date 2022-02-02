@@ -6,7 +6,6 @@ import {
     NotFoundException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { UserRepository } from 'src/auth/user.repository';
 import { CreateOrganisationDto } from './dto/create-organisation.dto';
 import { Organisation } from './dto/organisation.entity';
 import { OrganisationRepository } from './organisation.repository';
@@ -16,8 +15,6 @@ export class OrganisationService {
     private logger = new Logger('OrganisationService');
 
     constructor(
-        @InjectRepository(UserRepository)
-        private userRepository: UserRepository,
         @InjectRepository(OrganisationRepository)
         private organisationRepository: OrganisationRepository,
     ) {}
@@ -35,24 +32,24 @@ export class OrganisationService {
     }
 
     public async getOrganisationById(
-        id: number,
+        registryNumber: string,
         userId: string,
     ): Promise<Organisation> {
         let found;
         try {
             found = await this.organisationRepository.findOne({
-                where: { id, userId: userId },
+                where: { registryNumber: registryNumber, userId: userId },
             });
         } catch (error) {
             this.logger.error(
-                `Failed to get organisation ${id}: `,
+                `Failed to get organisation ${registryNumber}: `,
                 error.stack,
             );
             throw new InternalServerErrorException();
         }
         if (!found) {
             throw new NotFoundException(
-                `Organisation with id: ${id} not found`,
+                `Organisation ${registryNumber} not found`,
             );
         }
         return found;
@@ -82,16 +79,25 @@ export class OrganisationService {
         return organisation;
     }
 
-    public async deleteOrganisation(id: number, userId: string): Promise<void> {
+    public async deleteOrganisation(
+        registryNumber: string,
+        userId: string,
+    ): Promise<void> {
         try {
             this.organisationRepository
                 .createQueryBuilder('organisation')
                 .delete()
-                .where('id = :id AND userId = :userId', { id, userId })
+                .where(
+                    'registryNumber = :registryNumber AND userId = :userId',
+                    {
+                        registryNumber,
+                        userId,
+                    },
+                )
                 .execute();
         } catch (error) {
             this.logger.error(
-                `Failed to delete organisation ${id}`,
+                `Failed to delete organisation ${registryNumber}`,
                 error.stack,
             );
             throw new InternalServerErrorException();

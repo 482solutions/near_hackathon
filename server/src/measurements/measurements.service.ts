@@ -12,7 +12,7 @@ import { Measurement } from './entities/measurement.entity';
 
 @Injectable()
 export class MeasurementsService {
-    private logger = new Logger('OrganisationService');
+    private logger = new Logger('MeasurementService');
 
     constructor(
         @InjectRepository(MeasurementRepository)
@@ -25,7 +25,7 @@ export class MeasurementsService {
 
     public async findAll(): Promise<Measurement[]> {
         const query =
-            this.measurementRepository.createQueryBuilder('measurement');
+            this.measurementRepository.createQueryBuilder('measurements');
         try {
             return await query.getMany();
         } catch (error) {

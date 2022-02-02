@@ -8,7 +8,6 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Country } from './country.entity';
 import { CreateStationDto } from './dto/create-station.dto';
 import { Region } from './region.entity';
-import { EEnergyType } from './station-energyType.enum';
 import { Station } from './station.entity';
 import {
     CountryRepository,
@@ -35,10 +34,10 @@ export class StationService {
     ): Promise<Station[]> {
         const query = this.stationRepository.createQueryBuilder('station');
         try {
-            query.where('station.organisationId IN (:organisationIds)', {
+            query.where('station.organisationName IN (:organisationNames)', {
                 organisationIds: organisations
                     .reduce((acc, curr) => {
-                        return [...acc, curr.id];
+                        return [...acc, curr.name];
                     }, [])
                     .toString(),
             });
@@ -50,30 +49,34 @@ export class StationService {
     }
 
     public async getStationById(
-        id: number,
+        organisation: string,
+        name: number,
         organisations: Organisation[],
     ): Promise<Station> {
         const query = this.stationRepository.createQueryBuilder('station');
         let found;
         try {
             query.where(
-                'station.id = :id AND station.organisationId IN (:organisationIds)',
+                ' station.name = :name AND' +
+                    ' station.organisationRegistryNumber = :organisation AND' +
+                    ' station.organisationRegistryNumber IN (:organisationRegistryNumbers)',
                 {
-                    organisationIds: organisations
+                    organisation: organisation,
+                    organisationRegistryNumbers: organisations
                         .reduce((acc, curr) => {
-                            return [...acc, curr.id];
+                            return [...acc, curr.registryNumber];
                         }, [])
                         .toString(),
-                    id: id,
+                    name: name,
                 },
             );
             found = await query.getOne();
         } catch (error) {
-            this.logger.error(`Failed to get station ${id}: `, error.stack);
+            this.logger.error(`Failed to get station ${name}: `, error.stack);
             throw new InternalServerErrorException();
         }
         if (!found) {
-            throw new NotFoundException(`Station with id: ${id} not found`);
+            throw new NotFoundException(`Station with id: ${name} not found`);
         }
         return found;
     }
@@ -95,42 +98,33 @@ export class StationService {
     }
 
     public async deleteStation(
-        id: number,
+        organisation: string,
+        name: string,
         organisations: Organisation[],
     ): Promise<void> {
         try {
             this.stationRepository
                 .createQueryBuilder('station')
                 .delete()
-                .where('id = :id AND organisationId IN (:organisationIds)', {
-                    id,
-                    organisationIds: organisations
-                        .reduce((acc, curr) => {
-                            return [...acc, curr.id];
-                        }, [])
-                        .toString(),
-                })
+                .where(
+                    ' name = :name AND' +
+                        ' organisationRegistryNumber = :organisation AND' +
+                        ' organisationRegistryNumber IN (:organisationRegistryNumbers)',
+                    {
+                        name,
+                        organisation,
+                        organisationRegistryNumbers: organisations
+                            .reduce((acc, curr) => {
+                                return [...acc, curr.registryNumber];
+                            }, [])
+                            .toString(),
+                    },
+                )
                 .execute();
         } catch (error) {
-            this.logger.error(`Failed to delete station ${id}`, error.stack);
+            this.logger.error(`Failed to delete station ${name}`, error.stack);
             throw new InternalServerErrorException();
         }
-    }
-
-    public async updateStationType(
-        id: number,
-        energyType: EEnergyType,
-        organisations: Organisation[],
-    ): Promise<Station> {
-        const station = await this.getStationById(id, organisations);
-        station.stationEnergyType = energyType;
-        try {
-            station.save();
-        } catch (error) {
-            this.logger.error(`Failed to update station ${id}: `, error.stack);
-            throw new InternalServerErrorException();
-        }
-        return station;
     }
 
     public async createCountry(countryInput: Country): Promise<Country> {
