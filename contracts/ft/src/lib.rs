@@ -27,7 +27,6 @@ use near_sdk::json_types::{Base64VecU8, U128};
 use near_sdk::log;
 use near_sdk::near_bindgen;
 use near_sdk::{require, AccountId, Balance, BorshStorageKey, PanicOnDefault, PromiseOrValue};
-use std::ops::Sub;
 
 use utils::utils;
 
@@ -49,7 +48,7 @@ impl Contract {
     /// Initializes the contract with the given total supply owned by the given `owner_id` with
     /// the given fungible token metadata.
     #[init]
-    pub fn new_with_reference(owner_id: AccountId, reference: String) -> Self {
+    pub fn new_with_reference(owner_id: AccountId, name: String, reference: String) -> Self {
         require!(!env::state_exists(), "Already initialized");
 
         let hashed = sha256(&reference.bytes().collect::<Vec<u8>>());
@@ -58,8 +57,8 @@ impl Contract {
 
         let metadata = FungibleTokenMetadata {
             spec: FT_METADATA_SPEC.to_string(),
-            name: "EACs Fungible Token".to_string(),
-            symbol: "ECO".to_string(),
+            name,
+            symbol: "IREC".to_string(),
             icon: None,
             reference: Some(reference),
             // TODO: Check if this ok
