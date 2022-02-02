@@ -6,7 +6,6 @@ import {
     NotFoundException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { UserRepository } from 'src/auth/user.repository';
 import { CreateOrganisationDto } from './dto/create-organisation.dto';
 import { Organisation } from './dto/organisation.entity';
 import { OrganisationRepository } from './organisation.repository';
@@ -16,8 +15,6 @@ export class OrganisationService {
     private logger = new Logger('OrganisationService');
 
     constructor(
-        @InjectRepository(UserRepository)
-        private userRepository: UserRepository,
         @InjectRepository(OrganisationRepository)
         private organisationRepository: OrganisationRepository,
     ) {}

@@ -35,10 +35,10 @@ export class StationService {
     ): Promise<Station[]> {
         const query = this.stationRepository.createQueryBuilder('station');
         try {
-            query.where('station.organisationId IN (:organisationIds)', {
+            query.where('station.organisationName IN (:organisationNames)', {
                 organisationIds: organisations
                     .reduce((acc, curr) => {
-                        return [...acc, curr.id];
+                        return [...acc, curr.name];
                     }, [])
                     .toString(),
             });
@@ -57,11 +57,11 @@ export class StationService {
         let found;
         try {
             query.where(
-                'station.id = :id AND station.organisationId IN (:organisationIds)',
+                'station.id = :id AND station.organisationName IN (:organisationNames)',
                 {
                     organisationIds: organisations
                         .reduce((acc, curr) => {
-                            return [...acc, curr.id];
+                            return [...acc, curr.name];
                         }, [])
                         .toString(),
                     id: id,
@@ -102,14 +102,17 @@ export class StationService {
             this.stationRepository
                 .createQueryBuilder('station')
                 .delete()
-                .where('id = :id AND organisationId IN (:organisationIds)', {
-                    id,
-                    organisationIds: organisations
-                        .reduce((acc, curr) => {
-                            return [...acc, curr.id];
-                        }, [])
-                        .toString(),
-                })
+                .where(
+                    'id = :id AND organisationName IN (:organisationNames)',
+                    {
+                        id,
+                        organisationIds: organisations
+                            .reduce((acc, curr) => {
+                                return [...acc, curr.name];
+                            }, [])
+                            .toString(),
+                    },
+                )
                 .execute();
         } catch (error) {
             this.logger.error(`Failed to delete station ${id}`, error.stack);
