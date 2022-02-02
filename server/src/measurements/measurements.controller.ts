@@ -3,6 +3,7 @@ import {
     Controller,
     Delete,
     Get,
+    Logger,
     Param,
     Patch,
     Post,
@@ -14,6 +15,8 @@ import { Measurement } from './entities/measurement.entity';
 
 @Controller('measurements')
 export class MeasurementsController {
+    private logger = new Logger('MeasurementsController');
+
     constructor(private readonly measurementsService: MeasurementsService) {}
 
     @Post()
@@ -23,6 +26,7 @@ export class MeasurementsController {
 
     @Get()
     findAll(): Promise<Measurement[]> {
+        this.logger.verbose(`Retrieving all Measurements`);
         return this.measurementsService.findAll();
     }
 

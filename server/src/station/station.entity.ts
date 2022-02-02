@@ -4,18 +4,18 @@ import {
     BaseEntity,
     Column,
     Entity,
+    JoinTable,
     ManyToOne,
-    PrimaryGeneratedColumn,
+    OneToMany,
+    PrimaryColumn,
 } from 'typeorm';
 import { EEnergyType } from './station-energyType.enum';
+import { Measurement } from '../measurements/entities/measurement.entity';
 
 @Entity()
 export class Station extends BaseEntity {
-    @PrimaryGeneratedColumn()
-    id: number;
-
+    @PrimaryColumn()
     @ApiProperty({ example: 'testName' })
-    @Column()
     name: string;
 
     @Column()
@@ -56,4 +56,10 @@ export class Station extends BaseEntity {
         { eager: false, onDelete: 'CASCADE' },
     )
     organisation: Promise<Organisation>;
+
+    @OneToMany((type) => Measurement, (measurement) => measurement.station, {
+        eager: false,
+    })
+    @JoinTable()
+    measurements: Promise<Measurement[]>;
 }
