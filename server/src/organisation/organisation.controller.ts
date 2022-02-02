@@ -15,7 +15,6 @@ import { Organisation } from './dto/organisation.entity';
 import { OrganisationService } from './organisation.service';
 
 @Controller('organisation')
-// @UseGuards(AuthGuard())
 @ApiTags('Organisation')
 export class OrganisationController {
     private logger = new Logger('OrganisationController');
@@ -29,10 +28,13 @@ export class OrganisationController {
 
     @Get(':id')
     getOrganisationById(
-        @Param('id') id: number,
+        @Param('id') registryNumber: string,
         @GetUser() publicKey: string,
     ): Promise<Organisation> {
-        return this.organisationService.getOrganisationById(id, publicKey);
+        return this.organisationService.getOrganisationById(
+            registryNumber,
+            publicKey,
+        );
     }
 
     @Post()
@@ -48,9 +50,12 @@ export class OrganisationController {
 
     @Delete(':id')
     deleteOrganisation(
-        @Param('id') id: number,
+        @Param('id') registryNumber: string,
         @GetUser() publicKey,
     ): Promise<void> {
-        return this.organisationService.deleteOrganisation(id, publicKey);
+        return this.organisationService.deleteOrganisation(
+            registryNumber,
+            publicKey,
+        );
     }
 }
