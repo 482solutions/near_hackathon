@@ -1,6 +1,7 @@
 import { Container, Grid } from "@mui/material";
 import { Box } from "@mui/system";
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
+import { useLocation, useNavigate } from "react-router-dom";
 import AuthorizationModal from "../../modal/auth-modal/AuthorizationModal";
 import Navbar from "../../Navbar/Navbar";
 import Sidebar from "../../Sidebar/Sidebar";
@@ -25,6 +26,23 @@ const ContainerStyle = {
 
 const MainWrapper = ({ children }) => {
   const [isOpen, setIsOpen] = useState(false);
+  const location = useLocation();
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    if (window.walletConnection.isSignedIn() && !document.cookie) {
+      document.cookie = `privateKey = ${localStorage.getItem(
+        `near-api-js:keystore:${window.walletConnection._authData.accountId}:${walletConnection._networkId}`
+      )}`;
+    }
+  }, []);
+
+  useEffect(() => {
+    if (location.pathname !== "/" && !window.walletConnection.isSignedIn()) {
+      navigate("/");
+    }
+  }, [location]);
+
   return (
     <Grid sx={LayoutStyle}>
       <Sidebar setIsModalOpen={setIsOpen} />

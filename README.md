@@ -11,7 +11,10 @@ create DB with name ```near_eac``` and user/password ```postgres/postgres```
 ```npm install```
 
 ### Run in prod mode
-```npm run build```
+```
+npm run build
+npm run start:prod
+```
 
 ### Run in dev mode
 ```npm run start:debug```

@@ -48,7 +48,7 @@ const paths = [
   },
   {
     text: "My EAC's",
-    path: "/coming-soon",
+    path: "/my-eacs",
   },
   {
     text: "Energy market",
