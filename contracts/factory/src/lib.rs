@@ -54,32 +54,13 @@ pub struct FactoryContract {}
 /// Smart-contract that used for: creating ft, transferring FT and $NEAR
 #[near_bindgen]
 impl FactoryContract {
-    #[init]
-    pub fn new() -> Self {
-        Self {}
-    }
-
-    /// Will make cross-contract call to FT contract
-    pub fn check_registered(&mut self, to_check: AccountId) -> Promise {
-        let current_account = env::current_account_id();
-        let ft_contract = self.get_token_account_id();
-        ext_ft::is_registered(to_check, ft_contract, NO_DEPOSIT, FACTORY_CROSS_CALL).then(
-            ext_self::callback_register(current_account, NO_DEPOSIT, FACTORY_CROSS_CALL),
-        )
-    }
-
-    /// Callback to resolve Promise result and pass it on
-    #[private]
-    pub fn callback_register(&mut self) -> bool {
-        utils::resolve_promise_bool()
-    }
-
     /// Creates subaccount for user
     ///
     /// # Arguments
     ///
     /// * `account_id` - Name of account that wants to create FT, should be in format user.testnet/mainnet
     ///
+    #[init]
     #[payable]
     pub fn create_ft(&mut self, reference: String) -> Promise {
         let account_id = env::current_account_id();
@@ -116,6 +97,21 @@ impl FactoryContract {
                 NO_DEPOSIT,
                 TOKEN_NEW,
             )
+    }
+
+    /// Will make cross-contract call to FT contract
+    pub fn check_registered(&mut self, to_check: AccountId) -> Promise {
+        let current_account = env::current_account_id();
+        let ft_contract = self.get_token_account_id();
+        ext_ft::is_registered(to_check, ft_contract, NO_DEPOSIT, FACTORY_CROSS_CALL).then(
+            ext_self::callback_register(current_account, NO_DEPOSIT, FACTORY_CROSS_CALL),
+        )
+    }
+
+    /// Callback to resolve Promise result and pass it on
+    #[private]
+    pub fn callback_register(&mut self) -> bool {
+        utils::resolve_promise_bool()
     }
 
     pub fn get_token_account_id(&self) -> AccountId {
