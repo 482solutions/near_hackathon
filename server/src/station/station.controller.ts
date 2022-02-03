@@ -5,7 +5,6 @@ import {
     Get,
     Logger,
     Param,
-    Patch,
     Post,
     Req,
     ValidationPipe,
@@ -15,7 +14,6 @@ import { GetUser } from 'src/auth/get-user.decorator';
 import { Country } from './country.entity';
 import { CreateStationDto } from './dto/create-station.dto';
 import { Region } from './region.entity';
-import { EEnergyType } from './station-energyType.enum';
 import { Station } from './station.entity';
 import { StationService } from './station.service';
 import { OrganisationService } from '../organisation/organisation.service';
@@ -55,14 +53,15 @@ export class StationController {
         return stations;
     }
 
-    @Get(':id')
+    @Get('/:organisation/:name')
     async getStationById(
-        @Param('id') id: number,
+        @Param('organisation') organisation: string,
+        @Param('name') name: number,
         @GetUser() publicKey: string,
     ): Promise<Station> {
-        this.logger.verbose(`Retrieving Station by ID   + ${id}`);
+        this.logger.verbose(`Retrieving Station by name   + ${name}`);
         let org = await this.organisationService.getAllOrganisations(publicKey);
-        return this.stationService.getStationById(id, org);
+        return this.stationService.getStationById(organisation, name, org);
     }
 
     @Post()
@@ -76,7 +75,7 @@ export class StationController {
             `Creating new Station. Data : ${JSON.stringify(createStationDto)}`,
         );
         let org = await this.organisationService.getOrganisationById(
-            req.body.organisationId,
+            req.body.organisation,
             publicKey,
         );
         return this.stationService.createStation(
@@ -86,25 +85,15 @@ export class StationController {
         );
     }
 
-    @Delete(':id')
+    @Delete('/:organisation/:name')
     async deleteStation(
-        @Param('id') id: number,
+        @Param('organisation') organisation: string,
+        @Param('name') name: string,
         @GetUser() publicKey: string,
     ): Promise<void> {
-        this.logger.verbose(`Deleting Station by ID   + ${id}`);
+        this.logger.verbose(`Deleting Station by name   + ${name}`);
         let org = await this.organisationService.getAllOrganisations(publicKey);
-        return this.stationService.deleteStation(id, org);
-    }
-
-    @Patch(':id/energyType')
-    async updateStationType(
-        @Param('id') id: number,
-        @Body('energyType') energyType: EEnergyType,
-        @GetUser() publicKey: string,
-    ): Promise<Station> {
-        this.logger.verbose(`Updating  StationType`);
-        let org = await this.organisationService.getAllOrganisations(publicKey);
-        return this.stationService.updateStationType(id, energyType, org);
+        return this.stationService.deleteStation(organisation, name, org);
     }
 
     @Post('/country')
