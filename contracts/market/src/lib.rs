@@ -7,15 +7,12 @@ use near_sdk::borsh::{self, BorshDeserialize, BorshSerialize};
 use near_sdk::collections::{LookupMap, UnorderedMap, UnorderedSet};
 use near_sdk::env::STORAGE_PRICE_PER_BYTE;
 use near_sdk::json_types::U128;
-use near_sdk::serde::{Deserialize, Serialize};
 use near_sdk::{
     assert_one_yocto, env, near_bindgen, require, AccountId, Balance, BorshStorageKey, CryptoHash,
     PanicOnDefault, Promise,
 };
-use std::collections::HashMap;
 
 use crate::external::*;
-use crate::internal::*;
 use crate::sale::*;
 
 mod external;

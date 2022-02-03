@@ -1,7 +1,7 @@
 use crate::*;
 use near_sdk::borsh::{self, BorshDeserialize, BorshSerialize};
 use near_sdk::serde::{Deserialize, Serialize};
-use near_sdk::{ext_contract, log, promise_result_as_success, AccountId, Balance, Promise};
+use near_sdk::{log, AccountId, Balance, Promise};
 use token_factory::prices::FACTORY_CROSS_CALL;
 
 /// Ask struct, defines who sells, how much, and on what conditions
@@ -76,12 +76,7 @@ impl Contract {
 
     /// Removes a sale from the market.
     #[payable]
-    pub fn remove_position(
-        &mut self,
-        id: ContractAndId,
-        ft_contract_id: AccountId,
-        position: Position,
-    ) {
+    pub fn remove_position(&mut self, id: ContractAndId, position: Position) {
         //assert that the user has attached exactly 1 yoctoNEAR (for security reasons)
         assert_one_yocto();
 
@@ -135,7 +130,7 @@ impl Contract {
 
     /// Place an order on a specific sale. The sale will go through as long as your deposit is greater than or equal to the list price
     #[payable]
-    pub fn buy(&mut self, id: ContractAndId, position: Position) {
+    pub fn buy(&mut self, id: ContractAndId) {
         // Get the attached deposit and make sure it's greater than 0
         let deposit = env::attached_deposit();
         require!(deposit > 0, "Attached deposit must be greater than 0");
@@ -158,21 +153,15 @@ impl Contract {
         );
 
         // Process the purchase (which will remove the ask, transfer and get the payout from the ft contract)
-        self.process_purchase(ask.ft_contract_id, id, U128(deposit), buyer_id);
+        self.process_purchase(id, buyer_id);
     }
 
     /// Private function used when a sale is purchased.
     /// This will remove the sale, transfer and get the payout from the nft contract, and then distribute royalties
     #[private]
-    pub fn process_purchase(
-        &mut self,
-        ft_contract_id: AccountId,
-        id: ContractAndId,
-        price: U128,
-        buyer_id: AccountId,
-    ) -> Promise {
+    pub fn process_purchase(&mut self, id: ContractAndId, buyer_id: AccountId) -> Promise {
         //get the sale object by removing the sale
-        let sale = self.internal_remove_ask(id.clone());
+        let sale = self.internal_remove_ask(id);
 
         // Transfer $NEAR to seller
         let transfer_near =

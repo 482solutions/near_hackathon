@@ -1,4 +1,5 @@
 use crate::*;
+use near_sdk::env::panic_str;
 
 use uuid::Uuid;
 
@@ -13,13 +14,11 @@ pub(crate) fn hash_account_id(account_id: &AccountId) -> CryptoHash {
 
 impl Contract {
     pub(crate) fn internal_place_ask(&mut self, ask: Ask) -> Ask {
-        let caller = env::predecessor_account_id();
-
         let id = format!("{}.{}", ask.owner_id, Uuid::new_v4());
 
         self.asks
             .insert(&id, &ask)
-            .unwrap_or_else("Ask already exists");
+            .unwrap_or_else(|| panic_str("Ask already exists"));
 
         let by_owner = self.asks_by_owner_id.get(&ask.owner_id);
 
@@ -42,7 +41,7 @@ impl Contract {
 
         self.bids
             .insert(&id, &bid)
-            .unwrap_or_else("Bid already exists");
+            .unwrap_or_else(|| panic_str("Bid already exists"));
 
         let by_owner = self.bids_by_owner_id.get(&bid.owner_id);
 

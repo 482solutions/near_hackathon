@@ -18,7 +18,7 @@ impl Contract {
 
     /// Returns the number of asks for a given account (result is a string)
     pub fn get_supply_by_owner_id(&self, account_id: AccountId, position: Position) -> U64 {
-        let mut by_owner_id: Option<UnorderedSet<ContractAndId>> = None;
+        let by_owner_id: Option<UnorderedSet<ContractAndId>>;
         //get the set of sales for the given owner Id
 
         match position {
@@ -44,7 +44,6 @@ impl Contract {
         account_id: AccountId,
         from_index: Option<U128>,
         limit: Option<u64>,
-        position: Position,
     ) -> Vec<Ask> {
         //get the set of token IDs for sale for the given account ID
         let by_owner_id = self.asks_by_owner_id.get(&account_id);
@@ -79,7 +78,6 @@ impl Contract {
         account_id: AccountId,
         from_index: Option<U128>,
         limit: Option<u64>,
-        position: Position,
     ) -> Vec<Bid> {
         //get the set of token IDs for sale for the given account ID
         let by_owner_id = self.bids_by_owner_id.get(&account_id);
