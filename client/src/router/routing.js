@@ -1,7 +1,7 @@
 import App from "../App";
 import ComingSoon from "../pages/coming-soon/ComingSoon";
 import Dashboard from "../pages/dashboard/Dashboard";
-import SignIn from "../pages/sign-in/SingIn";
+import MyEacs from "../pages/my-eacs/MyEacs";
 
 export const routes = [
   {
@@ -12,11 +12,11 @@ export const routes = [
     private: true,
   },
   {
-    path: "/sign-in",
+    path: "/my-eacs",
     exact: true,
-    component: SignIn,
+    component: MyEacs,
     fallback: null,
-    private: false,
+    private: true,
   },
   {
     path: "/coming-soon",
