@@ -28,14 +28,9 @@ const STORAGE_PER_SALE: u128 = 1000 * STORAGE_PRICE_PER_BYTE;
 
 //Creating custom types to use within the contract. This makes things more readable.
 pub type SalePriceInYoctoNear = U128;
-pub type ContractAndTokenId = String;
+pub type ContractAndId = String;
 
-//defines the payout type we'll be parsing from the NFT contract as a part of the royalty standard.
-#[derive(Serialize, Deserialize)]
-#[serde(crate = "near_sdk::serde")]
-pub struct Payout {
-    pub payout: HashMap<AccountId, U128>,
-}
+pub type Result<T, E = Box<dyn std::error::Error>> = std::result::Result<T, E>;
 
 /// Struct for storing various information about market state
 #[near_bindgen]
@@ -48,15 +43,15 @@ pub struct Contract {
        the ContractAndTokenId is the unique identifier for every sale. It is made
        up of the `contract ID + DELIMITER + UUIDv4`
     */
-    pub asks: UnorderedMap<ContractAndTokenId, Ask>,
+    pub asks: UnorderedMap<ContractAndId, Ask>,
     /// Same with bids
-    pub bids: UnorderedMap<ContractAndTokenId, Bid>,
+    pub bids: UnorderedMap<ContractAndId, Bid>,
 
     /// Keep track of all the Ask IDs for every account ID
-    pub asks_by_owner_id: LookupMap<AccountId, UnorderedSet<ContractAndTokenId>>,
+    pub asks_by_owner_id: LookupMap<AccountId, UnorderedSet<ContractAndId>>,
 
     /// Keep track of all the Bids IDs for every account ID
-    pub bids_by_owner_id: LookupMap<AccountId, UnorderedSet<ContractAndTokenId>>,
+    pub bids_by_owner_id: LookupMap<AccountId, UnorderedSet<ContractAndId>>,
 
     /// Keep track of the storage that accounts have paid
     pub storage_deposits: LookupMap<AccountId, Balance>,

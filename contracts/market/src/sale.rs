@@ -78,7 +78,7 @@ impl Contract {
     #[payable]
     pub fn remove_position(
         &mut self,
-        id: ContractAndTokenId,
+        id: ContractAndId,
         ft_contract_id: AccountId,
         position: Position,
     ) {
@@ -105,7 +105,7 @@ impl Contract {
 
     /// Updates the price for a sale on the market
     #[payable]
-    pub fn update_price(&mut self, id: ContractAndTokenId, price: U128, position: Position) {
+    pub fn update_price(&mut self, id: ContractAndId, price: U128, position: Position) {
         //assert that the user has attached exactly 1 yoctoNEAR (for security reasons)
         assert_one_yocto();
 
@@ -135,7 +135,7 @@ impl Contract {
 
     /// Place an order on a specific sale. The sale will go through as long as your deposit is greater than or equal to the list price
     #[payable]
-    pub fn buy(&mut self, id: ContractAndTokenId, position: Position) {
+    pub fn buy(&mut self, id: ContractAndId, position: Position) {
         // Get the attached deposit and make sure it's greater than 0
         let deposit = env::attached_deposit();
         require!(deposit > 0, "Attached deposit must be greater than 0");
@@ -167,7 +167,7 @@ impl Contract {
     pub fn process_purchase(
         &mut self,
         ft_contract_id: AccountId,
-        id: ContractAndTokenId,
+        id: ContractAndId,
         price: U128,
         buyer_id: AccountId,
     ) -> Promise {

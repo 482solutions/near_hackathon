@@ -61,7 +61,7 @@ impl Contract {
     }
 
     /// Internal method for removing a ask from the market. This returns the previously removed object
-    pub(crate) fn internal_remove_ask(&mut self, id: ContractAndTokenId) -> Ask {
+    pub(crate) fn internal_remove_ask(&mut self, id: ContractAndId) -> Ask {
         let ask = self.asks.remove(&id).expect("No ask");
         // Get the set of sales for the sale's owner. If there's no sale, panic.
         let mut by_owner_id = self
@@ -84,7 +84,7 @@ impl Contract {
     }
 
     /// Internal method for removing a bid from the market. This returns the previously removed object
-    pub(crate) fn internal_remove_bid(&mut self, id: ContractAndTokenId) -> Bid {
+    pub(crate) fn internal_remove_bid(&mut self, id: ContractAndId) -> Bid {
         // Get the unique sale ID (contract + DELIMITER + token ID)
         // Get the sale object by removing the unique sale ID. If there was no sale, panic
         let bid = self.bids.remove(&id).expect("No ask");

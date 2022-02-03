@@ -18,7 +18,7 @@ impl Contract {
 
     /// Returns the number of asks for a given account (result is a string)
     pub fn get_supply_by_owner_id(&self, account_id: AccountId, position: Position) -> U64 {
-        let mut by_owner_id: Option<UnorderedSet<ContractAndTokenId>> = None;
+        let mut by_owner_id: Option<UnorderedSet<ContractAndId>> = None;
         //get the set of sales for the given owner Id
 
         match position {
@@ -109,14 +109,14 @@ impl Contract {
     }
 
     /// Get a ask information for a given unique ask ID (contract + DELIMITER + uuid)
-    pub fn get_ask(&self, id: ContractAndTokenId) -> Option<Ask> {
+    pub fn get_ask(&self, id: ContractAndId) -> Option<Ask> {
         //try and get the sale object for the given unique sale ID. Will return an option since
         //we're not guaranteed that the unique sale ID passed in will be valid.
         self.asks.get(&id)
     }
 
     /// Get a bid information for a given unique bid ID (contract + DELIMITER + uuid)
-    pub fn get_bid(&self, id: ContractAndTokenId) -> Option<Bid> {
+    pub fn get_bid(&self, id: ContractAndId) -> Option<Bid> {
         //try and get the sale object for the given unique sale ID. Will return an option since
         //we're not guaranteed that the unique sale ID passed in will be valid.
         self.bids.get(&id)
