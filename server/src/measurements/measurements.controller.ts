@@ -5,23 +5,39 @@ import {
     Get,
     Logger,
     Param,
-    Patch,
     Post,
+    Req,
+    ValidationPipe,
 } from '@nestjs/common';
 import { MeasurementsService } from './measurements.service';
 import { CreateMeasurementDto } from './dto/create-measurement.dto';
-import { UpdateMeasurementDto } from './dto/update-measurement.dto';
 import { Measurement } from './entities/measurement.entity';
+import { StationService } from '../station/station.service';
 
 @Controller('measurements')
 export class MeasurementsController {
     private logger = new Logger('MeasurementsController');
 
-    constructor(private readonly measurementsService: MeasurementsService) {}
+    constructor(
+        private measurementsService: MeasurementsService,
+        private stationService: StationService,
+    ) {}
 
     @Post()
-    create(@Body() createMeasurementDto: CreateMeasurementDto) {
-        return this.measurementsService.create(createMeasurementDto);
+    async create(
+        @Body(ValidationPipe) createMeasurementDto: CreateMeasurementDto,
+        @Req() req,
+    ): Promise<Measurement> {
+        this.logger.verbose(
+            `Adding new measurement. Data : ${JSON.stringify(
+                createMeasurementDto,
+            )}`,
+        );
+        let station = await this.stationService.getStation(
+            req.body.organisation,
+            req.body.station,
+        );
+        return this.measurementsService.create(createMeasurementDto, station);
     }
 
     @Get()
@@ -33,14 +49,6 @@ export class MeasurementsController {
     @Get(':id')
     findOne(@Param('id') id: string) {
         return this.measurementsService.findOne(+id);
-    }
-
-    @Patch(':id')
-    update(
-        @Param('id') id: string,
-        @Body() updateMeasurementDto: UpdateMeasurementDto,
-    ) {
-        return this.measurementsService.update(+id, updateMeasurementDto);
     }
 
     @Delete(':id')

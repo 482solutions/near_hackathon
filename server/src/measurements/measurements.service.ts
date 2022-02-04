@@ -6,9 +6,9 @@ import {
 import { InjectRepository } from '@nestjs/typeorm';
 
 import { CreateMeasurementDto } from './dto/create-measurement.dto';
-import { UpdateMeasurementDto } from './dto/update-measurement.dto';
-import { MeasurementRepository } from './measurementRepository';
+import { MeasurementRepository } from './measurement.repository';
 import { Measurement } from './entities/measurement.entity';
+import { Station } from '../station/station.entity';
 
 @Injectable()
 export class MeasurementsService {
@@ -19,8 +19,19 @@ export class MeasurementsService {
         private measurementRepository: MeasurementRepository,
     ) {}
 
-    create(createMeasurementDto: CreateMeasurementDto) {
-        return 'This action adds a new measurement';
+    public async create(
+        measurementDto: CreateMeasurementDto,
+        station: Station,
+    ): Promise<Measurement> {
+        let measurement = this.measurementRepository.create(measurementDto);
+        try {
+            measurement.station = Promise.resolve(station);
+            await measurement.save();
+        } catch (e) {
+            this.logger.error(`Failed to create new measurement: `, e.stack);
+            throw new InternalServerErrorException();
+        }
+        return measurement;
     }
 
     public async findAll(): Promise<Measurement[]> {
@@ -36,10 +47,6 @@ export class MeasurementsService {
 
     findOne(id: number) {
         return `This action returns a #${id} measurement`;
-    }
-
-    update(id: number, updateMeasurementDto: UpdateMeasurementDto) {
-        return `This action updates a #${id} measurement`;
     }
 
     remove(id: number) {
