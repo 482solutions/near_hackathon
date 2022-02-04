@@ -2,15 +2,19 @@
 //!
 //! Part of code was part of the code was taken from https://github.com/near-examples/nft-tutorial/blob/8.marketplace/market-contract/src/lib.rs
 
-use crate::sale::{Ask, Bid};
 use near_sdk::borsh::{self, BorshDeserialize, BorshSerialize};
 use near_sdk::collections::{LookupMap, UnorderedMap, UnorderedSet};
-use near_sdk::env::STORAGE_PRICE_PER_BYTE;
-use near_sdk::json_types::U128;
-use near_sdk::{
-    assert_one_yocto, env, near_bindgen, require, AccountId, Balance, BorshStorageKey, CryptoHash,
-    PanicOnDefault, Promise,
+use near_sdk::env::{
+    attached_deposit, panic_str, predecessor_account_id, sha256, STORAGE_PRICE_PER_BYTE,
 };
+use near_sdk::json_types::{U128, U64};
+use near_sdk::serde::{Deserialize, Serialize};
+use near_sdk::{
+    assert_one_yocto, ext_contract, log, near_bindgen, require, AccountId, Balance,
+    BorshStorageKey, CryptoHash, Gas, PanicOnDefault, Promise,
+};
+
+use token_factory::prices::FACTORY_CROSS_CALL;
 
 use crate::external::*;
 use crate::sale::*;
@@ -26,8 +30,6 @@ const STORAGE_PER_SALE: u128 = 1000 * STORAGE_PRICE_PER_BYTE;
 //Creating custom types to use within the contract. This makes things more readable.
 pub type SalePriceInYoctoNear = U128;
 pub type ContractAndId = String;
-
-pub type Result<T, E = Box<dyn std::error::Error>> = std::result::Result<T, E>;
 
 /// Struct for storing various information about market state
 #[near_bindgen]
@@ -88,12 +90,10 @@ impl Contract {
     pub fn storage_deposit(&mut self, account_id: Option<AccountId>) {
         //get the account ID to pay for storage for
         let storage_account_id = account_id
-            //convert the valid account ID into an account ID
-            .map(|a| a.into())
             //if we didn't specify an account ID, we simply use the caller of the function
-            .unwrap_or_else(env::predecessor_account_id);
+            .unwrap_or_else(predecessor_account_id);
 
-        let deposit = env::attached_deposit();
+        let deposit = attached_deposit();
 
         require!(
             deposit >= STORAGE_PER_SALE,
@@ -115,7 +115,7 @@ impl Contract {
         assert_one_yocto();
 
         //the account to withdraw storage to is always the function caller
-        let owner_id = env::predecessor_account_id();
+        let owner_id = predecessor_account_id();
         //get the amount that the user has by removing them from the map. If they're not in the map, default to 0
         let mut amount = self.storage_deposits.remove(&owner_id).unwrap_or(0);
 

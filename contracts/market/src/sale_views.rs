@@ -1,5 +1,4 @@
 use crate::*;
-use near_sdk::json_types::U64;
 
 /// Views. Used to retrieve information from market
 #[near_bindgen]
