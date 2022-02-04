@@ -2,12 +2,9 @@
 //!
 //! This module is used for creating sub accounts for use by companies.
 
-use crate::prices::TOKEN_INIT_BALANCE;
 use near_sdk::borsh::{self, BorshDeserialize, BorshSerialize};
 use near_sdk::serde_json::json;
-use near_sdk::{
-    env, ext_contract, log, near_bindgen, require, AccountId, Balance, Gas, PanicOnDefault, Promise,
-};
+use near_sdk::{env, ext_contract, log, near_bindgen, require, AccountId, PanicOnDefault, Promise};
 use utils::utils;
 
 /* TODO: I should definitely later dive deeper into economics of NEAR
@@ -51,6 +48,10 @@ pub trait FT {
 #[derive(BorshDeserialize, BorshSerialize, PanicOnDefault)]
 pub struct FactoryContract {}
 
+pub fn get_token_account_id() -> AccountId {
+    AccountId::new_unchecked(format!("{}.{}", "ft", env::current_account_id()))
+}
+
 /// Smart-contract that used for: creating ft, transferring FT and $NEAR
 #[near_bindgen]
 impl FactoryContract {
@@ -60,12 +61,12 @@ impl FactoryContract {
     ///
     /// * `account_id` - Name of account that wants to create FT, should be in format user.testnet/mainnet
     ///
-    #[init]
+    #[init(ignore_state)]
     #[payable]
-    pub fn create_ft(&mut self, reference: String) -> Promise {
+    pub fn create_ft(name: String, reference: String) -> Promise {
         let account_id = env::current_account_id();
 
-        let subaccount_id = self.get_token_account_id();
+        let subaccount_id = get_token_account_id();
 
         log!(
             "Trying to create subaccount: {}. {} yoctoNEAR required as deposit",
@@ -90,7 +91,7 @@ impl FactoryContract {
             .deploy_contract(CODE.to_vec())
             .function_call(
                 "new_with_reference".to_string(),
-                json!({ "owner_id": account_id, "reference": reference })
+                json!({ "owner_id": account_id, "name": name, "reference": reference })
                     .to_string()
                     .as_bytes()
                     .to_vec(),
@@ -102,7 +103,7 @@ impl FactoryContract {
     /// Will make cross-contract call to FT contract
     pub fn check_registered(&mut self, to_check: AccountId) -> Promise {
         let current_account = env::current_account_id();
-        let ft_contract = self.get_token_account_id();
+        let ft_contract = get_token_account_id();
         ext_ft::is_registered(to_check, ft_contract, NO_DEPOSIT, FACTORY_CROSS_CALL).then(
             ext_self::callback_register(current_account, NO_DEPOSIT, FACTORY_CROSS_CALL),
         )
@@ -112,52 +113,5 @@ impl FactoryContract {
     #[private]
     pub fn callback_register(&mut self) -> bool {
         utils::resolve_promise_bool()
-    }
-
-    pub fn get_token_account_id(&self) -> AccountId {
-        AccountId::new_unchecked(format!("{}.{}", "ft", env::current_account_id()))
-    }
-
-    /// Used to transfer $NEAR to buyer and transfer FT to seller
-    ///
-    /// Typically, should be cross-contract called by market.
-    ///
-    /// # Arguments
-    ///
-    /// * `buyer` - Account to transfer FT to, should contain postfix
-    /// * `seller` - Account to tranfer $NEAR to, should contain prefix
-    /// * `amount_near` - Amount of $NEAR to transfer
-    /// * `amount_ft` - Respectively amount of FT to transfer
-    ///
-    #[private]
-    pub fn give_to(
-        &mut self,
-        buyer: AccountId,
-        seller: AccountId,
-        amount_near: Balance,
-        amount_ft: Balance,
-    ) -> Promise {
-        let splitted = utils::split_account(&seller);
-
-        let prefix = AccountId::new_unchecked(splitted[0].to_string());
-
-        let seller_subaccount = self.get_token_account_id();
-
-        // First we check if buyer is registered in seller FT contract
-        // and if not - register him
-        let check_register = self.check_registered(buyer.clone()).then(ext_ft::register(
-            buyer,
-            seller_subaccount,
-            NO_DEPOSIT,
-            FACTORY_CROSS_CALL,
-        ));
-
-        // TODO: Add actual Promise for that
-        // Then we can transfer FT to buyer
-
-        // Transfers $NEAR to seller
-        let transfer_near = Promise::new(seller).transfer(amount_near);
-
-        check_register.then(transfer_near)
     }
 }
