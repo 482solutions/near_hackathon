@@ -15,3 +15,6 @@ cp target/wasm32-unknown-unknown/release/fungible_token.wasm $OUT_DIR
 
 cargo build --release -p token-factory
 cp target/wasm32-unknown-unknown/release/token_factory.wasm $OUT_DIR
+
+cargo build --release -p market
+cp target/wasm32-unknown-unknown/release/market.wasm $OUT_DIR
