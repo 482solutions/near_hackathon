@@ -61,9 +61,9 @@ impl FactoryContract {
     ///
     /// * `account_id` - Name of account that wants to create FT, should be in format user.testnet/mainnet
     ///
-    #[init]
+    #[init(ignore_state)]
     #[payable]
-    pub fn create_ft(reference: String) -> Promise {
+    pub fn create_ft(name: String, reference: String) -> Promise {
         let account_id = env::current_account_id();
 
         let subaccount_id = get_token_account_id();
@@ -91,7 +91,7 @@ impl FactoryContract {
             .deploy_contract(CODE.to_vec())
             .function_call(
                 "new_with_reference".to_string(),
-                json!({ "owner_id": account_id, "reference": reference })
+                json!({ "owner_id": account_id, "name": name, "reference": reference })
                     .to_string()
                     .as_bytes()
                     .to_vec(),
