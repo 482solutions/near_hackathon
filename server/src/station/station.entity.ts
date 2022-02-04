@@ -5,7 +5,6 @@ import {
     Column,
     Entity,
     JoinColumn,
-    JoinTable,
     ManyToOne,
     OneToMany,
     PrimaryColumn,
@@ -64,6 +63,5 @@ export class Station extends BaseEntity {
     @OneToMany((type) => Measurement, (measurement) => measurement.station, {
         eager: false,
     })
-    @JoinTable()
     measurements: Promise<Measurement[]>;
 }

@@ -19,7 +19,10 @@ export class Measurement extends BaseEntity {
     endDate: string;
 
     @Column()
-    generatedEnergy: string;
+    generatedEnergy: number;
+
+    @Column({ default: false })
+    minted: boolean;
 
     @ManyToOne((type) => Station, (station) => station.measurements, {
         eager: false,
