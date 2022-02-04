@@ -56,7 +56,7 @@ export class StationController {
     @Get('/:organisation/:name')
     async getStationById(
         @Param('organisation') organisation: string,
-        @Param('name') name: number,
+        @Param('name') name: string,
         @GetUser() publicKey: string,
     ): Promise<Station> {
         this.logger.verbose(`Retrieving Station by name   + ${name}`);
@@ -78,11 +78,7 @@ export class StationController {
             req.body.organisation,
             publicKey,
         );
-        return this.stationService.createStation(
-            createStationDto,
-            publicKey,
-            org,
-        );
+        return this.stationService.createStation(createStationDto, org);
     }
 
     @Delete('/:organisation/:name')
