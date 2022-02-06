@@ -21,15 +21,61 @@ use near_contract_standards::fungible_token::metadata::{
 use near_contract_standards::fungible_token::FungibleToken;
 use near_sdk::borsh::{self, BorshDeserialize, BorshSerialize};
 use near_sdk::collections::LazyOption;
-use near_sdk::env;
-use near_sdk::env::sha256;
-use near_sdk::json_types::{Base64VecU8, U128};
-use near_sdk::log;
+use near_sdk::env::{current_account_id, predecessor_account_id, sha256};
+use near_sdk::json_types::{Base64VecU8, ValidAccountId, U128};
 use near_sdk::near_bindgen;
+use near_sdk::serde::{Deserialize, Serialize};
+use near_sdk::{assert_one_yocto, env};
+use near_sdk::{log, Promise};
 use near_sdk::{require, AccountId, Balance, BorshStorageKey, PanicOnDefault, PromiseOrValue};
-use std::ops::Sub;
 
 use utils::utils;
+
+mod internal;
+
+/// Enum for token type
+#[derive(BorshDeserialize, BorshSerialize, Serialize, Deserialize, Debug)]
+#[serde(crate = "near_sdk::serde")]
+pub enum Type {
+    GO,
+    REC,
+    IREC,
+}
+
+// TODO: Describe this better (create sub-types)
+// Also. It seems to be pretty a lot of data to send every time. It looks garbage
+/// Metadata we provide
+#[derive(BorshDeserialize, BorshSerialize, Serialize, Deserialize, Debug)]
+#[serde(crate = "near_sdk::serde")]
+pub struct Metadata {
+    pub eac_id: String,
+
+    // TODO: Ask if this really needed
+    pub ft_type: Type,
+    pub energy_source: String,
+    pub prod_start_date: String,
+
+    // Tf if that?
+    pub aid_scheme_type: String,
+    pub applies_to_cooling_energy: bool,
+    pub applies_to_electricity: bool,
+    pub applies_to_heating_energy: bool,
+    pub commissioning_date: String,
+    pub issue_date: String,
+    pub issuing_country: String,
+    pub plant_location: String,
+    pub plant_name: String,
+    pub plant_performance: String,
+    pub plant_received_investment_aid: bool,
+    pub plant_received_national_aid: bool,
+    pub plant_type: String,
+    // Is it really should be an integer ?
+    pub plant_uid: u128,
+    pub prod_end_date: String,
+    // And what it is ??
+    pub received_investment_aid: String,
+    pub received_national_aid: String,
+}
 
 #[near_bindgen]
 #[derive(BorshDeserialize, BorshSerialize, PanicOnDefault)]
@@ -49,7 +95,7 @@ impl Contract {
     /// Initializes the contract with the given total supply owned by the given `owner_id` with
     /// the given fungible token metadata.
     #[init]
-    pub fn new_with_reference(owner_id: AccountId, reference: String) -> Self {
+    pub fn new_with_reference(owner_id: AccountId, name: String, reference: String) -> Self {
         require!(!env::state_exists(), "Already initialized");
 
         let hashed = sha256(&reference.bytes().collect::<Vec<u8>>());
@@ -58,8 +104,8 @@ impl Contract {
 
         let metadata = FungibleTokenMetadata {
             spec: FT_METADATA_SPEC.to_string(),
-            name: "EACs Fungible Token".to_string(),
-            symbol: "ECO".to_string(),
+            name,
+            symbol: "IREC".to_string(),
             icon: None,
             reference: Some(reference),
             // TODO: Check if this ok
@@ -73,8 +119,7 @@ impl Contract {
     pub fn register(&mut self, account_id: AccountId) {
         let registered = utils::resolve_promise_bool();
         if !registered {
-            log!("User {} is not registered yet. Doing it now", &account_id);
-            self.token.internal_register_account(&account_id);
+            self.register_resolve(account_id);
         }
     }
 
@@ -82,12 +127,29 @@ impl Contract {
         self.token.accounts.contains_key(&account_id)
     }
 
+    #[payable]
+    pub fn ft_transfer_wrapped(
+        &mut self,
+        receiver_id: AccountId,
+        amount: U128,
+        memo: Option<String>,
+    ) {
+        assert_one_yocto();
+        let sender_id = env::signer_account_id();
+
+        if !self.is_registered(sender_id.clone()) {
+            self.register_resolve(sender_id.clone())
+        }
+
+        let amount: Balance = amount.into();
+        self.token
+            .internal_transfer(&sender_id, &receiver_id, amount, memo);
+    }
+
     // TODO: Add method to securely give FT to users
     /// Gives FT to user that called/deployed contract
-    pub fn ft_mint(&mut self, amount: Balance) -> U128 {
-        let current = env::current_account_id();
-
-        log!("{}", current);
+    pub fn ft_mint(&mut self, amount: Balance, metadata: Metadata) -> U128 {
+        log!("Metadata: {:?}", metadata);
 
         let account_id = env::signer_account_id();
 

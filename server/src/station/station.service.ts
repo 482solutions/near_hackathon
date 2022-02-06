@@ -50,7 +50,7 @@ export class StationService {
 
     public async getStationById(
         organisation: string,
-        name: number,
+        name: string,
         organisations: Organisation[],
     ): Promise<Station> {
         const query = this.stationRepository.createQueryBuilder('station');
@@ -81,9 +81,34 @@ export class StationService {
         return found;
     }
 
+    public async getStation(
+        organisation: string,
+        name: string,
+    ): Promise<Station> {
+        const query = this.stationRepository.createQueryBuilder('station');
+        let found;
+        try {
+            query.where(
+                'station.name = :name AND' +
+                    ' station.organisationRegistryNumber = :organisation',
+                {
+                    name: name,
+                    organisation: organisation,
+                },
+            );
+            found = await query.getOne();
+        } catch (error) {
+            this.logger.error(`Failed to get station ${name}: `, error.stack);
+            throw new InternalServerErrorException();
+        }
+        if (!found) {
+            throw new NotFoundException(`Station with id: ${name} not found`);
+        }
+        return found;
+    }
+
     public async createStation(
         stationInput: CreateStationDto,
-        userId: string,
         organisation: Organisation,
     ): Promise<Station> {
         let station = this.stationRepository.create(stationInput);
@@ -103,7 +128,7 @@ export class StationService {
         organisations: Organisation[],
     ): Promise<void> {
         try {
-            this.stationRepository
+            await this.stationRepository
                 .createQueryBuilder('station')
                 .delete()
                 .where(

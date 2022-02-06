@@ -9,7 +9,9 @@ export const GetUser = createParamDecorator(
     (data, ctx: ExecutionContext): string => {
         const req = ctx.switchToHttp().getRequest();
         try {
-            return KeyPair.fromString(req.body.privateKey)
+            return KeyPair.fromString(
+                req.body.privateKey || req.cookies['privateKey'],
+            )
                 .getPublicKey()
                 .toString();
         } catch (e) {
