@@ -52,7 +52,7 @@ const paths = [
   },
   {
     text: "Energy market",
-    path: "/coming-soon",
+    path: "/energy-market",
   },
   {
     text: "Settings",

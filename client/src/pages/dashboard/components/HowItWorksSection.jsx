@@ -11,18 +11,21 @@ import diagramImg from "./assets/diagramImg.svg";
 const imgSectionData = [
   {
     img: companyImg,
+    label: "Create company",
   },
   {
     img: arrow,
   },
   {
     img: hydroStationImg,
+    label: "Create Station",
   },
   {
     img: arrow,
   },
   {
     img: createEacImg,
+    label: "Create EAC",
   },
 ];
 
@@ -42,10 +45,10 @@ const BoxStyle = {
 const ImagesWrapperStyle = {
   marginTop: "32px",
   marginBottom: "12px",
-  maxHeight: "80px",
-  gap: "20px",
+  justifyContent: "space-between",
+  alignItems: "center",
   img: {
-    maxHeight: "inherit",
+    maxHeight: "80px",
   },
 };
 
@@ -56,12 +59,12 @@ const HowItWorksSection = () => {
         <TitleText title={"How does this work?"} />
         <Grid container sx={ImagesWrapperStyle}>
           {imgSectionData.map((el, index) => {
-            return <img src={el.img} alt="logo" key={index} />;
-          })}
-        </Grid>
-        <Grid container gap="52px">
-          {["Create company", "Create Station", "Create EAC"].map((el) => {
-            return <RegularText key={el} content={el} variant="small" />;
+            return (
+              <Grid key={index}>
+                <img src={el.img} alt="logo" key={index} />
+                {el.label && <RegularText content={el.label} variant="small" />}
+              </Grid>
+            );
           })}
         </Grid>
       </Box>
