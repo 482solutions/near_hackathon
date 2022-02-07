@@ -1,7 +1,13 @@
-import { Station } from "src/station/station.entity";
-import { BaseEntity, Column, Entity, JoinTable, OneToMany, PrimaryColumn } from "typeorm";
+import { Station } from 'src/station/station.entity';
+import {
+    BaseEntity,
+    Column,
+    Entity,
+    JoinTable,
+    OneToMany,
+    PrimaryColumn,
+} from 'typeorm';
 
-// @Unique(['userId'])
 @Entity()
 export class Organisation extends BaseEntity {
     @PrimaryColumn()
