@@ -23,15 +23,24 @@ export class MeasurementsService {
         measurementDto: CreateMeasurementDto,
         station: Station,
     ): Promise<Measurement> {
-        let measurement = this.measurementRepository.create(measurementDto);
+        let measurement;
         try {
-            measurement.station = Promise.resolve(station);
-            await measurement.save();
+            measurement = await this.measurementRepository
+                .createQueryBuilder()
+                .insert()
+                .into(Measurement)
+                .values({
+                    ...measurementDto,
+                    stationName: station.name,
+                    stationOrganisationRegistryNumber:
+                        station.organisationRegistryNumber,
+                })
+                .execute();
         } catch (e) {
             this.logger.error(`Failed to create new measurement: `, e.stack);
             throw new InternalServerErrorException();
         }
-        return measurement;
+        return measurement.records[0];
     }
 
     public async findAll(): Promise<Measurement[]> {
