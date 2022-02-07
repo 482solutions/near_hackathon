@@ -34,7 +34,8 @@ const InputsData = {
       required: true,
     },
     {
-      title: "Trade Registry Company number",
+      title: "Organization Address",
+      required: true,
     },
     {
       title: "Business type",
@@ -46,20 +47,23 @@ const InputsData = {
     },
     {
       title: "Trade Registry Company number",
+      require: true,
     },
     {
-      title: "Organization Name",
+      title: "Signatory Full Name",
       required: true,
     },
     {
-      title: "Trade Registry Company number",
-    },
-    {
-      title: "Organization Name",
+      title: "Signatory Address",
       required: true,
     },
     {
-      title: "Trade Registry Company number",
+      title: "Signatory Email",
+      required: true,
+    },
+    {
+      title: "Signatory Telephone",
+      required: true,
     },
   ],
   EAC: [
