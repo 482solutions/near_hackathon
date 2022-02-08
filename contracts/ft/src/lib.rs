@@ -21,12 +21,12 @@ use near_contract_standards::fungible_token::metadata::{
 use near_contract_standards::fungible_token::FungibleToken;
 use near_sdk::borsh::{self, BorshDeserialize, BorshSerialize};
 use near_sdk::collections::LazyOption;
-use near_sdk::env::{current_account_id, predecessor_account_id, sha256};
-use near_sdk::json_types::{Base64VecU8, ValidAccountId, U128};
+use near_sdk::env::sha256;
+use near_sdk::json_types::{Base64VecU8, U128};
+use near_sdk::log;
 use near_sdk::near_bindgen;
 use near_sdk::serde::{Deserialize, Serialize};
 use near_sdk::{assert_one_yocto, env};
-use near_sdk::{log, Promise};
 use near_sdk::{require, AccountId, Balance, BorshStorageKey, PanicOnDefault, PromiseOrValue};
 
 use utils::utils;
@@ -95,60 +95,38 @@ impl Contract {
     /// Initializes the contract with the given total supply owned by the given `owner_id` with
     /// the given fungible token metadata.
     #[init]
-    pub fn new_with_reference(owner_id: AccountId, name: String, reference: String) -> Self {
+    pub fn new(owner_id: AccountId, metadata: FungibleTokenMetadata) -> Self {
         require!(!env::state_exists(), "Already initialized");
-
-        let hashed = sha256(&reference.bytes().collect::<Vec<u8>>());
-        log!("Reference: {}, Hashed: {:?}", &reference, &hashed,);
-        let base64vec = Base64VecU8::from(hashed);
-
-        let metadata = FungibleTokenMetadata {
-            spec: FT_METADATA_SPEC.to_string(),
-            name,
-            symbol: "IREC".to_string(),
-            icon: None,
-            reference: Some(reference),
-            // TODO: Check if this ok
-            reference_hash: Some(base64vec),
-            decimals: 24,
+        metadata.assert_valid();
+        let mut this = Self {
+            token: FungibleToken::new(StorageKey::FungibleToken),
+            metadata: LazyOption::new(StorageKey::Metadata, Some(&metadata)),
         };
-        Self::new(owner_id, metadata)
+        this.token.internal_register_account(&owner_id);
+        // We don't want to give user tokens from start
+        // this.token.internal_deposit(&owner_id, total_supply.into());
+        this
     }
 
     /// Used in cross-contract call to add account of unregistered user
     pub fn register(&mut self, account_id: AccountId) {
         let registered = utils::resolve_promise_bool();
         if !registered {
-            self.register_resolve(account_id);
+            self.register_resolve(&account_id);
         }
     }
 
-    pub fn is_registered(&self, account_id: AccountId) -> bool {
-        self.token.accounts.contains_key(&account_id)
+    pub fn is_registered(&self, account_id: &AccountId) -> bool {
+        self.token.accounts.contains_key(account_id)
     }
 
-    #[payable]
-    pub fn ft_transfer_wrapped(
-        &mut self,
-        receiver_id: AccountId,
-        amount: U128,
-        memo: Option<String>,
-    ) {
-        assert_one_yocto();
-        let sender_id = env::signer_account_id();
-
-        if !self.is_registered(sender_id.clone()) {
-            self.register_resolve(sender_id.clone())
-        }
-
-        let amount: Balance = amount.into();
-        self.token
-            .internal_transfer(&sender_id, &receiver_id, amount, memo);
-    }
-
-    // TODO: Add method to securely give FT to users
     /// Gives FT to user that called/deployed contract
     pub fn ft_mint(&mut self, amount: Balance, metadata: Metadata) -> U128 {
+        require!(
+            env::current_account_id() == env::predecessor_account_id(),
+            "You are not allowed to do that"
+        );
+
         log!("Metadata: {:?}", metadata);
 
         let account_id = env::signer_account_id();
@@ -168,21 +146,6 @@ impl Contract {
         self.token.internal_deposit(&account_id, amount);
 
         self.ft_balance_of(account_id)
-    }
-
-    #[private]
-    #[init]
-    pub fn new(owner_id: AccountId, metadata: FungibleTokenMetadata) -> Self {
-        require!(!env::state_exists(), "Already initialized");
-        metadata.assert_valid();
-        let mut this = Self {
-            token: FungibleToken::new(StorageKey::FungibleToken),
-            metadata: LazyOption::new(StorageKey::Metadata, Some(&metadata)),
-        };
-        this.token.internal_register_account(&owner_id);
-        // We don't want to give user tokens from start
-        // this.token.internal_deposit(&owner_id, total_supply.into());
-        this
     }
 
     fn on_account_closed(&mut self, account_id: AccountId, balance: Balance) {
