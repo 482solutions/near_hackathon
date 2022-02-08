@@ -16,17 +16,16 @@ NOTES:
     keys on its account.
 */
 use near_contract_standards::fungible_token::metadata::{
-    FungibleTokenMetadata, FungibleTokenMetadataProvider, FT_METADATA_SPEC,
+    FungibleTokenMetadata, FungibleTokenMetadataProvider,
 };
 use near_contract_standards::fungible_token::FungibleToken;
 use near_sdk::borsh::{self, BorshDeserialize, BorshSerialize};
 use near_sdk::collections::LazyOption;
-use near_sdk::env::sha256;
-use near_sdk::json_types::{Base64VecU8, U128};
+use near_sdk::env;
+use near_sdk::json_types::U128;
 use near_sdk::log;
 use near_sdk::near_bindgen;
 use near_sdk::serde::{Deserialize, Serialize};
-use near_sdk::{assert_one_yocto, env};
 use near_sdk::{require, AccountId, Balance, BorshStorageKey, PanicOnDefault, PromiseOrValue};
 
 use utils::utils;
@@ -82,6 +81,7 @@ pub struct Metadata {
 pub struct Contract {
     token: FungibleToken,
     metadata: LazyOption<FungibleTokenMetadata>,
+    owner: AccountId,
 }
 
 #[derive(BorshSerialize, BorshStorageKey)]
@@ -101,6 +101,7 @@ impl Contract {
         let mut this = Self {
             token: FungibleToken::new(StorageKey::FungibleToken),
             metadata: LazyOption::new(StorageKey::Metadata, Some(&metadata)),
+            owner: owner_id.clone(),
         };
         this.token.internal_register_account(&owner_id);
         // We don't want to give user tokens from start
@@ -123,7 +124,7 @@ impl Contract {
     /// Gives FT to user that called/deployed contract
     pub fn ft_mint(&mut self, amount: Balance, metadata: Metadata) -> U128 {
         require!(
-            env::current_account_id() == env::predecessor_account_id(),
+            self.owner == env::predecessor_account_id(),
             "You are not allowed to do that"
         );
 
