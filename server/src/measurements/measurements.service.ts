@@ -1,7 +1,14 @@
-import { Injectable, InternalServerErrorException, Logger } from '@nestjs/common';
+import {
+    Injectable,
+    InternalServerErrorException,
+    Logger,
+    NotFoundException,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { MeasurementRepository } from './measurement.repository';
 import { Measurement } from './entities/measurement.entity';
+import { Station } from '../station/station.entity';
+import { Organisation } from '../organisation/dto/organisation.entity';
 
 @Injectable()
 export class MeasurementsService {
@@ -31,13 +38,54 @@ export class MeasurementsService {
     }
 
     public async findAll(): Promise<Measurement[]> {
-        const query = this.measurementRepository.createQueryBuilder('measurements');
+        const query = this.measurementRepository.createQueryBuilder('measurement');
         try {
             return await query.getMany();
         } catch (error) {
-            this.logger.error(`Failed to get all stations: `, error.stack);
+            this.logger.error(`Failed to get all measurements: `, error.stack);
             throw new InternalServerErrorException();
         }
+    }
+
+    public async getMeasurementsByOrgAndStation(
+        organisationRegistryNumber: string,
+        stationName: string,
+        organisations: Organisation[],
+        stations: Station[],
+    ): Promise<Measurement> {
+        const query = this.measurementRepository.createQueryBuilder('measurement');
+        let found;
+        try {
+            query.where(
+                ' measurement.stationName = :stationName AND' +
+                    ' measurement.stationOrganisationRegistryNumber = :organisationRegistryNumber AND' +
+                    ' measurement.stationName IN (:...userStationNames) AND' +
+                    ' measurement.stationOrganisationRegistryNumber IN (:...userOrganisationRegistryNumbers)',
+                {
+                    stationName: stationName,
+                    organisationRegistryNumber: organisationRegistryNumber,
+                    userStationNames: stations.reduce((acc, curr) => {
+                        return [...acc, curr.name];
+                    }, []),
+                    userOrganisationRegistryNumbers: organisations.reduce((acc, curr) => {
+                        return [...acc, curr.registryNumber];
+                    }, []),
+                },
+            );
+            found = await query.getMany();
+        } catch (error) {
+            this.logger.error(
+                `Failed to get measurements from station ${stationName}, org ${organisationRegistryNumber} `,
+                error.stack,
+            );
+            throw new InternalServerErrorException();
+        }
+        if (!found) {
+            throw new NotFoundException(
+                `Measurements from station ${stationName}, org ${organisationRegistryNumber} not found`,
+            );
+        }
+        return found;
     }
 
     findOne(id: number) {

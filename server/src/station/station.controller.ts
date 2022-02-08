@@ -42,8 +42,7 @@ export class StationController {
     @Get()
     async getAllStations(@GetUser() publicKey: string): Promise<Station[]> {
         this.logger.verbose(`Retrieving all Stations`);
-        let userOrganisations =
-            await this.organisationService.getAllOrganisations(publicKey);
+        let userOrganisations = await this.organisationService.getAllOrganisations(publicKey);
         let stations = [];
         for (const org of userOrganisations) {
             for (const station of await org.stations) {
@@ -59,7 +58,7 @@ export class StationController {
         @Param('name') name: string,
         @GetUser() publicKey: string,
     ): Promise<Station> {
-        this.logger.verbose(`Retrieving Station by name   + ${name}`);
+        this.logger.verbose(`Retrieving Station by name ${name}`);
         let org = await this.organisationService.getAllOrganisations(publicKey);
         return this.stationService.getStationById(organisation, name, org);
     }
@@ -71,9 +70,7 @@ export class StationController {
         @GetUser() publicKey: string,
         @Req() req,
     ): Promise<Station> {
-        this.logger.verbose(
-            `Creating new Station. Data : ${JSON.stringify(createStationDto)}`,
-        );
+        this.logger.verbose(`Creating new Station. Data : ${JSON.stringify(createStationDto)}`);
         let org = await this.organisationService.getOrganisationById(
             req.body.organisation,
             publicKey,
@@ -93,12 +90,8 @@ export class StationController {
     }
 
     @Post('/country')
-    createCountry(
-        @Body(ValidationPipe) createCountryDto: Country,
-    ): Promise<Country> {
-        this.logger.verbose(
-            `Creating new Country. Data : ${JSON.stringify(createCountryDto)}`,
-        );
+    createCountry(@Body(ValidationPipe) createCountryDto: Country): Promise<Country> {
+        this.logger.verbose(`Creating new Country. Data : ${JSON.stringify(createCountryDto)}`);
         return this.stationService.createCountry(createCountryDto);
     }
 
@@ -116,12 +109,8 @@ export class StationController {
     }
 
     @Post('/region')
-    createRegion(
-        @Body(ValidationPipe) createRegionDto: Region,
-    ): Promise<Region> {
-        this.logger.verbose(
-            `Creating new region. Data : ${JSON.stringify(createRegionDto)}`,
-        );
+    createRegion(@Body(ValidationPipe) createRegionDto: Region): Promise<Region> {
+        this.logger.verbose(`Creating new region. Data : ${JSON.stringify(createRegionDto)}`);
         return this.stationService.createRegion(createRegionDto);
     }
 

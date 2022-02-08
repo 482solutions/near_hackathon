@@ -9,11 +9,7 @@ import { Country } from './country.entity';
 import { CreateStationDto } from './dto/create-station.dto';
 import { Region } from './region.entity';
 import { Station } from './station.entity';
-import {
-    CountryRepository,
-    RegionRepository,
-    StationRepository,
-} from './station.repository';
+import { CountryRepository, RegionRepository, StationRepository } from './station.repository';
 import { Organisation } from '../organisation/dto/organisation.entity';
 
 @Injectable()
@@ -29,15 +25,13 @@ export class StationService {
         private regionRepository: RegionRepository,
     ) {}
 
-    public async getAllStations(
-        organisations: Organisation[],
-    ): Promise<Station[]> {
+    public async getAllStations(organisations: Organisation[]): Promise<Station[]> {
         const query = this.stationRepository.createQueryBuilder('station');
         try {
-            query.where('station.organisationName IN (:organisationNames)', {
-                organisationIds: organisations
+            query.where('station.organisationRegistryNumber IN (:organisationRegistryNumbers)', {
+                organisationRegistryNumbers: organisations
                     .reduce((acc, curr) => {
-                        return [...acc, curr.name];
+                        return [...acc, curr.registryNumber];
                     }, [])
                     .toString(),
             });
@@ -59,15 +53,13 @@ export class StationService {
             query.where(
                 ' station.name = :name AND' +
                     ' station.organisationRegistryNumber = :organisation AND' +
-                    ' station.organisationRegistryNumber IN (:organisationRegistryNumbers)',
+                    ' station.organisationRegistryNumber IN (:...organisationRegistryNumbers)',
                 {
-                    organisation: organisation,
-                    organisationRegistryNumbers: organisations
-                        .reduce((acc, curr) => {
-                            return [...acc, curr.registryNumber];
-                        }, [])
-                        .toString(),
-                    name: name,
+                    name,
+                    organisation,
+                    organisationRegistryNumbers: organisations.reduce((acc, curr) => {
+                        return [...acc, curr.registryNumber];
+                    }, []),
                 },
             );
             found = await query.getOne();
@@ -81,16 +73,12 @@ export class StationService {
         return found;
     }
 
-    public async getStation(
-        organisation: string,
-        name: string,
-    ): Promise<Station> {
+    public async getStation(organisation: string, name: string): Promise<Station> {
         const query = this.stationRepository.createQueryBuilder('station');
         let found;
         try {
             query.where(
-                'station.name = :name AND' +
-                    ' station.organisationRegistryNumber = :organisation',
+                'station.name = :name AND' + ' station.organisationRegistryNumber = :organisation',
                 {
                     name: name,
                     organisation: organisation,
