@@ -1,5 +1,4 @@
 import {
-    ConflictException,
     Injectable,
     InternalServerErrorException,
     Logger,
@@ -65,16 +64,9 @@ export class OrganisationService {
         try {
             await organisation.save();
         } catch (error) {
-            if (error.code === '23505') {
-                //duplicate in organisation userId
-                throw new ConflictException(
-                    `User must be have one organisation`,
-                );
-            } else {
-                throw new InternalServerErrorException(
-                    "Organisation don't save",
-                );
-            }
+            throw new InternalServerErrorException(
+                'Organisation creation failed',
+            );
         }
         return organisation;
     }

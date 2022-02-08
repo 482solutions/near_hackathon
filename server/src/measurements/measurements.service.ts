@@ -40,7 +40,7 @@ export class MeasurementsService {
             this.logger.error(`Failed to create new measurement: `, e.stack);
             throw new InternalServerErrorException();
         }
-        return measurement.records[0];
+        return measurement.raw;
     }
 
     public async findAll(): Promise<Measurement[]> {
