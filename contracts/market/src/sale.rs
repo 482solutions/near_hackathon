@@ -129,6 +129,9 @@ impl Contract {
         }
     }
 
+    #[private]
+    pub fn force_buy(&mut self, ask_id: ContractAndId, bid_id: ContractAndId) {}
+
     /// Place an order on a specific sale. The sale will go through as long as your deposit is greater than or equal to the list price
     #[payable]
     pub fn buy(&mut self, id: ContractAndId) {
@@ -166,18 +169,19 @@ impl Contract {
 
         // Transfer $NEAR to seller
         let transfer_near =
-            Promise::new(sale.owner_id).transfer(Balance::from(sale.sale_conditions));
+            Promise::new(sale.owner_id.clone()).transfer(Balance::from(sale.sale_conditions));
 
-        ext_contract::ft_transfer_wrapped(
-            buyer_id,
-            U128::from(sale.amount),
-            None,
-            sale.ft_contract_id,
-            ONE_YOCTO,
-            FACTORY_CROSS_CALL,
-        )
-        .then(transfer_near)
-        .then(ext_self::resolve_purchase(
+        // TODO: Make it work
+        // ext_contract::ft_transfer(
+        //     sale.owner_id,
+        //     buyer_id,
+        //     U128::from(sale.amount),
+        //     None,
+        //     sale.ft_contract_id,
+        //     ONE_YOCTO,
+        //     FACTORY_CROSS_CALL,
+        // )
+        transfer_near.then(ext_self::resolve_purchase(
             id,
             current_account_id(),
             ONE_YOCTO,
