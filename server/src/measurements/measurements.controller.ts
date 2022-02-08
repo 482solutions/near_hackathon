@@ -1,18 +1,8 @@
-import {
-    Body,
-    Controller,
-    Delete,
-    Get,
-    Logger,
-    Param,
-    Post,
-    Req,
-    ValidationPipe,
-} from '@nestjs/common';
+import { Controller, Delete, Get, Logger, Param, Post } from '@nestjs/common';
 import { MeasurementsService } from './measurements.service';
-import { CreateMeasurementDto } from './dto/create-measurement.dto';
 import { Measurement } from './entities/measurement.entity';
 import { StationService } from '../station/station.service';
+import { GetMeasurement } from './dto/get-measurement-decorator';
 
 @Controller('measurements')
 export class MeasurementsController {
@@ -24,20 +14,9 @@ export class MeasurementsController {
     ) {}
 
     @Post()
-    async create(
-        @Body(ValidationPipe) createMeasurementDto: CreateMeasurementDto,
-        @Req() req,
-    ): Promise<Measurement> {
-        this.logger.verbose(
-            `Adding new measurement. Data : ${JSON.stringify(
-                createMeasurementDto,
-            )}`,
-        );
-        let station = await this.stationService.getStation(
-            req.body.organisation,
-            req.body.station,
-        );
-        return this.measurementsService.create(createMeasurementDto, station);
+    async create(@GetMeasurement() measurement: Measurement): Promise<Measurement> {
+        this.logger.verbose(`Adding new measurement. Data : ${JSON.stringify(measurement)}`);
+        return this.measurementsService.create(measurement);
     }
 
     @Get()

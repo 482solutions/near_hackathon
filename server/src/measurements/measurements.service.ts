@@ -1,14 +1,7 @@
-import {
-    Injectable,
-    InternalServerErrorException,
-    Logger,
-} from '@nestjs/common';
+import { Injectable, InternalServerErrorException, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-
-import { CreateMeasurementDto } from './dto/create-measurement.dto';
 import { MeasurementRepository } from './measurement.repository';
 import { Measurement } from './entities/measurement.entity';
-import { Station } from '../station/station.entity';
 
 @Injectable()
 export class MeasurementsService {
@@ -19,10 +12,7 @@ export class MeasurementsService {
         private measurementRepository: MeasurementRepository,
     ) {}
 
-    public async create(
-        measurementDto: CreateMeasurementDto,
-        station: Station,
-    ): Promise<Measurement> {
+    public async create(measurementDto: Measurement): Promise<Measurement> {
         let measurement;
         try {
             measurement = await this.measurementRepository
@@ -31,21 +21,17 @@ export class MeasurementsService {
                 .into(Measurement)
                 .values({
                     ...measurementDto,
-                    stationName: station.name,
-                    stationOrganisationRegistryNumber:
-                        station.organisationRegistryNumber,
                 })
                 .execute();
         } catch (e) {
             this.logger.error(`Failed to create new measurement: `, e.stack);
             throw new InternalServerErrorException();
         }
-        return measurement.records[0];
+        return measurement.raw;
     }
 
     public async findAll(): Promise<Measurement[]> {
-        const query =
-            this.measurementRepository.createQueryBuilder('measurements');
+        const query = this.measurementRepository.createQueryBuilder('measurements');
         try {
             return await query.getMany();
         } catch (error) {
