@@ -2,7 +2,11 @@
 //!
 //! This module is used for creating sub accounts for use by companies.
 
+use near_contract_standards::fungible_token::metadata::{FungibleTokenMetadata, FT_METADATA_SPEC};
 use near_sdk::borsh::{self, BorshDeserialize, BorshSerialize};
+use near_sdk::collections::UnorderedMap;
+use near_sdk::env::sha256;
+use near_sdk::json_types::{Base64VecU8, ValidAccountId};
 use near_sdk::serde_json::json;
 use near_sdk::{env, ext_contract, log, near_bindgen, require, AccountId, PanicOnDefault, Promise};
 use utils::utils;
@@ -28,45 +32,52 @@ pub mod prices {
     pub const TOKEN_INIT_BALANCE: Balance = 3_000_000_000_000_000_000_000_000; // 3e24yN, 3N
 }
 
-static CODE: &[u8] = include_bytes!("../../out/fungible_token.wasm");
-
 use prices::*;
 
-#[ext_contract(ext_self)]
-pub trait ExtSelf {
-    fn callback_register() -> bool;
-}
+static CODE: &[u8] = include_bytes!("../../out/fungible_token.wasm");
 
-#[ext_contract(ext_ft)]
-pub trait FT {
-    fn is_registered(&self, account_id: AccountId) -> bool;
-    fn register(&self, account_id: AccountId);
+#[derive(BorshSerialize, BorshStorageKey)]
+enum StorageKey {
+    Tokens,
 }
 
 /// Used for deploying child contracts and keeping track of them
 #[near_bindgen]
 #[derive(BorshDeserialize, BorshSerialize, PanicOnDefault)]
-pub struct FactoryContract {}
+pub struct FactoryContract {
+    pub tokens: UnorderedMap<AccountId, TokenArgs>,
+}
 
-pub fn get_token_account_id() -> AccountId {
-    AccountId::new_unchecked(format!("{}.{}", "ft", env::current_account_id()))
+#[derive(Serialize, Deserialize, BorshDeserialize, BorshSerialize)]
+#[serde(crate = "near_sdk::serde")]
+pub struct TokenArgs {
+    owner_id: AccountId,
+    total_supply: U128,
+    metadata: FungibleTokenMetadata,
 }
 
 /// Smart-contract that used for: creating ft, transferring FT and $NEAR
 #[near_bindgen]
 impl FactoryContract {
+    #[init]
+    pub fn new() -> Self {
+        Self {
+            tokens: UnorderedMap::new(StorageKey::Tokens),
+        }
+    }
+
     /// Creates subaccount for user
     ///
     /// # Arguments
     ///
     /// * `account_id` - Name of account that wants to create FT, should be in format user.testnet/mainnet
     ///
-    #[init(ignore_state)]
     #[payable]
-    pub fn create_ft(name: String, reference: String) -> Promise {
+    pub fn create_ft(&mut self, name: String, reference: String) -> Promise {
         let account_id = env::current_account_id();
+        let owner_id = env::predecessor_account_id();
 
-        let subaccount_id = get_token_account_id();
+        let subaccount_id = get_token_account_id(&owner_id);
 
         log!(
             "Trying to create subaccount: {}. {} yoctoNEAR required as deposit",
@@ -83,15 +94,41 @@ impl FactoryContract {
             "Not enough attached deposit to complete token creation"
         );
 
-        // We need to pass account_id to "owner_id" field so user can interact with it from his acccount
+        require!(
+            self.tokens.get(&subaccount_id).is_none(),
+            "Token already exists"
+        );
+
+        let hashed = sha256(&reference.bytes().collect::<Vec<u8>>());
+        let base64vec = Base64VecU8::from(hashed);
+        log!("Reference: {}, Base64 of hash: {:?}", &reference, base64vec);
+
+        let metadata = FungibleTokenMetadata {
+            spec: FT_METADATA_SPEC.to_string(),
+            name,
+            symbol: "IREC".to_string(),
+            icon: None,
+            reference: Some(reference),
+            reference_hash: Some(base64vec),
+            decimals: 24,
+        };
+
+        let args = TokenArgs {
+            owner_id,
+            total_supply: 0,
+            metadata,
+        };
+
+        self.tokens.insert(&subaccount_id, &args);
+
+        // We need to pass account_id to "owner_id" field so user can interact with it from his account
         Promise::new(subaccount_id)
             .create_account()
             .transfer(TOKEN_INIT_BALANCE)
-            .add_full_access_key(env::signer_account_pk())
             .deploy_contract(CODE.to_vec())
             .function_call(
-                "new_with_reference".to_string(),
-                json!({ "owner_id": account_id, "name": name, "reference": reference })
+                "new".to_string(),
+                json!({ "owner_id": account_id, "metadata": metadata })
                     .to_string()
                     .as_bytes()
                     .to_vec(),
@@ -100,18 +137,28 @@ impl FactoryContract {
             )
     }
 
-    /// Will make cross-contract call to FT contract
-    pub fn check_registered(&mut self, to_check: AccountId) -> Promise {
-        let current_account = env::current_account_id();
-        let ft_contract = get_token_account_id();
-        ext_ft::is_registered(to_check, ft_contract, NO_DEPOSIT, FACTORY_CROSS_CALL).then(
-            ext_self::callback_register(current_account, NO_DEPOSIT, FACTORY_CROSS_CALL),
-        )
+    pub fn get_number_of_tokens(&self) -> u64 {
+        self.tokens.len()
     }
 
-    /// Callback to resolve Promise result and pass it on
-    #[private]
-    pub fn callback_register(&mut self) -> bool {
-        utils::resolve_promise_bool()
+    pub fn get_tokens(&self, from_index: u64, limit: u64) -> Vec<TokenArgs> {
+        let tokens = self.tokens.values_as_vector();
+        (from_index..std::cmp::min(from_index + limit, tokens.len()))
+            .filter_map(|index| tokens.get(index))
+            .collect()
     }
+
+    pub fn get_token(&self, account_id: AccountId) -> Option<TokenArgs> {
+        self.tokens.get(&get_token_account_id(&account_id))
+    }
+}
+
+pub fn get_token_account_id(account_id: &AccountId) -> AccountId {
+    // Split account by '.'
+    // Example i3ima.testnet -> ["i3ima", "testnet"]
+    let split = utils::split_account(&account_id);
+    // Get prefix for subaccount
+    let prefix = split[0].to_string();
+
+    AccountId::new_unchecked(format!("{}.{}", prefix, env::current_account_id()))
 }
