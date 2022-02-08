@@ -41,7 +41,7 @@ impl Contract {
     pub fn get_asks_by_owner_id(
         &self,
         account_id: AccountId,
-        from_index: Option<U128>,
+        from: Option<U128>,
         limit: Option<u64>,
     ) -> Vec<Ask> {
         //get the set of token IDs for sale for the given account ID
@@ -57,7 +57,7 @@ impl Contract {
         let keys = asks.as_vector();
 
         //where to start pagination - if we have a from_index, we'll use that - otherwise start from 0 index
-        let start = u128::from(from_index.unwrap_or(U128(0)));
+        let start = u128::from(from.unwrap_or(U128(0)));
 
         //iterate through the keys vector
         keys.iter()
@@ -72,10 +72,26 @@ impl Contract {
     }
 
     /// Returns paginated bids objects for a given account. (result is a vector of bid)
+    pub fn get_bids(&self, from: Option<U128>, limit: Option<u64>) -> Vec<Bid> {
+        //where to start pagination - if we have a from_index, we'll use that - otherwise start from 0 index
+        let start = u128::from(from.unwrap_or(U128(0)));
+
+        //iterate through the keys vector
+        self.bids
+            .iter()
+            //skip to the index we specified in the start variable
+            .skip(start as usize)
+            //take the first "limit" elements in the vector. If we didn't specify a limit, use 0
+            .take(limit.unwrap_or(0) as usize)
+            //since we turned the keys into an iterator, we need to turn it back into a vector to return
+            .collect()
+    }
+
+    /// Returns paginated bids objects for a given account. (result is a vector of bid)
     pub fn get_bids_by_owner_id(
         &self,
         account_id: AccountId,
-        from_index: Option<U128>,
+        from: Option<U128>,
         limit: Option<u64>,
     ) -> Vec<Bid> {
         //get the set of token IDs for sale for the given account ID
@@ -91,7 +107,7 @@ impl Contract {
         let keys = bids.as_vector();
 
         //where to start pagination - if we have a from_index, we'll use that - otherwise start from 0 index
-        let start = u128::from(from_index.unwrap_or(U128(0)));
+        let start = u128::from(from.unwrap_or(U128(0)));
 
         //iterate through the keys vector
         keys.iter()

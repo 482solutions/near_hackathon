@@ -46,16 +46,16 @@ impl Contract {
         &mut self,
         amount: Balance,
         conditions: SalePriceInYoctoNear,
+        ft_contract_id: Option<AccountId>,
         position: Position,
     ) {
         let caller = predecessor_account_id();
 
         match position {
             Position::Ask => {
-                let ft_contract = AccountId::new_unchecked(format!("ft.{}", caller));
                 let ask = Ask {
                     owner_id: caller,
-                    ft_contract_id: ft_contract,
+                    ft_contract_id: ft_contract_id.unwrap(),
                     amount,
                     sale_conditions: conditions,
                 };
