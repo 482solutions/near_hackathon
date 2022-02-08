@@ -3,6 +3,8 @@ import { MeasurementsService } from './measurements.service';
 import { Measurement } from './entities/measurement.entity';
 import { StationService } from '../station/station.service';
 import { GetMeasurement } from './dto/get-measurement-decorator';
+import { GetUser } from '../auth/get-user.decorator';
+import { OrganisationService } from '../organisation/organisation.service';
 
 @Controller('measurements')
 export class MeasurementsController {
@@ -11,6 +13,7 @@ export class MeasurementsController {
     constructor(
         private measurementsService: MeasurementsService,
         private stationService: StationService,
+        private organisationService: OrganisationService,
     ) {}
 
     @Post()
@@ -23,6 +26,28 @@ export class MeasurementsController {
     findAll(): Promise<Measurement[]> {
         this.logger.verbose(`Retrieving all Measurements`);
         return this.measurementsService.findAll();
+    }
+
+    @Get('/:organisation/:station')
+    async getMeasurementsByOrgAndStation(
+        @Param('organisation') organisation: string,
+        @Param('station') station: string,
+        @GetUser() publicKey: string,
+    ): Promise<Measurement> {
+        this.logger.verbose(`Retrieving Measurements from station ${station}, org ${organisation}`);
+        let userOrganisations = await this.organisationService.getAllOrganisations(publicKey);
+        let userStations = [];
+        for (const org of userOrganisations) {
+            for (const station of await org.stations) {
+                userStations.push(station);
+            }
+        }
+        return this.measurementsService.getMeasurementsByOrgAndStation(
+            organisation,
+            station,
+            userOrganisations,
+            userStations,
+        );
     }
 
     @Get(':id')
