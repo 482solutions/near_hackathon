@@ -12,4 +12,3 @@ crate-type = ["cdylib"]
 near-sdk = "4.0.0-pre.6"
 near-contract-standards = "4.0.0-pre.6"
 #uuid = { version = "0.8.2", features = ["v4", "stdweb", "getrandom"] }
-token-factory = { path = "../factory" }
