@@ -14,9 +14,6 @@ use near_sdk::{
     BorshStorageKey, CryptoHash, Gas, PanicOnDefault, Promise,
 };
 
-use token_factory::prices::FACTORY_CROSS_CALL;
-
-use crate::external::*;
 use crate::sale::*;
 
 mod external;
@@ -24,11 +21,12 @@ mod internal;
 mod sale;
 mod sale_views;
 
-//the minimum storage to have a sale on the contract.
-const STORAGE_PER_SALE: u128 = 1000 * STORAGE_PRICE_PER_BYTE;
+// The minimum storage to have a sale on the contract.
+pub const STORAGE_PER_SALE: u128 = 1000 * STORAGE_PRICE_PER_BYTE;
+
+pub const PROCESS_ASK: Gas = Gas(80_000_000_000_000);
 
 //Creating custom types to use within the contract. This makes things more readable.
-pub type SalePriceInYoctoNear = U128;
 pub type ContractAndId = String;
 
 /// Struct for storing various information about market state
@@ -59,8 +57,10 @@ pub struct Contract {
 /// Helper structure to for keys of the persistent collections.
 #[derive(BorshStorageKey, BorshSerialize)]
 pub enum StorageKey {
-    Sales,
-    ByOwnerId,
+    Asks,
+    Bids,
+    AsksByOwnerId,
+    BidsByOwnerId,
     ByOwnerIdInner { account_id_hash: CryptoHash },
     FTTokenIds,
     StorageDeposits,
@@ -77,10 +77,10 @@ impl Contract {
     pub fn new(owner_id: AccountId) -> Self {
         Self {
             owner_id,
-            asks: UnorderedMap::new(StorageKey::Sales),
-            bids: UnorderedMap::new(StorageKey::Sales),
-            asks_by_owner_id: LookupMap::new(StorageKey::ByOwnerId),
-            bids_by_owner_id: LookupMap::new(StorageKey::ByOwnerId),
+            asks: UnorderedMap::new(StorageKey::Asks),
+            bids: UnorderedMap::new(StorageKey::Bids),
+            asks_by_owner_id: LookupMap::new(StorageKey::AsksByOwnerId),
+            bids_by_owner_id: LookupMap::new(StorageKey::BidsByOwnerId),
             storage_deposits: LookupMap::new(StorageKey::StorageDeposits),
         }
     }

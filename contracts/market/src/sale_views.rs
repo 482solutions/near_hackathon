@@ -66,7 +66,10 @@ impl Contract {
             //take the first "limit" elements in the vector. If we didn't specify a limit, use 0
             .take(limit.unwrap_or(0) as usize)
             //we'll map the token IDs which are strings into Sale objects
-            .map(|id| self.asks.get(&id).unwrap())
+            .map(|id| {
+                log!("Searching id: {}", id);
+                self.asks.get(&id).unwrap()
+            })
             //since we turned the keys into an iterator, we need to turn it back into a vector to return
             .collect()
     }
@@ -83,6 +86,7 @@ impl Contract {
             .skip(start as usize)
             //take the first "limit" elements in the vector. If we didn't specify a limit, use 0
             .take(limit.unwrap_or(0) as usize)
+            .map(|(_, bid)| bid)
             //since we turned the keys into an iterator, we need to turn it back into a vector to return
             .collect()
     }
@@ -122,16 +126,16 @@ impl Contract {
     }
 
     /// Get a ask information for a given unique ask ID (contract + DELIMITER + uuid)
-    pub fn get_ask(&self, id: ContractAndId) -> Option<Ask> {
+    pub fn get_ask(&self, id: &ContractAndId) -> Option<Ask> {
         //try and get the sale object for the given unique sale ID. Will return an option since
         //we're not guaranteed that the unique sale ID passed in will be valid.
-        self.asks.get(&id)
+        self.asks.get(id)
     }
 
     /// Get a bid information for a given unique bid ID (contract + DELIMITER + uuid)
-    pub fn get_bid(&self, id: ContractAndId) -> Option<Bid> {
+    pub fn get_bid(&self, id: &ContractAndId) -> Option<Bid> {
         //try and get the sale object for the given unique sale ID. Will return an option since
         //we're not guaranteed that the unique sale ID passed in will be valid.
-        self.bids.get(&id)
+        self.bids.get(id)
     }
 }
