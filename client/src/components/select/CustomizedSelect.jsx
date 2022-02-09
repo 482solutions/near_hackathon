@@ -1,6 +1,14 @@
-import { FormControl, InputLabel, Menu, MenuItem, Select } from "@mui/material";
-import React from "react";
+import {
+  FormControl,
+  InputLabel,
+  Menu,
+  MenuItem,
+  Select,
+  Typography,
+} from "@mui/material";
+import React, { useState } from "react";
 import { LabelStyle } from "../inputs/CustomizedReadInput";
+import RegularText from "../texts/RegularText";
 
 const SelectStyles = {
   borderRadius: "4px",
@@ -56,11 +64,13 @@ const MenuItemStyle = {
 
 const CustomizedSelect = ({
   options,
+  value,
+  handleChange,
+  error,
   variant = "outlined",
   labelName = undefined,
   fullWidth = false,
 }) => {
-  const handleChange = () => {};
   return (
     <>
       <FormControl variant="standard">
@@ -70,9 +80,30 @@ const CustomizedSelect = ({
           </InputLabel>
         )}
         <Select
-          value={options[0].value}
+          value={value}
+          error={error}
           onChange={handleChange}
           labelId="selectId"
+          displayEmpty
+          renderValue={
+            value !== ""
+              ? undefined
+              : () => {
+                  return (
+                    <Typography
+                      variant="subtitle2"
+                      value={""}
+                      sx={{
+                        color: "#b9b9b9",
+                        fontSize: "12px",
+                        lineHeight: "16px",
+                      }}
+                    >
+                      Please, Select!
+                    </Typography>
+                  );
+                }
+          }
           MenuProps={{
             MenuListProps: {
               sx: fullWidth ? { ...MenuStyles, width: "100%" } : MenuStyles,
