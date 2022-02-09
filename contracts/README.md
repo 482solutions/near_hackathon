@@ -29,7 +29,8 @@ Then you can rust tests:
 
 ### To testnet
 
-This will deploy smart-contracts into testnet alongside creation of dev account
+Set environment `NEAR_ACCOUNT` with name of account. Or set `DEV` & `CLEAN` env variables to have clear deploy
+
 
 `sh scripts/deploy.sh`
 

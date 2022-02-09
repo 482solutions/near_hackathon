@@ -1,9 +1,9 @@
 use crate::*;
 
 /// External contract calls
-#[ext_contract(ext_ft)]
+#[ext_contract(ext_contract)]
 trait ExtContract {
-    /// Initiate a cross contract call to the factory. This will transfer the token to the buyer
+    /// Initiate a cross contract call to the FT. This will transfer the token to the buyer
     fn transfer(
         &mut self,
         sender_id: AccountId, // seller of FT, used to check if this account really possess this amount of tokens
