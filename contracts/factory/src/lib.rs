@@ -64,6 +64,13 @@ pub struct TokenArgs {
     metadata: FungibleTokenMetadata,
 }
 
+#[derive(Serialize, Deserialize, BorshDeserialize, BorshSerialize)]
+#[serde(crate = "near_sdk::serde")]
+pub struct Token {
+    account: AccountId,
+    args: TokenArgs,
+}
+
 /// Smart-contract that used for: creating ft, transferring FT and $NEAR
 #[near_bindgen]
 impl FactoryContract {
@@ -87,18 +94,20 @@ impl FactoryContract {
 
         let subaccount_id = get_token_account_id(&caller);
 
-        log!(
-            "Trying to create subaccount: {}. {} yoctoNEAR required as deposit",
-            &subaccount_id,
-            TOKEN_INIT_BALANCE
-        );
-
         let initial_usage = env::storage_usage() as u128;
         let current_usage = env::storage_usage() as u128;
 
+        let required =
+            TOKEN_INIT_BALANCE + STORAGE_PRICE_PER_BYTE * (current_usage - initial_usage);
+
+        log!(
+            "Trying to create subaccount: {}. {} yoctoNEAR required as deposit",
+            subaccount_id,
+            required
+        );
+
         require!(
-            env::attached_deposit()
-                >= TOKEN_INIT_BALANCE + STORAGE_PRICE_PER_BYTE * (current_usage - initial_usage),
+            env::attached_deposit() >= required,
             "Not enough attached deposit to complete token creation"
         );
 
@@ -130,19 +139,25 @@ impl FactoryContract {
         self.tokens.insert(&subaccount_id, &args);
 
         // We need to pass account_id to "owner_id" field so user can interact with it from his account
-        Promise::new(subaccount_id)
+        Promise::new(subaccount_id.clone())
             .create_account()
             .transfer(TOKEN_INIT_BALANCE)
             .deploy_contract(CODE.to_vec())
             .function_call(
                 "new".to_string(),
-                json!({ "owner_id": owner, "metadata": metadata })
+                json!({ "owner_id": owner.clone(), "metadata": metadata })
                     .to_string()
                     .as_bytes()
                     .to_vec(),
                 NO_DEPOSIT,
                 TOKEN_NEW,
             )
+            .then(ext_self::get_token(
+                subaccount_id,
+                owner,
+                NO_DEPOSIT,
+                FACTORY_CROSS_CALL,
+            ))
     }
 
     #[private]
@@ -180,8 +195,14 @@ impl FactoryContract {
             .collect()
     }
 
-    pub fn get_token(&self, account_id: &AccountId) -> Option<TokenArgs> {
-        self.tokens.get(&get_token_account_id(account_id))
+    pub fn get_token(&self, account_id: &AccountId) -> Option<Token> {
+        Some(Token {
+            account: get_token_account_id(&account_id),
+            args: self
+                .tokens
+                .get(&get_token_account_id(account_id))
+                .expect("Token not found"),
+        })
     }
 }
 
@@ -193,4 +214,11 @@ pub fn get_token_account_id(account_id: &AccountId) -> AccountId {
     let prefix = split[0].to_string();
 
     AccountId::new_unchecked(format!("{}.{}", prefix, env::current_account_id()))
+}
+
+//this is the cross contract call that we call on our own contract.
+// Fired as a last promise in the chain of create_ft method.
+#[ext_contract(ext_self)]
+trait ExtSelf {
+    fn get_token(&mut self, account_id: AccountId) -> Option<Token>;
 }
