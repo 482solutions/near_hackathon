@@ -137,7 +137,10 @@ impl Contract {
             //take the first "limit" elements in the vector. If we didn't specify a limit, use 0
             .take(limit.unwrap_or(0) as usize)
             //we'll map the token IDs which are strings into Sale objects
-            .map(|id| self.bids.get(&id).unwrap())
+            .map(|id| {
+                log!("Searching id: {}", id);
+                self.bids.get(&id).unwrap()
+            })
             //since we turned the keys into an iterator, we need to turn it back into a vector to return
             .collect()
     }
