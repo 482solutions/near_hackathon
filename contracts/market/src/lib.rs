@@ -27,7 +27,9 @@ pub const STORAGE_PER_SALE: u128 = 1000 * STORAGE_PRICE_PER_BYTE;
 
 pub const NO_DEPOSIT: Balance = 0;
 
-pub const PROCESS_ASK: Gas = Gas(80_000_000_000_000);
+pub const PROCESS_ASK: Gas = Gas(20_000_000_000_000);
+
+pub const CCC: Gas = Gas(20_000_000_000_000);
 
 //Creating custom types to use within the contract. This makes things more readable.
 pub type SalePriceInYoctoNear = U128;

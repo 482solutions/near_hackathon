@@ -28,7 +28,7 @@ pub mod prices {
 
     pub const NO_DEPOSIT: Balance = 0;
 
-    pub const FACTORY_CROSS_CALL: Gas = Gas(2_428_023_852_964);
+    pub const FACTORY_CROSS_CALL: Gas = Gas(12_428_023_852_964);
 
     /// Gas to initialize Token contract.
     pub const TOKEN_NEW: Gas = Gas(10_000_000_000_000);
