@@ -1,5 +1,5 @@
 import { Grid, InputLabel, TextField } from "@mui/material";
-import React from "react";
+import React, { useEffect, useState } from "react";
 import CustomizedSelect from "../select/CustomizedSelect";
 
 const GridStyle = {
@@ -26,6 +26,7 @@ export const InputStyle = {
     caretColor: "unset",
     padding: "10px 13px",
     height: "36px",
+    fontSize: "14px",
   },
   "input:focus": {
     border: "1px solid #0FC391",
@@ -44,9 +45,27 @@ export const InputStyle = {
 const CustomizedInput = ({
   labelName,
   options,
+  passUpValue,
+  error,
+  type = "text",
   required = false,
   isSelect = false,
 }) => {
+  const [value, setValue] = useState("");
+  const [localError, setLocalError] = useState(error);
+
+  useEffect(() => {
+    setLocalError(error);
+  }, [error]);
+
+  const handleFormChange = (e) => {
+    if (localError && e.target.value !== "") {
+      setLocalError(false);
+    }
+    passUpValue(e.target.value);
+    setValue(e.target.value);
+  };
+
   return (
     <Grid container gap="4px" flexDirection={"column"} sx={GridStyle}>
       <InputLabel sx={LabelStyle}>
@@ -54,9 +73,22 @@ const CustomizedInput = ({
         {required ? <span> *</span> : ""}
       </InputLabel>
       {!isSelect ? (
-        <TextField sx={InputStyle} placeholder={labelName} />
+        <TextField
+          sx={InputStyle}
+          error={localError}
+          type={type}
+          placeholder={labelName}
+          name={labelName}
+          value={value}
+          onChange={(e) => handleFormChange(e)}
+        />
       ) : (
-        <CustomizedSelect options={options} />
+        <CustomizedSelect
+          value={value}
+          error={localError}
+          handleChange={handleFormChange}
+          options={options}
+        />
       )}
     </Grid>
   );
