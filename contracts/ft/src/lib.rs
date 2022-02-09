@@ -22,7 +22,7 @@ use near_contract_standards::fungible_token::FungibleToken;
 use near_sdk::borsh::{self, BorshDeserialize, BorshSerialize};
 use near_sdk::collections::LazyOption;
 use near_sdk::env;
-use near_sdk::env::predecessor_account_id;
+use near_sdk::env::{is_valid_account_id, predecessor_account_id};
 use near_sdk::json_types::U128;
 use near_sdk::log;
 use near_sdk::near_bindgen;
