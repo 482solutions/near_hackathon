@@ -5,7 +5,7 @@
 use near_contract_standards::fungible_token::metadata::{FungibleTokenMetadata, FT_METADATA_SPEC};
 use near_sdk::borsh::{self, BorshDeserialize, BorshSerialize};
 use near_sdk::collections::UnorderedMap;
-use near_sdk::env::sha256;
+use near_sdk::env::{sha256, signer_account_id};
 use near_sdk::json_types::{Base64VecU8, U128};
 use near_sdk::serde::{Deserialize, Serialize};
 use near_sdk::serde_json::json;
@@ -28,7 +28,7 @@ pub mod prices {
 
     pub const NO_DEPOSIT: Balance = 0;
 
-    pub const FACTORY_CROSS_CALL: Gas = Gas(2_428_023_852_964);
+    pub const FACTORY_CROSS_CALL: Gas = Gas(12_428_023_852_964);
 
     /// Gas to initialize Token contract.
     pub const TOKEN_NEW: Gas = Gas(10_000_000_000_000);
@@ -53,6 +53,7 @@ enum StorageKey {
 #[near_bindgen]
 #[derive(BorshDeserialize, BorshSerialize, PanicOnDefault)]
 pub struct FactoryContract {
+    pub owner: AccountId,
     pub tokens: UnorderedMap<AccountId, TokenArgs>,
 }
 
@@ -75,8 +76,9 @@ pub struct Token {
 #[near_bindgen]
 impl FactoryContract {
     #[init]
-    pub fn new() -> Self {
+    pub fn new(owner: AccountId) -> Self {
         Self {
+            owner,
             tokens: UnorderedMap::new(StorageKey::Tokens),
         }
     }
@@ -160,16 +162,21 @@ impl FactoryContract {
             ))
     }
 
-    #[private]
     pub fn force_transfer(
         &self,
         sender_id: AccountId,
         receiver_id: AccountId,
         amount: Balance,
     ) -> Promise {
-        let ft = self.get_token(&sender_id);
+        require!(
+            self.owner == signer_account_id(),
+            "You are not allowed to do that"
+        );
 
-        require!(ft.is_none(), "This FT does not exist");
+        require!(
+            self.get_token(&sender_id).is_some(),
+            "This FT does not exist"
+        );
 
         let ft_contract = get_token_account_id(&sender_id);
 

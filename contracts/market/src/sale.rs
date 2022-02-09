@@ -1,6 +1,6 @@
 use crate::internal::get_token_account_id;
 use crate::*;
-use near_sdk::env::{current_account_id, prepaid_gas, used_gas};
+use near_sdk::env::{current_account_id, prepaid_gas, signer_account_id, used_gas};
 use near_sdk::{is_promise_success, ONE_YOCTO};
 
 /// Ask struct, defines who sells, how much, and on what conditions
@@ -85,7 +85,7 @@ impl Contract {
         assert_one_yocto();
 
         //get the predecessor of the call and make sure they're the owner of the sale
-        let caller = predecessor_account_id();
+        let signer = signer_account_id();
 
         //get the sale object as the return value from removing the sale internally
         // TODO: Replace internal_remove_sale with implementation that removed ask/bid
@@ -94,15 +94,15 @@ impl Contract {
             Position::Ask => {
                 let ask = self.internal_remove_ask(id);
                 require!(
-                    caller == ask.owner_id || caller == self.owner_id,
+                    signer == ask.owner_id || signer == self.owner_id,
                     "Must be sale owner"
                 );
             }
             Position::Bid => {
                 let bid = self.internal_remove_bid(id);
-                Promise::new(bid.owner_id.clone()).transfer(bid.sale_conditions);
+                // Promise::new(bid.owner_id.clone()).transfer(bid.sale_conditions);
                 require!(
-                    caller == bid.owner_id || caller == self.owner_id,
+                    signer == bid.owner_id || signer == self.owner_id,
                     "Must be sale owner"
                 );
             }
@@ -142,8 +142,13 @@ impl Contract {
     }
 
     /// Method only for backend. Requires significant amount of Gas (2 * PROCESS_ASK)
-    #[private]
     pub fn process_bid(&mut self, ask_id: ContractAndId, bid_id: ContractAndId) -> Promise {
+        // I don't want to deal with sub-account names too much
+        require!(
+            predecessor_account_id() == self.owner_id,
+            "You are not allowed to do that"
+        );
+
         let ask = self.get_ask(&ask_id).expect("This ask does not exist");
         let bid = self.get_bid(&bid_id).expect("This bid does not exist");
 
@@ -158,7 +163,7 @@ impl Contract {
                 Position::Bid,
                 current_account_id(),
                 ONE_YOCTO,
-                PROCESS_ASK,
+                CCC,
             ))
     }
 
@@ -209,18 +214,18 @@ impl Contract {
             sale.owner_id,
             buyer_id,
             sale.amount,
-            sale.ft_contract_id,
+            self.owner_id.clone(),
             NO_DEPOSIT,
             PROCESS_ASK,
         )
-        .then(transfer_near)
         .then(ext_self::resolve_position(
             id,
             Position::Ask,
             current_account_id(),
             ONE_YOCTO,
-            PROCESS_ASK,
+            CCC,
         ))
+        .then(transfer_near)
     }
 
     #[private]
