@@ -4,7 +4,10 @@ use near_sdk::env::current_account_id;
 impl Contract {
     // TODO: Find working in WASM uuid implementation
     pub fn internal_place_ask(&mut self, ask: Ask) -> Ask {
-        let id = format!("{}.{}", ask.owner_id, "ASK");
+        // Increment id
+        self.asks_id += 1;
+
+        let id = format!("{}.{}", ask.owner_id, self.asks_id);
 
         self.asks.insert(&id, &ask);
 
@@ -25,7 +28,10 @@ impl Contract {
     }
 
     pub fn internal_place_bid(&mut self, bid: Bid) -> Bid {
-        let id = format!("{}.{}", bid.owner_id, "BID");
+        // Increment id
+        self.bids_id += 1;
+
+        let id = format!("{}.{}", bid.owner_id, self.bids_id);
 
         require!(self.bids.insert(&id, &bid).is_none(), "Bid already exist");
 

@@ -145,15 +145,17 @@ impl Contract {
     }
 
     /// Gives FT to user that called/deployed contract
-    pub fn ft_mint(&mut self, amount: Balance, metadata: Metadata) -> U128 {
+    pub fn ft_mint(&mut self, account_id: AccountId, amount: Balance, metadata: Metadata) -> U128 {
         require!(
             self.owner == env::predecessor_account_id(),
             "You are not allowed to do that"
         );
 
-        log!("Metadata: {:?}", metadata);
+        if !self.is_registered(&account_id) {
+            self.register_resolve(&account_id);
+        }
 
-        let account_id = env::signer_account_id();
+        log!("Metadata: {:?}", metadata);
 
         // Increase total supply if not enough
         match self.token.total_supply.checked_sub(amount) {
