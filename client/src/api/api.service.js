@@ -25,3 +25,7 @@ export const createMeasurment = async (body) => {
   const res = await httpClient.post(MEASURMENTS, body);
   return res?.data;
 };
+
+export const getMeasurmentByOrgAndStation = async (org, station) => {
+  const res = await httpClient.get(`${MEASURMENTS}/${org}/${station}`);
+};
