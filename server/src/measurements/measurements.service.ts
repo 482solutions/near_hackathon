@@ -7,8 +7,8 @@ import {
 import { InjectRepository } from '@nestjs/typeorm';
 import { MeasurementRepository } from './measurement.repository';
 import { Measurement } from './entities/measurement.entity';
-import { Station } from '../station/station.entity';
-import { Organisation } from '../organisation/dto/organisation.entity';
+import { Station } from '../station/entities/station.entity';
+import { Organisation } from '../organisation/entities/organisation.entity';
 
 @Injectable()
 export class MeasurementsService {

@@ -1,11 +1,5 @@
-import {
-    BaseEntity,
-    Column,
-    Entity,
-    ManyToOne,
-    PrimaryGeneratedColumn,
-} from 'typeorm';
-import { Station } from '../../station/station.entity';
+import { BaseEntity, Column, Entity, ManyToOne, PrimaryGeneratedColumn } from 'typeorm';
+import { Station } from '../../station/entities/station.entity';
 
 @Entity()
 export class Measurement extends BaseEntity {

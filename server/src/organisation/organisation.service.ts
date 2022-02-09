@@ -6,7 +6,7 @@ import {
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { CreateOrganisationDto } from './dto/create-organisation.dto';
-import { Organisation } from './dto/organisation.entity';
+import { Organisation } from './entities/organisation.entity';
 import { OrganisationRepository } from './organisation.repository';
 
 @Injectable()
@@ -19,8 +19,7 @@ export class OrganisationService {
     ) {}
 
     public async getAllOrganisations(userId: string): Promise<Organisation[]> {
-        const query =
-            this.organisationRepository.createQueryBuilder('organisation');
+        const query = this.organisationRepository.createQueryBuilder('organisation');
         try {
             query.where('organisation.userId = :userId', { userId: userId });
             return await query.getMany();
@@ -40,16 +39,11 @@ export class OrganisationService {
                 where: { registryNumber: registryNumber, userId: userId },
             });
         } catch (error) {
-            this.logger.error(
-                `Failed to get organisation ${registryNumber}: `,
-                error.stack,
-            );
+            this.logger.error(`Failed to get organisation ${registryNumber}: `, error.stack);
             throw new InternalServerErrorException();
         }
         if (!found) {
-            throw new NotFoundException(
-                `Organisation ${registryNumber} not found`,
-            );
+            throw new NotFoundException(`Organisation ${registryNumber} not found`);
         }
         return found;
     }
@@ -58,40 +52,28 @@ export class OrganisationService {
         organisationInput: CreateOrganisationDto,
         userId: string,
     ): Promise<Organisation> {
-        let organisation =
-            this.organisationRepository.create(organisationInput);
+        let organisation = this.organisationRepository.create(organisationInput);
         organisation.userId = userId;
         try {
             await organisation.save();
         } catch (error) {
-            throw new InternalServerErrorException(
-                'Organisation creation failed',
-            );
+            throw new InternalServerErrorException('Organisation creation failed');
         }
         return organisation;
     }
 
-    public async deleteOrganisation(
-        registryNumber: string,
-        userId: string,
-    ): Promise<void> {
+    public async deleteOrganisation(registryNumber: string, userId: string): Promise<void> {
         try {
             this.organisationRepository
                 .createQueryBuilder('organisation')
                 .delete()
-                .where(
-                    'registryNumber = :registryNumber AND userId = :userId',
-                    {
-                        registryNumber,
-                        userId,
-                    },
-                )
+                .where('registryNumber = :registryNumber AND userId = :userId', {
+                    registryNumber,
+                    userId,
+                })
                 .execute();
         } catch (error) {
-            this.logger.error(
-                `Failed to delete organisation ${registryNumber}`,
-                error.stack,
-            );
+            this.logger.error(`Failed to delete organisation ${registryNumber}`, error.stack);
             throw new InternalServerErrorException();
         }
     }

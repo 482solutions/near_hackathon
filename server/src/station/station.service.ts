@@ -5,12 +5,12 @@ import {
     NotFoundException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Country } from './country.entity';
+import { Country } from './entities/country.entity';
 import { CreateStationDto } from './dto/create-station.dto';
-import { Region } from './region.entity';
-import { Station } from './station.entity';
+import { Region } from './entities/region.entity';
+import { Station } from './entities/station.entity';
 import { CountryRepository, RegionRepository, StationRepository } from './station.repository';
-import { Organisation } from '../organisation/dto/organisation.entity';
+import { Organisation } from '../organisation/entities/organisation.entity';
 
 @Injectable()
 export class StationService {

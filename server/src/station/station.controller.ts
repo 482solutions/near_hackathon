@@ -11,10 +11,10 @@ import {
 } from '@nestjs/common';
 import { ApiTags } from '@nestjs/swagger';
 import { GetUser } from 'src/auth/get-user.decorator';
-import { Country } from './country.entity';
+import { Country } from './entities/country.entity';
 import { CreateStationDto } from './dto/create-station.dto';
-import { Region } from './region.entity';
-import { Station } from './station.entity';
+import { Region } from './entities/region.entity';
+import { Station } from './entities/station.entity';
 import { StationService } from './station.service';
 import { OrganisationService } from '../organisation/organisation.service';
 

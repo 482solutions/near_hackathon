@@ -33,7 +33,7 @@ export class CreateStationDto {
     exploitationStart: Date;
 
     @IsNotEmpty({ message: 'Creation Date should not be empty' })
-    creationStart: Date;
+    manufactureDate: Date;
 
     @IsNotEmpty({ message: 'Country should not be empty' })
     countryId: number;
