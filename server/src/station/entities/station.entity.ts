@@ -1,5 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { Organisation } from 'src/organisation/dto/organisation.entity';
+import { Organisation } from 'src/organisation/entities/organisation.entity';
 import {
     BaseEntity,
     Column,
@@ -9,8 +9,8 @@ import {
     OneToMany,
     PrimaryColumn,
 } from 'typeorm';
-import { EEnergyType } from './station-energyType.enum';
-import { Measurement } from '../measurements/entities/measurement.entity';
+import { EEnergyType } from '../station-energyType.enum';
+import { Measurement } from '../../measurements/entities/measurement.entity';
 
 @Entity()
 export class Station extends BaseEntity {
@@ -25,16 +25,16 @@ export class Station extends BaseEntity {
     stationEnergyType: EEnergyType;
 
     @Column()
-    @ApiProperty({ example: 'testplacements' })
-    placement: string;
+    @ApiProperty({ example: '1mW/h' })
+    plantPerformance: string;
 
     @Column()
     @ApiProperty({ example: 'testpsupport' })
-    supportGovernment: string;
+    governmentAid: string;
 
     @Column()
     @ApiProperty({ example: 'testpsupport' })
-    supportInvestment: string;
+    investmentAid: string;
 
     @Column()
     @ApiProperty({ example: new Date().toISOString() })
@@ -42,21 +42,24 @@ export class Station extends BaseEntity {
 
     @Column()
     @ApiProperty({ example: new Date().toISOString() })
-    creationStart: Date;
+    manufactureDate: Date;
 
     @ApiProperty({ example: 1 })
     @Column()
-    countryId: Number;
+    countryId: number;
 
     @ApiProperty({ example: 1 })
     @Column()
-    regionId: Number;
+    regionId: number;
 
-    @ManyToOne(
-        (type) => Organisation,
-        (organisation) => organisation.stations,
-        { eager: false, onDelete: 'CASCADE' },
-    )
+    @ApiProperty({ example: 1 })
+    @Column()
+    manufacturerCountryId: number;
+
+    @ManyToOne((type) => Organisation, (organisation) => organisation.stations, {
+        eager: false,
+        onDelete: 'CASCADE',
+    })
     @JoinColumn({ name: 'organisationRegistryNumber' })
     organisation: Promise<Organisation>;
 
