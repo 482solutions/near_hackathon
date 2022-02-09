@@ -39,14 +39,17 @@ pub type ContractAndId = String;
 pub struct Contract {
     pub owner_id: AccountId,
 
-    /*
-       To keep track of the ask, we map the ContractAndTokenId to a Sale.
-       the ContractAndTokenId is the unique identifier for every sale. It is made
-       up of the `contract ID + DELIMITER + UUIDv4`
-    */
+    /// To keep track of the ask, we map the ContractAndTokenId to a Sale.
+    /// the ContractAndTokenId is the unique identifier for every sale. It is made
+    /// up of the `contract ID + DELIMITER + UUIDv4`
     pub asks: UnorderedMap<ContractAndId, Ask>,
     /// Same with bids
     pub bids: UnorderedMap<ContractAndId, Bid>,
+
+    /// Current id for asks
+    pub asks_id: u128,
+    /// Current id for bids
+    pub bids_id: u128,
 
     /// Keep track of all the Ask IDs for every account ID
     pub asks_by_owner_id: LookupMap<AccountId, UnorderedSet<ContractAndId>>,
@@ -82,7 +85,9 @@ impl Contract {
         Self {
             owner_id,
             asks: UnorderedMap::new(StorageKey::Asks),
+            asks_id: 0,
             bids: UnorderedMap::new(StorageKey::Bids),
+            bids_id: 0,
             asks_by_owner_id: LookupMap::new(StorageKey::AsksByOwnerId),
             bids_by_owner_id: LookupMap::new(StorageKey::BidsByOwnerId),
             storage_deposits: LookupMap::new(StorageKey::StorageDeposits),
