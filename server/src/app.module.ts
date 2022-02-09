@@ -9,17 +9,13 @@ import { Organisation } from './organisation/dto/organisation.entity';
 import { Station } from './station/station.entity';
 import { Country } from './station/country.entity';
 import { Region } from './station/region.entity';
+import { ConfigModule } from '@nestjs/config';
 
 @Module({
     imports: [
+        ConfigModule.forRoot({ isGlobal: true }),
         TypeOrmModule.forRoot(typeOrmConfig),
-        TypeOrmModule.forFeature([
-            Organisation,
-            Station,
-            Country,
-            Region,
-            Measurement,
-        ]),
+        TypeOrmModule.forFeature([Organisation, Station, Country, Region, Measurement]),
         StationModule,
         OrganisationModule,
         MeasurementsModule,
