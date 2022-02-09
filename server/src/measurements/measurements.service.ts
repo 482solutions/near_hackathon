@@ -60,7 +60,8 @@ export class MeasurementsService {
                 ' measurement.stationName = :stationName AND' +
                     ' measurement.stationOrganisationRegistryNumber = :organisationRegistryNumber AND' +
                     ' measurement.stationName IN (:...userStationNames) AND' +
-                    ' measurement.stationOrganisationRegistryNumber IN (:...userOrganisationRegistryNumbers)',
+                    ' measurement.stationOrganisationRegistryNumber IN (:...userOrganisationRegistryNumbers) AND' +
+                    ' measurement.minted = false',
                 {
                     stationName: stationName,
                     organisationRegistryNumber: organisationRegistryNumber,
