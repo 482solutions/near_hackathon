@@ -30,10 +30,15 @@ const MainWrapper = ({ children }) => {
   const navigate = useNavigate();
 
   useEffect(() => {
-    if (window.walletConnection.isSignedIn() && !document.cookie) {
+    console.log("asd");
+    if (
+      window.walletConnection.isSignedIn() &&
+      !document.cookie.includes("privateKey")
+    ) {
       document.cookie = `privateKey = ${localStorage.getItem(
         `near-api-js:keystore:${window.walletConnection._authData.accountId}:${walletConnection._networkId}`
       )}`;
+      console.log("asd", document.cookie);
     }
   }, []);
 

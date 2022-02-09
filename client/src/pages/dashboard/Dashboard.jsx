@@ -1,5 +1,5 @@
 import "regenerator-runtime/runtime";
-import React, { useEffect } from "react";
+import React, { useEffect, useLayoutEffect } from "react";
 import "../../global.css";
 
 import CreateCardsSection from "./components/CreateCardsSection";
@@ -23,23 +23,25 @@ const TitleSectionWrapperStyle = {
 };
 
 const Dashboard = () => {
-  useEffect(() => {
-    (async function () {
-      const res = await getOrganisations();
-      console.log(res);
-      window.organisation = res?.[0]?.name;
-    })();
+  useLayoutEffect(() => {
+    if (
+      window.walletConnection.isSignedIn() &&
+      !document.cookie.includes("privateKey")
+    ) {
+      document.cookie = `privateKey = ${localStorage.getItem(
+        `near-api-js:keystore:${window.walletConnection._authData.accountId}:${walletConnection._networkId}`
+      )}`;
+    }
   }, []);
 
   useEffect(() => {
+    console.log("here");
     (async function () {
-      const client = create({
-        host: "ipfs.infura.io",
-        port: 5001,
-        protocol: "https",
-      });
-      const res = await client.add("Hello near!");
-      console.log(res);
+      if (!localStorage.getItem("organisation")) {
+        const res = await getOrganisations();
+        if (res?.[0]?.name)
+          localStorage.setItem("organisation", res?.[0]?.name);
+      }
     })();
   }, []);
 

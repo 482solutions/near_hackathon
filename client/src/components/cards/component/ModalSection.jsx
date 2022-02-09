@@ -1,4 +1,5 @@
 import { Container, Modal, Typography, Box, Grid } from "@mui/material";
+import { create } from "ipfs-http-client";
 import React, { useMemo, useRef, useState } from "react";
 import { useEffect } from "react";
 import { useCallback } from "react";
@@ -7,6 +8,7 @@ import {
   createMeasurment,
   createOrganisation,
   createStation,
+  getMeasurmentByOrgAndStation,
   getStation,
 } from "../../../api/api.service";
 import Form from "../../../pages/dashboard/components/context/FormContext";
@@ -15,6 +17,7 @@ import CustomizedInput from "../../inputs/CustomizedInput";
 import CustomizedModal from "../../modal/CustomizedModal";
 import RegularText from "../../texts/RegularText";
 import TitleText from "../../texts/TitleText";
+import { Contract } from "near-api-js";
 
 const InputsData = {
   Station: [
@@ -36,6 +39,7 @@ const InputsData = {
         "Gasous",
         "Thermal",
       ].map((i) => ({ label: i, value: i })),
+      required: true,
     },
     {
       title: "Station placement",
@@ -43,23 +47,29 @@ const InputsData = {
     },
     {
       title: "Governemnt support",
+      required: true,
     },
     {
       title: "Investment support",
+      required: true,
     },
     {
       title: "Date of starting commercial explotation",
       type: "Date",
+      required: true,
     },
     {
       title: "Date of creation",
       type: "Date",
+      required: true,
     },
     {
       title: "Country",
+      required: true,
     },
     {
       title: "Region",
+      required: true,
     },
   ],
   Company: [
@@ -104,14 +114,17 @@ const InputsData = {
     {
       title: "Start date of creation",
       type: "Date",
+      required: true,
     },
     {
       title: "End date of creation",
       type: "Date",
+      required: true,
     },
     {
       title: "Amount of energy in MWh",
       type: "number",
+      required: true,
     },
     {
       title: "Stations",
@@ -139,31 +152,69 @@ const TitleContainerStyle = {
   marginBottom: "32px",
 };
 
+let client;
+
 const ModalSection = ({ btnText, keyWord }) => {
   const [open, setOpen] = useState(false);
   const handleOpen = () => setOpen(true);
   const handleClose = () => setOpen(false);
   const [error, setError] = useState({});
+  const [disabled, setDisabled] = useState(
+    (localStorage.getItem("organisation") && keyWord === "Company") ||
+      !window.walletConnection.isSignedIn()
+  );
+
+  const getAndTransformToSelectStations = useCallback(async () => {
+    const res = await getStation();
+    const toSelectData = res.map((i) => ({
+      value: i.name,
+      label: i.name,
+    }));
+    const idx = InputsData["EAC"].findIndex((i) => i.title === "Stations");
+
+    InputsData["EAC"][idx].options = toSelectData;
+  }, []);
 
   useEffect(() => {
     if (keyWord === "EAC") {
-      (async () => {
-        const res = await getStation();
-        const toSelectData = res.map((i) => ({
-          value: i.name,
-          label: i.name,
-        }));
-        const idx = InputsData["EAC"].findIndex((i) => i.title === "Stations");
-
-        InputsData["EAC"][idx].options = toSelectData;
-        console.log(InputsData["EAC"]);
-      })();
+      getAndTransformToSelectStations();
     }
-  }, [keyWord]);
-
+  }, [keyWord, getAndTransformToSelectStations]);
   const dataRef = useRef(
     InputsData[keyWord].reduce((acc, i) => ({ ...acc, [i.title]: "" }), {})
   );
+
+  useEffect(() => {
+    (async function () {
+      client = create({
+        host: "ipfs.infura.io",
+        port: 5001,
+        protocol: "https",
+      });
+    })();
+  }, []);
+
+  const handleEACCreation = async (payload) => {
+    console.log(payload);
+    const ipfsData = await client.add(JSON.stringify(payload));
+    const contract = new Contract(
+      window.walletConnection.account(),
+      "dev-1644404282656-99413275182628",
+      {
+        viewMethods: ["getMessages"], // view methods do not change state but usually return a value
+        changeMethods: ["create_ft"], // change methods modify state
+        sender: window.walletConnection.account(), // account object to initialize and sign transactions.
+      }
+    );
+
+    const res = contract["create_ft"](
+      { name: localStorage.organisation, reference: ipfsData.path },
+      "300000000000000",
+      "3000000000000000000000000"
+    )
+      .then((res) => console.log(res))
+      .catch((err) => console.log(err));
+  };
 
   const handleSubmit = async (data, keyWord, inputsData) => {
     const requiredFilds = inputsData[keyWord]
@@ -179,6 +230,7 @@ const ModalSection = ({ btnText, keyWord }) => {
     const mapOfBackendCalls = {
       Station: createStation,
       Company: createOrganisation,
+      EAC: handleEACCreation,
     };
 
     const payload = {
@@ -204,31 +256,35 @@ const ModalSection = ({ btnText, keyWord }) => {
         ),
         countryId: data["Country"],
         regionId: data["Region"],
-        organisation: window.organisation,
+        organisation: localStorage.organisation,
       },
       EAC: {
         startDate: data["Start date of creation"],
         endDate: data["End date of creation"],
         generatedEnergy: +data["Amount of energy in MWh"],
         station: data["Stations"],
-        organisation: window.organisation,
+        organisation: localStorage.organisation,
       },
     };
 
     const res = await mapOfBackendCalls[keyWord](payload[keyWord]);
+    if (res) {
+      if (keyWord === "Company") {
+        localStorage.setItem("organisation", res.name);
+        setDisabled(true);
+      }
+      if (keyWord === "Station") {
+        getAndTransformToSelectStations();
+      }
+      setOpen(false);
+    }
     console.log(res);
+    // dev - 1644404282656 - 99413275182628;
   };
 
   return (
     <>
-      <CreateButton
-        text={btnText}
-        onClick={handleOpen}
-        disabled={
-          (keyWord === "Company" && !window.organisation) ||
-          !window.walletConnection.isSignedIn()
-        }
-      />
+      <CreateButton text={btnText} onClick={handleOpen} disabled={disabled} />
       <CustomizedModal open={open} handleClose={handleClose}>
         <Grid container sx={TitleContainerStyle}>
           <TitleText title={btnText} />
@@ -248,11 +304,19 @@ const ModalSection = ({ btnText, keyWord }) => {
                 isSelect={i.isSelect}
                 options={i?.options ?? []}
                 type={i.type}
-                passUpValue={(value) => {
+                passUpValue={async (value) => {
                   const payload = {
                     [i.title]: value,
                   };
                   dataRef.current = { ...dataRef.current, ...payload };
+                  if (i.title === "Stations") {
+                    const res = await getMeasurmentByOrgAndStation(
+                      localStorage.getItem("organisation"),
+                      value
+                    );
+                    if (res && res.length) {
+                    }
+                  }
                 }}
               />
             );
