@@ -22,6 +22,7 @@ use near_contract_standards::fungible_token::FungibleToken;
 use near_sdk::borsh::{self, BorshDeserialize, BorshSerialize};
 use near_sdk::collections::LazyOption;
 use near_sdk::env;
+use near_sdk::env::predecessor_account_id;
 use near_sdk::json_types::U128;
 use near_sdk::log;
 use near_sdk::near_bindgen;
@@ -107,6 +108,28 @@ impl Contract {
         // We don't want to give user tokens from start
         // this.token.internal_deposit(&owner_id, total_supply.into());
         this
+    }
+
+    /// Used to manually transfer FT. Safe because of check below
+    pub fn transfer(&mut self, sender_id: AccountId, receiver_id: AccountId, amount: Balance) {
+        require!(
+            self.owner == predecessor_account_id(),
+            "You are not allowed to do that"
+        );
+
+        if !self.is_registered(&receiver_id) {
+            self.register_resolve(&receiver_id);
+        }
+
+        log!(
+            "Transferring from: {}, to: {}, amount: {}",
+            sender_id,
+            receiver_id,
+            amount
+        );
+
+        self.token
+            .internal_transfer(&sender_id, &receiver_id, amount, None);
     }
 
     /// Used in cross-contract call to add account of unregistered user
