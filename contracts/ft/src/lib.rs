@@ -151,6 +151,10 @@ impl Contract {
             "You are not allowed to do that"
         );
 
+        if !self.is_registered(&account_id) {
+            self.register_resolve(&account_id);
+        }
+
         log!("Metadata: {:?}", metadata);
 
         // Increase total supply if not enough
