@@ -91,6 +91,23 @@ impl Contract {
             .collect()
     }
 
+    /// Returns paginated asks objects for a given account. (result is a vector of bid)
+    pub fn get_asks(&self, from: Option<U128>, limit: Option<u64>) -> Vec<Ask> {
+        //where to start pagination - if we have a from_index, we'll use that - otherwise start from 0 index
+        let start = u128::from(from.unwrap_or(U128(0)));
+
+        //iterate through the keys vector
+        self.asks
+            .iter()
+            //skip to the index we specified in the start variable
+            .skip(start as usize)
+            //take the first "limit" elements in the vector. If we didn't specify a limit, use 0
+            .take(limit.unwrap_or(0) as usize)
+            .map(|(_, ask)| ask)
+            //since we turned the keys into an iterator, we need to turn it back into a vector to return
+            .collect()
+    }
+
     /// Returns paginated bids objects for a given account. (result is a vector of bid)
     pub fn get_bids_by_owner_id(
         &self,

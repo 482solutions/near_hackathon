@@ -11,4 +11,5 @@ crate-type = ["cdylib"]
 [dependencies]
 near-sdk = "4.0.0-pre.6"
 near-contract-standards = "4.0.0-pre.6"
+utils = { path = "../utils" }
 #uuid = { version = "0.8.2", features = ["v4", "stdweb", "getrandom"] }

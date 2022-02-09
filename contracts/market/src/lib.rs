@@ -4,15 +4,14 @@
 
 use near_sdk::borsh::{self, BorshDeserialize, BorshSerialize};
 use near_sdk::collections::{LookupMap, UnorderedMap, UnorderedSet};
-use near_sdk::env::{
-    attached_deposit, panic_str, predecessor_account_id, sha256, STORAGE_PRICE_PER_BYTE,
-};
+use near_sdk::env::{attached_deposit, panic_str, predecessor_account_id, STORAGE_PRICE_PER_BYTE};
 use near_sdk::json_types::{U128, U64};
 use near_sdk::serde::{Deserialize, Serialize};
 use near_sdk::{
     assert_one_yocto, ext_contract, log, near_bindgen, require, AccountId, Balance,
     BorshStorageKey, CryptoHash, Gas, PanicOnDefault, Promise,
 };
+use utils::utils;
 
 use crate::sale::*;
 
@@ -21,12 +20,17 @@ mod internal;
 mod sale;
 mod sale_views;
 
+use external::*;
+
 // The minimum storage to have a sale on the contract.
 pub const STORAGE_PER_SALE: u128 = 1000 * STORAGE_PRICE_PER_BYTE;
+
+pub const NO_DEPOSIT: Balance = 0;
 
 pub const PROCESS_ASK: Gas = Gas(80_000_000_000_000);
 
 //Creating custom types to use within the contract. This makes things more readable.
+pub type SalePriceInYoctoNear = U128;
 pub type ContractAndId = String;
 
 /// Struct for storing various information about market state

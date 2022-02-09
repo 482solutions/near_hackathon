@@ -1,13 +1,5 @@
 use crate::*;
-
-/// Used to generate a unique prefix in our storage collections (this is to avoid data collisions)
-pub(crate) fn hash_account_id(account_id: &AccountId) -> CryptoHash {
-    // Get the default hash
-    let mut hash = CryptoHash::default();
-    // We hash the account ID and return it
-    hash.copy_from_slice(&sha256(account_id.as_bytes()));
-    hash
-}
+use near_sdk::env::current_account_id;
 
 impl Contract {
     // TODO: Find working in WASM uuid implementation
@@ -100,4 +92,14 @@ impl Contract {
 
         bid
     }
+}
+
+pub fn get_token_account_id(account_id: &AccountId) -> AccountId {
+    // Split account by '.'
+    // Example i3ima.testnet -> ["i3ima", "testnet"]
+    let split = utils::split_account(&account_id);
+    // Get prefix for subaccount
+    let prefix = split[0].to_string();
+
+    AccountId::new_unchecked(format!("{}.{}", prefix, current_account_id()))
 }
