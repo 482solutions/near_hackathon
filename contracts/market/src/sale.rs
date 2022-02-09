@@ -205,7 +205,7 @@ impl Contract {
         // Transfer $NEAR to seller
         let transfer_near = Promise::new(sale.owner_id.clone()).transfer(sale.sale_conditions);
 
-        ext_ft::transfer(
+        ext_ft::force_transfer(
             sale.owner_id,
             buyer_id,
             sale.amount,
