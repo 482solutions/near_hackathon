@@ -82,10 +82,10 @@ impl FactoryContract {
     ///
     #[payable]
     pub fn create_ft(&mut self, name: String, reference: String) -> Promise {
-        let account_id = env::current_account_id();
-        let owner_id = env::predecessor_account_id();
+        let owner = env::current_account_id();
+        let caller = env::predecessor_account_id();
 
-        let subaccount_id = get_token_account_id(&owner_id);
+        let subaccount_id = get_token_account_id(&caller);
 
         log!(
             "Trying to create subaccount: {}. {} yoctoNEAR required as deposit",
@@ -122,7 +122,7 @@ impl FactoryContract {
         };
 
         let args = TokenArgs {
-            owner_id,
+            owner_id: caller,
             total_supply: U128(0),
             metadata: metadata.clone(),
         };
@@ -136,7 +136,7 @@ impl FactoryContract {
             .deploy_contract(CODE.to_vec())
             .function_call(
                 "new".to_string(),
-                json!({ "owner_id": account_id, "metadata": metadata })
+                json!({ "owner_id": owner, "metadata": metadata })
                     .to_string()
                     .as_bytes()
                     .to_vec(),
