@@ -1,18 +1,10 @@
 use crate::*;
-
-/// Used to generate a unique prefix in our storage collections (this is to avoid data collisions)
-pub(crate) fn hash_account_id(account_id: &AccountId) -> CryptoHash {
-    // Get the default hash
-    let mut hash = CryptoHash::default();
-    // We hash the account ID and return it
-    hash.copy_from_slice(&sha256(account_id.as_bytes()));
-    hash
-}
+use near_sdk::env::current_account_id;
 
 impl Contract {
     // TODO: Find working in WASM uuid implementation
     pub fn internal_place_ask(&mut self, ask: Ask) -> Ask {
-        let id = format!("{}.{}", ask.owner_id, "TEST");
+        let id = format!("{}.{}", ask.owner_id, "ASK");
 
         self.asks.insert(&id, &ask);
 
@@ -23,7 +15,7 @@ impl Contract {
                 by_owner.insert(&id);
             }
             None => {
-                let mut new_set = UnorderedSet::new(StorageKey::ByOwnerId);
+                let mut new_set = UnorderedSet::new(StorageKey::AsksByOwnerId);
                 new_set.insert(&id);
                 self.asks_by_owner_id.insert(&ask.owner_id, &new_set);
             }
@@ -33,11 +25,9 @@ impl Contract {
     }
 
     pub fn internal_place_bid(&mut self, bid: Bid) -> Bid {
-        let id = format!("{}.{}", bid.owner_id, "TEST");
+        let id = format!("{}.{}", bid.owner_id, "BID");
 
-        self.bids
-            .insert(&id, &bid)
-            .unwrap_or_else(|| panic_str("Bid already exists"));
+        require!(self.bids.insert(&id, &bid).is_none(), "Bid already exist");
 
         let by_owner = self.bids_by_owner_id.get(&bid.owner_id);
 
@@ -46,7 +36,7 @@ impl Contract {
                 by_owner.insert(&id);
             }
             None => {
-                let mut new_set = UnorderedSet::new(StorageKey::ByOwnerId);
+                let mut new_set = UnorderedSet::new(StorageKey::BidsByOwnerId);
                 new_set.insert(&id);
                 self.bids_by_owner_id.insert(&bid.owner_id, &new_set);
             }
@@ -102,4 +92,14 @@ impl Contract {
 
         bid
     }
+}
+
+pub fn get_token_account_id(account_id: &AccountId) -> AccountId {
+    // Split account by '.'
+    // Example i3ima.testnet -> ["i3ima", "testnet"]
+    let split = utils::split_account(&account_id);
+    // Get prefix for subaccount
+    let prefix = split[0].to_string();
+
+    AccountId::new_unchecked(format!("{}.{}", prefix, current_account_id()))
 }

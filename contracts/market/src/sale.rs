@@ -1,7 +1,7 @@
+use crate::internal::get_token_account_id;
 use crate::*;
-use near_sdk::env::current_account_id;
-use near_sdk::ONE_YOCTO;
-use token_factory::prices::NO_DEPOSIT;
+use near_sdk::env::{current_account_id, prepaid_gas, used_gas};
+use near_sdk::{is_promise_success, ONE_YOCTO};
 
 /// Ask struct, defines who sells, how much, and on what conditions
 #[derive(BorshDeserialize, BorshSerialize, Serialize, Deserialize, Debug)]
@@ -15,7 +15,7 @@ pub struct Ask {
     pub amount: Balance,
 
     /// Sale prices in yoctoNEAR that the token is listed for
-    pub sale_conditions: SalePriceInYoctoNear,
+    pub sale_conditions: Balance,
 }
 
 /// Bid struct defines who want to buy, how much, and on what conditions
@@ -29,7 +29,7 @@ pub struct Bid {
 
     /// Sale prices in yoctoNEAR that the token is listed for.
     /// Acts as a trigger
-    pub sale_conditions: SalePriceInYoctoNear,
+    pub sale_conditions: Balance,
 }
 
 #[derive(BorshDeserialize, BorshSerialize, Serialize, Deserialize)]
@@ -41,48 +41,51 @@ pub enum Position {
 
 #[near_bindgen]
 impl Contract {
-    #[payable]
-    pub fn add_position(
-        &mut self,
-        amount: Balance,
-        conditions: SalePriceInYoctoNear,
-        ft_contract_id: Option<AccountId>,
-        position: Position,
-    ) {
+    pub fn place_ask(&mut self, amount: Balance, conditions: U128) {
         let caller = predecessor_account_id();
+        let ft = get_token_account_id(&caller);
 
-        match position {
-            Position::Ask => {
-                let ask = Ask {
-                    owner_id: caller,
-                    ft_contract_id: ft_contract_id.unwrap(),
-                    amount,
-                    sale_conditions: conditions,
-                };
-                log!("Creating new ask: {:?}", ask);
-                self.internal_place_ask(ask);
-            }
-            Position::Bid => {
-                let bid = Bid {
-                    owner_id: caller,
-                    amount,
-                    sale_conditions: conditions,
-                };
-                log!("Creating new bid: {:?}", bid);
-
-                self.internal_place_bid(bid);
-            }
-        }
+        let ask = Ask {
+            owner_id: caller,
+            ft_contract_id: ft,
+            amount,
+            sale_conditions: conditions.into(),
+        };
+        log!("Creating new ask: {:?}", ask);
+        self.internal_place_ask(ask);
     }
 
-    /// Removes a sale from the market.
+    /// Method for placing Bid. Attached deposit will be treated as sale condition
+    #[payable]
+    pub fn place_bid(&mut self, amount: Balance, conditions: U128) {
+        let deposit = attached_deposit();
+        let caller = predecessor_account_id();
+
+        log!("Caller: {}, Deposit: {:?}", caller, deposit);
+
+        require!(
+            conditions.eq(&deposit.into()),
+            "Sale conditions and deposit don't match"
+        );
+
+        let bid = Bid {
+            owner_id: predecessor_account_id(),
+            amount,
+            sale_conditions: attached_deposit(),
+        };
+        log!("Creating new bid: {:?}", bid);
+
+        self.internal_place_bid(bid);
+    }
+
+    /// Removes ask from the market.
     #[payable]
     pub fn remove_position(&mut self, id: ContractAndId, position: Position) {
         //assert that the user has attached exactly 1 yoctoNEAR (for security reasons)
         assert_one_yocto();
 
         //get the predecessor of the call and make sure they're the owner of the sale
-        let owner_id = predecessor_account_id();
+        let caller = predecessor_account_id();
 
         //get the sale object as the return value from removing the sale internally
         // TODO: Replace internal_remove_sale with implementation that removed ask/bid
@@ -90,11 +93,18 @@ impl Contract {
             //if this fails, the remove will revert
             Position::Ask => {
                 let ask = self.internal_remove_ask(id);
-                require!(owner_id == ask.owner_id, "Must be sale owner");
+                require!(
+                    caller == ask.owner_id || caller == self.owner_id,
+                    "Must be sale owner"
+                );
             }
             Position::Bid => {
                 let bid = self.internal_remove_bid(id);
-                require!(owner_id == bid.owner_id, "Must be sale owner");
+                Promise::new(bid.owner_id.clone()).transfer(bid.sale_conditions);
+                require!(
+                    caller == bid.owner_id || caller == self.owner_id,
+                    "Must be sale owner"
+                );
             }
         }
     }
@@ -114,27 +124,52 @@ impl Contract {
                 let mut ask = self.asks.get(&id).expect("No asks");
                 require!(owner_id == ask.owner_id, "Must be ask owner");
 
-                ask.sale_conditions = price;
+                ask.sale_conditions = price.into();
 
                 self.asks.insert(&id, &ask);
             }
             Position::Bid => {
-                let mut bid = self.bids.get(&id).expect("No bids");
-                require!(owner_id == bid.owner_id, "Must be bid owner");
-
-                bid.sale_conditions = price;
-
-                self.bids.insert(&id, &bid);
+                panic_str("You cannot update price of Bid, for now");
+                // TODO: Because it can cause abuse, it'll be temporarily disabled
+                // let mut bid = self.bids.get(&id).expect("No bids");
+                // require!(owner_id == bid.owner_id, "Must be bid owner");
+                //
+                // bid.sale_conditions = price.into();
+                //
+                // self.bids.insert(&id, &bid);
             }
         }
     }
 
+    /// Method only for backend. Requires significant amount of Gas (2 * PROCESS_ASK)
     #[private]
-    pub fn force_buy(&mut self, ask_id: ContractAndId, bid_id: ContractAndId) {}
+    pub fn process_bid(&mut self, ask_id: ContractAndId, bid_id: ContractAndId) -> Promise {
+        let ask = self.get_ask(&ask_id).expect("This ask does not exist");
+        let bid = self.get_bid(&bid_id).expect("This bid does not exist");
 
-    /// Place an order on a specific sale. The sale will go through as long as your deposit is greater than or equal to the list price
+        require!(
+            ask.sale_conditions.eq(&bid.sale_conditions),
+            "Sale conditions don't match"
+        );
+
+        self.managed_ask_sell(ask_id, bid.owner_id)
+            .then(ext_self::resolve_position(
+                bid_id,
+                Position::Bid,
+                current_account_id(),
+                ONE_YOCTO,
+                PROCESS_ASK,
+            ))
+    }
+
+    #[private]
+    pub fn managed_ask_sell(&mut self, id: ContractAndId, buyer: AccountId) -> Promise {
+        self.process_purchase(id, buyer)
+    }
+
+    /// Process ask - makes necessary checks, then transfers FT to buyer and $NEAR to seller
     #[payable]
-    pub fn buy(&mut self, id: ContractAndId) {
+    pub fn direct_ask_sell(&mut self, id: ContractAndId) {
         // Get the attached deposit and make sure it's greater than 0
         let deposit = attached_deposit();
         require!(deposit > 0, "Attached deposit must be greater than 0");
@@ -147,7 +182,7 @@ impl Contract {
         require!(ask.owner_id != buyer_id, "Cannot bid on your own sale.");
 
         // Get the u128 price of the token (dot 0 converts from U128 to u128)
-        let price = ask.sale_conditions.0;
+        let price = ask.sale_conditions;
 
         //make sure the deposit is greater than the price
         log!("Current price: {:?}", price);
@@ -165,34 +200,37 @@ impl Contract {
     #[private]
     pub fn process_purchase(&mut self, id: ContractAndId, buyer_id: AccountId) -> Promise {
         //get the ask object
-        let sale = self.get_ask(id.clone()).expect("This ask does not exist");
+        let sale = self.get_ask(&id).expect("This ask does not exist");
 
         // Transfer $NEAR to seller
-        let transfer_near =
-            Promise::new(sale.owner_id.clone()).transfer(Balance::from(sale.sale_conditions));
+        let transfer_near = Promise::new(sale.owner_id.clone()).transfer(sale.sale_conditions);
 
-        // TODO: Make it work
-        // ext_contract::ft_transfer(
-        //     sale.owner_id,
-        //     buyer_id,
-        //     U128::from(sale.amount),
-        //     None,
-        //     sale.ft_contract_id,
-        //     ONE_YOCTO,
-        //     FACTORY_CROSS_CALL,
-        // )
-        transfer_near.then(ext_self::resolve_purchase(
+        ext_ft::transfer(
+            sale.owner_id,
+            buyer_id,
+            sale.amount,
+            sale.ft_contract_id,
+            NO_DEPOSIT,
+            PROCESS_ASK,
+        )
+        .then(transfer_near)
+        .then(ext_self::resolve_position(
             id,
+            Position::Ask,
             current_account_id(),
             ONE_YOCTO,
-            FACTORY_CROSS_CALL,
+            PROCESS_ASK,
         ))
     }
 
     #[private]
     #[payable]
-    pub fn resolve_purchase(&mut self, id: ContractAndId) {
-        self.remove_position(id, Position::Ask);
+    pub fn resolve_position(&mut self, id: ContractAndId, position: Position) {
+        require!(
+            is_promise_success(),
+            "Previous promise in chain not succeeded"
+        );
+        self.remove_position(id, position);
     }
 }
 
@@ -200,5 +238,5 @@ impl Contract {
 // Fired as a last promise in the chain of buy method. In such way we only remove sale if all previous promises succeeded
 #[ext_contract(ext_self)]
 trait ExtSelf {
-    fn resolve_purchase(&mut self, id: ContractAndId) -> Promise;
+    fn resolve_position(&mut self, id: ContractAndId, position: Position) -> Promise;
 }

@@ -6,10 +6,18 @@ use near_contract_standards::fungible_token::metadata::{FungibleTokenMetadata, F
 use near_sdk::borsh::{self, BorshDeserialize, BorshSerialize};
 use near_sdk::collections::UnorderedMap;
 use near_sdk::env::sha256;
-use near_sdk::json_types::{Base64VecU8, ValidAccountId};
+use near_sdk::json_types::{Base64VecU8, U128};
+use near_sdk::serde::{Deserialize, Serialize};
 use near_sdk::serde_json::json;
-use near_sdk::{env, ext_contract, log, near_bindgen, require, AccountId, PanicOnDefault, Promise};
+use near_sdk::{
+    env, ext_contract, log, near_bindgen, require, AccountId, Balance, BorshStorageKey,
+    PanicOnDefault, Promise,
+};
 use utils::utils;
+
+mod external;
+
+use external::*;
 
 /* TODO: I should definitely later dive deeper into economics of NEAR
     to better understand how i can calc fee
@@ -74,10 +82,10 @@ impl FactoryContract {
     ///
     #[payable]
     pub fn create_ft(&mut self, name: String, reference: String) -> Promise {
-        let account_id = env::current_account_id();
-        let owner_id = env::predecessor_account_id();
+        let owner = env::current_account_id();
+        let caller = env::predecessor_account_id();
 
-        let subaccount_id = get_token_account_id(&owner_id);
+        let subaccount_id = get_token_account_id(&caller);
 
         log!(
             "Trying to create subaccount: {}. {} yoctoNEAR required as deposit",
@@ -114,9 +122,9 @@ impl FactoryContract {
         };
 
         let args = TokenArgs {
-            owner_id,
-            total_supply: 0,
-            metadata,
+            owner_id: caller,
+            total_supply: U128(0),
+            metadata: metadata.clone(),
         };
 
         self.tokens.insert(&subaccount_id, &args);
@@ -128,13 +136,37 @@ impl FactoryContract {
             .deploy_contract(CODE.to_vec())
             .function_call(
                 "new".to_string(),
-                json!({ "owner_id": account_id, "metadata": metadata })
+                json!({ "owner_id": owner, "metadata": metadata })
                     .to_string()
                     .as_bytes()
                     .to_vec(),
                 NO_DEPOSIT,
                 TOKEN_NEW,
             )
+    }
+
+    #[private]
+    pub fn force_transfer(
+        &self,
+        sender_id: AccountId,
+        receiver_id: AccountId,
+        amount: Balance,
+    ) -> Promise {
+        let ft = self.get_token(&sender_id);
+
+        require!(ft.is_none(), "This FT does not exist");
+
+        let ft_contract = get_token_account_id(&sender_id);
+
+        // Initiate cross-contract call
+        ext_contract::transfer(
+            sender_id,
+            receiver_id,
+            amount,
+            ft_contract,
+            NO_DEPOSIT,
+            FACTORY_CROSS_CALL,
+        )
     }
 
     pub fn get_number_of_tokens(&self) -> u64 {
@@ -148,8 +180,8 @@ impl FactoryContract {
             .collect()
     }
 
-    pub fn get_token(&self, account_id: AccountId) -> Option<TokenArgs> {
-        self.tokens.get(&get_token_account_id(&account_id))
+    pub fn get_token(&self, account_id: &AccountId) -> Option<TokenArgs> {
+        self.tokens.get(&get_token_account_id(account_id))
     }
 }
 

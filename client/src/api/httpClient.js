@@ -21,8 +21,9 @@ class HttpClient {
 
   initHttp() {
     const http = axios.create({
-      baseURL: process.env.REACT_APP_BASE_URL || "http://localhost:3030/api",
+      baseURL: process.env.REACT_APP_BASE_URL,
       headers,
+      withCredentials: true,
     });
 
     http.interceptors.response.use(
