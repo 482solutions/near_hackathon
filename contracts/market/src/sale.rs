@@ -46,6 +46,15 @@ pub enum Method {
 
 #[near_bindgen]
 impl Contract {
+    /// Place [Ask] position on a market
+    ///
+    /// # Arguments
+    ///
+    /// * `amount`: FT amount
+    /// * `conditions`: For how much $NEAR
+    ///
+    /// returns: Promise to transfer
+    ///
     pub fn place_ask(&mut self, amount: Balance, conditions: U128) -> Promise {
         let caller = predecessor_account_id();
         let current = current_account_id();
@@ -64,9 +73,17 @@ impl Contract {
         ext_ft::ft_transfer_by_signer(current, amount.into(), None, ft, ONE_YOCTO, CCC)
     }
 
-    /// Method for placing Bid. Attached deposit will be treated as sale condition
+    /// Place [Bid] on a market
+    ///
+    /// # Arguments
+    ///
+    /// * `amount`: How much to buy
+    /// * `conditions`: For how much $NEAR
+    ///
+    /// returns: Bid that was created
+    ///
     #[payable]
-    pub fn place_bid(&mut self, amount: Balance, conditions: U128) {
+    pub fn place_bid(&mut self, amount: Balance, conditions: U128) -> Bid {
         let deposit = attached_deposit();
         let caller = predecessor_account_id();
 
@@ -84,7 +101,7 @@ impl Contract {
         };
         log!("Creating new bid: {:?}", bid);
 
-        self.internal_place_bid(bid);
+        self.internal_place_bid(bid)
     }
 
     /// Removes ask from the market.
@@ -103,6 +120,15 @@ impl Contract {
         }
     }
 
+    /// Cancels position from "user-mode"
+    ///
+    /// # Arguments
+    ///
+    /// * `id`: [ContractAndId] of position
+    /// * `position`: [Position] type
+    ///
+    /// returns: Promise that transfers FT or $NEAR
+    ///
     pub fn cancel_position(&mut self, id: ContractAndId, position: Position) -> Promise {
         let caller = predecessor_account_id();
 
@@ -160,7 +186,15 @@ impl Contract {
         }
     }
 
-    /// Method only for backend. Requires significant amount of Gas (2 * PROCESS_ASK)
+    /// Process Bid. Can be used only by owner (for back-end)
+    ///
+    /// # Arguments
+    ///
+    /// * `ask_id`: [Ask]
+    /// * `bid_id`: [Bid]
+    ///
+    /// returns: Promise
+    ///
     pub fn process_bid(&mut self, ask_id: ContractAndId, bid_id: ContractAndId) -> Promise {
         // I don't want to deal with sub-account names too much
         require!(
@@ -198,7 +232,14 @@ impl Contract {
             .then(Promise::new(ask.owner_id).transfer(ask.sale_conditions))
     }
 
-    /// Process ask - makes necessary checks, then transfers FT to buyer and $NEAR to seller
+    /// Make direct sell of ask (by user)
+    ///
+    /// # Arguments
+    ///
+    /// * `id`: [ContractAndId]
+    ///
+    /// returns: Promise
+    ///
     #[payable]
     pub fn direct_ask_sell(&mut self, id: ContractAndId) -> Promise {
         // Get the attached deposit and make sure it's greater than 0
