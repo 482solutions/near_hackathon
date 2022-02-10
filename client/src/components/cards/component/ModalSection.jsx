@@ -1,6 +1,6 @@
-import { Container, Modal, Typography, Box, Grid } from "@mui/material";
+import { Grid } from "@mui/material";
 import { create } from "ipfs-http-client";
-import React, { useMemo, useRef, useState } from "react";
+import React, { useRef, useState } from "react";
 import { useEffect } from "react";
 import { useCallback } from "react";
 import {
@@ -9,7 +9,6 @@ import {
   getMeasurmentByOrgAndStation,
   getStation,
 } from "../../../api/api.service";
-import Form from "../../../pages/dashboard/components/context/FormContext";
 import CreateButton from "../../buttons/CreateButton";
 import CustomizedInput from "../../inputs/CustomizedInput";
 import CustomizedModal from "../../modal/CustomizedModal";
@@ -17,6 +16,9 @@ import RegularText from "../../texts/RegularText";
 import TitleText from "../../texts/TitleText";
 import { Contract } from "near-api-js";
 import { allCountries } from "country-region-data";
+import InfoModal from "../../modal/info-modal/InfoModal";
+import { useLocation, useNavigate } from "react-router-dom";
+import useIpfs from "../../../hooks/useIpfs.hook";
 
 const transformedToSelectCountries = allCountries.map((i, idx) => ({
   value: idx,
@@ -105,7 +107,7 @@ const InputsData = {
     },
     {
       title: "Trade Registry Company number",
-      require: true,
+      required: true,
     },
     {
       title: "Signatory Full Name",
@@ -166,18 +168,32 @@ const TitleContainerStyle = {
   marginBottom: "32px",
 };
 
-let client;
-
-const ModalSection = ({ btnText, keyWord }) => {
+const ModalSection = ({ btnText, keyWord, img }) => {
   const [open, setOpen] = useState(false);
-  const handleOpen = () => setOpen(true);
-  const handleClose = () => setOpen(false);
+  const [infoModalIsOpen, setInfoModalIsOpen] = useState(false);
   const [error, setError] = useState({});
   const [disabled, setDisabled] = useState(
-    (localStorage.getItem("organisation") && keyWord === "Company") ||
+    (!localStorage.getItem("organisation") &&
+      (keyWord === "EAC" || keyWord === "Station")) ||
+      (localStorage.getItem("organisation") && keyWord === "Company") ||
       !window.walletConnection.isSignedIn()
   );
   const [data, setData] = useState(InputsData);
+  const location = useLocation();
+  const navigate = useNavigate();
+  const { client } = useIpfs();
+
+  useEffect(() => {
+    if (location.state?.nextModal) {
+      if (location.state?.nextModal === keyWord) {
+        setOpen(true);
+        navigate("/", {
+          replace: { ...location, state: null },
+        });
+        setDisabled(false);
+      }
+    }
+  }, [location.state?.nextModal, navigate]);
 
   const getAndTransformToSelectStations = useCallback(async () => {
     const res = await getStation();
@@ -199,19 +215,20 @@ const ModalSection = ({ btnText, keyWord }) => {
       }
     })();
   }, [keyWord, getAndTransformToSelectStations]);
+
   const dataRef = useRef(
     InputsData[keyWord].reduce((acc, i) => ({ ...acc, [i.title]: "" }), {})
   );
 
-  useEffect(() => {
-    (async function () {
-      client = create({
-        host: "ipfs.infura.io",
-        port: 5001,
-        protocol: "https",
-      });
-    })();
-  }, []);
+  const handleOpen = () => setOpen(true);
+
+  const handleClose = () => {
+    setOpen(false);
+    dataRef.current = Object.keys(dataRef.current).reduce(
+      (acc, i) => ({ ...acc, [i]: "" }),
+      {}
+    );
+  };
 
   const handleEACCreation = async (payload) => {
     const ipfsData = await client.add(JSON.stringify(payload));
@@ -290,15 +307,15 @@ const ModalSection = ({ btnText, keyWord }) => {
     const res = await mapOfBackendCalls[keyWord](payload[keyWord]);
     if (res) {
       if (keyWord === "Company") {
-        localStorage.setItem("organisation", res.name);
+        localStorage.setItem("organisation", res.registryNumber);
         setDisabled(true);
       }
       if (keyWord === "Station") {
         getAndTransformToSelectStations();
       }
       setOpen(false);
+      setInfoModalIsOpen(true);
     }
-    console.log(res);
   };
 
   return (
@@ -323,6 +340,7 @@ const ModalSection = ({ btnText, keyWord }) => {
                 isSelect={i.isSelect}
                 options={i?.options || []}
                 type={i.type}
+                disabled={i.title === "Region" && !dataRef.current?.["Country"]}
                 passUpValue={async (value) => {
                   const payload = {
                     [i.title]: value,
@@ -359,6 +377,12 @@ const ModalSection = ({ btnText, keyWord }) => {
           </Grid>
         </Grid>
       </CustomizedModal>
+      <InfoModal
+        open={infoModalIsOpen}
+        setOpen={setInfoModalIsOpen}
+        img={img}
+        keyWord={keyWord}
+      />
     </>
   );
 };

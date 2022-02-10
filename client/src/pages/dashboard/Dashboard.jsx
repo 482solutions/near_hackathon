@@ -39,8 +39,8 @@ const Dashboard = () => {
     (async function () {
       if (!localStorage.getItem("organisation")) {
         const res = await getOrganisations();
-        if (res?.[0]?.name)
-          localStorage.setItem("organisation", res?.[0]?.name);
+        if (res?.[0]?.registryNumber)
+          localStorage.setItem("organisation", res?.[0]?.registryNumber);
       }
     })();
   }, []);
