@@ -21,12 +21,12 @@ use near_contract_standards::fungible_token::metadata::{
 use near_contract_standards::fungible_token::FungibleToken;
 use near_sdk::borsh::{self, BorshDeserialize, BorshSerialize};
 use near_sdk::collections::LazyOption;
-use near_sdk::env;
 use near_sdk::env::{is_valid_account_id, predecessor_account_id};
 use near_sdk::json_types::U128;
 use near_sdk::log;
 use near_sdk::near_bindgen;
 use near_sdk::serde::{Deserialize, Serialize};
+use near_sdk::{assert_one_yocto, env};
 use near_sdk::{require, AccountId, Balance, BorshStorageKey, PanicOnDefault, PromiseOrValue};
 
 use utils::utils;
@@ -108,6 +108,39 @@ impl Contract {
         // We don't want to give user tokens from start
         // this.token.internal_deposit(&owner_id, total_supply.into());
         this
+    }
+
+    #[payable]
+    pub fn ft_transfer_safe(&mut self, receiver_id: AccountId, amount: U128, memo: Option<String>) {
+        assert_one_yocto();
+
+        if !self.is_registered(&receiver_id) {
+            self.register_resolve(&receiver_id);
+        }
+
+        let sender_id = env::predecessor_account_id();
+        let amount: Balance = amount.into();
+        self.token
+            .internal_transfer(&sender_id, &receiver_id, amount, memo);
+    }
+
+    #[payable]
+    pub fn ft_transfer_by_signer(
+        &mut self,
+        receiver_id: AccountId,
+        amount: U128,
+        memo: Option<String>,
+    ) {
+        assert_one_yocto();
+
+        if !self.is_registered(&receiver_id) {
+            self.register_resolve(&receiver_id);
+        }
+
+        let sender_id = env::signer_account_id();
+        let amount: Balance = amount.into();
+        self.token
+            .internal_transfer(&sender_id, &receiver_id, amount, memo);
     }
 
     /// Used to manually transfer FT. Safe because of check below

@@ -4,12 +4,12 @@
 
 use near_sdk::borsh::{self, BorshDeserialize, BorshSerialize};
 use near_sdk::collections::{LookupMap, UnorderedMap, UnorderedSet};
-use near_sdk::env::{attached_deposit, panic_str, predecessor_account_id, STORAGE_PRICE_PER_BYTE};
+use near_sdk::env::*;
 use near_sdk::json_types::{U128, U64};
 use near_sdk::serde::{Deserialize, Serialize};
 use near_sdk::{
-    assert_one_yocto, ext_contract, log, near_bindgen, require, AccountId, Balance,
-    BorshStorageKey, CryptoHash, Gas, PanicOnDefault, Promise,
+    assert_one_yocto, ext_contract, is_promise_success, log, near_bindgen, require, AccountId,
+    Balance, BorshStorageKey, CryptoHash, Gas, PanicOnDefault, Promise, ONE_YOCTO,
 };
 use utils::utils;
 
