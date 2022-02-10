@@ -1,5 +1,4 @@
 use crate::*;
-use near_sdk::env::current_account_id;
 
 impl Contract {
     // TODO: Find working in WASM uuid implementation
@@ -103,9 +102,15 @@ impl Contract {
 pub fn get_token_account_id(account_id: &AccountId) -> AccountId {
     // Split account by '.'
     // Example i3ima.testnet -> ["i3ima", "testnet"]
-    let split = utils::split_account(&account_id);
+    let split = utils::split_account(account_id);
     // Get prefix for subaccount
     let prefix = split[0].to_string();
 
-    AccountId::new_unchecked(format!("{}.{}", prefix, current_account_id()))
+    let current = current_account_id();
+
+    let split_current = utils::split_account(&current);
+
+    let postfix = split_current[1].to_string();
+
+    AccountId::new_unchecked(format!("{}.{}", prefix, postfix))
 }
