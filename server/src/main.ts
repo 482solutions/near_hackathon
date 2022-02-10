@@ -50,7 +50,7 @@ async function bootstrap() {
                     },
                     notification: {
                         http: {
-                            url: `${process.env.BASE_URL}/api/measurements`,
+                            url: `${process.env.SUBSC_URL}:${port}/api/measurements`,
                         },
                         attrsFormat: 'keyValues',
                     },
