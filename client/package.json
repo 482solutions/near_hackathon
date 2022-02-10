@@ -36,6 +36,7 @@
     "@emotion/styled": "^11.6.0",
     "@mui/material": "^5.3.1",
     "axios": "^0.25.0",
+    "country-region-data": "^2.0.0",
     "ipfs-http-client": "^56.0.1",
     "near-api-js": "~0.43.1",
     "react": "~17.0.1",

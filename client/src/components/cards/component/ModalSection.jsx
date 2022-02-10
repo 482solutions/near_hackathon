@@ -3,9 +3,7 @@ import { create } from "ipfs-http-client";
 import React, { useMemo, useRef, useState } from "react";
 import { useEffect } from "react";
 import { useCallback } from "react";
-import { async } from "regenerator-runtime";
 import {
-  createMeasurment,
   createOrganisation,
   createStation,
   getMeasurmentByOrgAndStation,
@@ -18,6 +16,12 @@ import CustomizedModal from "../../modal/CustomizedModal";
 import RegularText from "../../texts/RegularText";
 import TitleText from "../../texts/TitleText";
 import { Contract } from "near-api-js";
+import { allCountries } from "country-region-data";
+
+const transformedToSelectCountries = allCountries.map((i, idx) => ({
+  value: idx,
+  label: i[0],
+}));
 
 const InputsData = {
   Station: [
@@ -42,7 +46,7 @@ const InputsData = {
       required: true,
     },
     {
-      title: "Station placement",
+      title: "Plant performance",
       required: true,
     },
     {
@@ -65,11 +69,21 @@ const InputsData = {
     },
     {
       title: "Country",
+      isSelect: true,
       required: true,
+      options: transformedToSelectCountries,
     },
     {
       title: "Region",
+      isSelect: true,
+      options: [],
       required: true,
+    },
+    {
+      title: "Manufacturer Country",
+      isSelect: true,
+      required: true,
+      options: transformedToSelectCountries,
     },
   ],
   Company: [
@@ -163,22 +177,27 @@ const ModalSection = ({ btnText, keyWord }) => {
     (localStorage.getItem("organisation") && keyWord === "Company") ||
       !window.walletConnection.isSignedIn()
   );
+  const [data, setData] = useState(InputsData);
 
   const getAndTransformToSelectStations = useCallback(async () => {
     const res = await getStation();
-    const toSelectData = res.map((i) => ({
-      value: i.name,
-      label: i.name,
-    }));
-    const idx = InputsData["EAC"].findIndex((i) => i.title === "Stations");
+    if (res && res.length) {
+      const toSelectData = res.map((i) => ({
+        value: i.name,
+        label: i.name,
+      }));
+      const idx = InputsData["EAC"].findIndex((i) => i.title === "Stations");
 
-    InputsData["EAC"][idx].options = toSelectData;
+      InputsData["EAC"][idx].options = toSelectData;
+    }
   }, []);
 
   useEffect(() => {
-    if (keyWord === "EAC") {
-      getAndTransformToSelectStations();
-    }
+    (async () => {
+      if (keyWord === "EAC") {
+        await getAndTransformToSelectStations();
+      }
+    })();
   }, [keyWord, getAndTransformToSelectStations]);
   const dataRef = useRef(
     InputsData[keyWord].reduce((acc, i) => ({ ...acc, [i.title]: "" }), {})
@@ -195,20 +214,19 @@ const ModalSection = ({ btnText, keyWord }) => {
   }, []);
 
   const handleEACCreation = async (payload) => {
-    console.log(payload);
     const ipfsData = await client.add(JSON.stringify(payload));
     const contract = new Contract(
       window.walletConnection.account(),
       "dev-1644404282656-99413275182628",
       {
-        viewMethods: ["getMessages"], // view methods do not change state but usually return a value
-        changeMethods: ["create_ft"], // change methods modify state
-        sender: window.walletConnection.account(), // account object to initialize and sign transactions.
+        viewMethods: ["getMessages"],
+        changeMethods: ["create_ft"],
+        sender: window.walletConnection.account(),
       }
     );
 
     const res = contract["create_ft"](
-      { name: localStorage.organisation, reference: ipfsData.path },
+      { name: "token2", reference: ipfsData.path },
       "300000000000000",
       "3000000000000000000000000"
     )
@@ -247,22 +265,24 @@ const ModalSection = ({ btnText, keyWord }) => {
       Station: {
         name: data["Facility name"],
         stationEnergyType: data["Device type"],
-        placement: data["Station placement"],
-        supportGovernment: data["Governemnt support"],
-        supportInvestment: data["Investment support"],
-        creationStart: new Date(data["Date of creation"]),
+        plantPerformance: data["Plant performance"],
+        governmentAid: data["Governemnt support"],
+        investmentAid: data["Investment support"],
+        manufactureDate: new Date(data["Date of creation"]),
+        placement: "asd",
         exploitationStart: new Date(
           data["Date of starting commercial explotation"]
         ),
-        countryId: data["Country"],
-        regionId: data["Region"],
+        countryId: +data["Country"],
+        regionId: +data["Region"],
+        manufacturerCountryId: +data["Manufacturer Country"],
         organisation: localStorage.organisation,
       },
       EAC: {
         startDate: data["Start date of creation"],
         endDate: data["End date of creation"],
         generatedEnergy: +data["Amount of energy in MWh"],
-        station: data["Stations"],
+        station: +data["Stations"],
         organisation: localStorage.organisation,
       },
     };
@@ -279,7 +299,6 @@ const ModalSection = ({ btnText, keyWord }) => {
       setOpen(false);
     }
     console.log(res);
-    // dev - 1644404282656 - 99413275182628;
   };
 
   return (
@@ -294,7 +313,7 @@ const ModalSection = ({ btnText, keyWord }) => {
           />
         </Grid>
         <Grid container rowGap={"13px"} columnGap={"25px"}>
-          {InputsData[keyWord].map((i, idx) => {
+          {data[keyWord].map((i, idx) => {
             return (
               <CustomizedInput
                 labelName={i.title}
@@ -302,13 +321,22 @@ const ModalSection = ({ btnText, keyWord }) => {
                 key={i.title}
                 error={error[i.title]}
                 isSelect={i.isSelect}
-                options={i?.options ?? []}
+                options={i?.options || []}
                 type={i.type}
                 passUpValue={async (value) => {
                   const payload = {
                     [i.title]: value,
                   };
                   dataRef.current = { ...dataRef.current, ...payload };
+                  if (i.title === "Country") {
+                    const idx = InputsData[keyWord].findIndex(
+                      (i) => i.title === "Region"
+                    );
+                    InputsData[keyWord][idx].options = allCountries[
+                      value
+                    ][2].map((i, idx) => ({ value: idx, label: i[0] }));
+                    setData((prev) => ({ ...prev, ...InputsData }));
+                  }
                   if (i.title === "Stations") {
                     const res = await getMeasurmentByOrgAndStation(
                       localStorage.getItem("organisation"),
