@@ -1,4 +1,4 @@
-import { IsNotEmpty, IsNumber, IsString, MaxLength } from 'class-validator';
+import { IsNotEmpty, IsString, MaxLength } from 'class-validator';
 
 export class CreateStationDto {
     @IsNotEmpty({ message: 'Name should not be empty' })
@@ -41,6 +41,6 @@ export class CreateStationDto {
     @IsNotEmpty({ message: 'Region should not be empty' })
     regionId: number;
 
-    @IsNumber()
+    @IsNotEmpty({ message: 'Manufacturer Country should not be empty' })
     manufacturerCountryId: number;
 }
