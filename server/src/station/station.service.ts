@@ -11,6 +11,7 @@ import { Region } from './entities/region.entity';
 import { Station } from './entities/station.entity';
 import { CountryRepository, RegionRepository, StationRepository } from './station.repository';
 import { Organisation } from '../organisation/entities/organisation.entity';
+import axios from 'axios';
 
 @Injectable()
 export class StationService {
@@ -103,6 +104,19 @@ export class StationService {
         try {
             station.organisation = Promise.resolve(organisation);
             await station.save();
+
+            const response = await axios.post(
+                `${process.env.BROKER_HOST}:${process.env.BROKER_PORT}/v2/entities?options=keyValues`,
+                {
+                    type: 'Station',
+                    id: `${station.organisationRegistryNumber}.${station.name}`,
+                    startDate: '',
+                    endDate: '',
+                    generatedEnergy: '0',
+                },
+                { headers: { 'Content-Type': 'application/json' } },
+            );
+            this.logger.verbose('Create Station in Context Broker status: ', response.status);
         } catch (error) {
             this.logger.error(`Failed to create new station: `, error.stack);
             throw new InternalServerErrorException();
