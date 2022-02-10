@@ -1,6 +1,5 @@
 //! Market for EACs
 //!
-//! Part of code was part of the code was taken from https://github.com/near-examples/nft-tutorial/blob/8.marketplace/market-contract/src/lib.rs
 
 use near_sdk::borsh::{self, BorshDeserialize, BorshSerialize};
 use near_sdk::collections::{LookupMap, UnorderedMap, UnorderedSet};
@@ -17,8 +16,8 @@ use crate::sale::*;
 
 mod external;
 mod internal;
-mod sale;
-mod sale_views;
+pub mod sale;
+pub mod sale_views;
 
 use external::*;
 
