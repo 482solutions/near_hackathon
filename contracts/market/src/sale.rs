@@ -103,6 +103,31 @@ impl Contract {
         }
     }
 
+    pub fn cancel_position(&mut self, id: ContractAndId, position: Position) -> Promise {
+        let caller = predecessor_account_id();
+
+        match position {
+            //if this fails, the remove will revert
+            Position::Ask => {
+                let ask = self.internal_remove_ask(id);
+                require!(caller == ask.owner_id, "You cannot do that!");
+                ext_ft::ft_transfer_safe(
+                    ask.owner_id,
+                    ask.amount.into(),
+                    None,
+                    ask.ft_contract_id,
+                    ONE_YOCTO,
+                    CCC,
+                )
+            }
+            Position::Bid => {
+                let bid = self.internal_remove_bid(id);
+                require!(caller == bid.owner_id, "You cannot do that!");
+                Promise::new(bid.owner_id).transfer(bid.sale_conditions)
+            }
+        }
+    }
+
     /// Updates the price for a sale on the market
     #[payable]
     pub fn update_price(&mut self, id: ContractAndId, price: U128, position: Position) {
