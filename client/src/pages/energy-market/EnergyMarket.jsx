@@ -111,22 +111,18 @@ const EnergyMarket = () => {
   };
 
   return (
-    <Grid
-      container
-      sx={MainWrapperStyle}
-      gap="27px"
-      justifyContent={"space-between"}
-    >
+    <Grid container sx={MainWrapperStyle} gap="27px" justifyContent={"center"}>
       <Box sx={FirstBoxStyle}>
         <RegularText content={"Browse by keyword and attributes"} />
         <Grid container sx={{ width: "100%", marginTop: "28px" }} gap={"10px"}>
-          {SelectsData.map((i) => {
+          {SelectsData.map((i, idx) => {
             return (
               <Grid
                 container
                 flexDirection={"column"}
                 gap={"4px"}
                 sx={{ h6: { textAlign: "left" } }}
+                key={idx}
               >
                 <RegularText content={i.labelName} variant="small" />
                 <CustomizedSelect

@@ -26,6 +26,7 @@ const CellsModalSection = ({ id, isModalOpen, setIsModalOpen }) => {
                 variant="standard"
                 labelName={i}
                 key={idx}
+                fullWidth
               />
             );
           }
