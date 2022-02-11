@@ -1,5 +1,6 @@
 import { Grid, InputLabel, TextField } from "@mui/material";
 import React, { useEffect, useState } from "react";
+import CustomizedDatePicker from "../datepicker/CustomizedDatePicker";
 import CustomizedSelect from "../select/CustomizedSelect";
 
 const GridStyle = {
@@ -47,14 +48,18 @@ const CustomizedInput = ({
   options,
   passUpValue,
   error,
+  initialValue = "",
   disabled = false,
   type = "text",
   required = false,
   isSelect = false,
 }) => {
-  const [value, setValue] = useState("");
+  const [value, setValue] = useState(initialValue);
   const [localError, setLocalError] = useState(error);
 
+  useEffect(() => {
+    setValue(initialValue);
+  }, [initialValue]);
   useEffect(() => {
     setLocalError(error);
   }, [error]);

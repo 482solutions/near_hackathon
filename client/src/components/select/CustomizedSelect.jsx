@@ -6,9 +6,23 @@ import {
   Select,
   Typography,
 } from "@mui/material";
-import React, { useState } from "react";
+import React from "react";
 import { LabelStyle } from "../inputs/CustomizedReadInput";
-import RegularText from "../texts/RegularText";
+import solarIcon from "./assets/Solar.svg";
+import windIcon from "./assets/Wind.svg";
+import thermalIcon from "./assets/Thermal.svg";
+import liquidIcon from "./assets/Liquid.svg";
+import hydroIcon from "./assets/Hydro.svg";
+import gaseousIcon from "./assets/Gaseous.svg";
+
+const mapSelectIcons = {
+  Solar: solarIcon,
+  Wind: windIcon,
+  Liquid: liquidIcon,
+  Thermal: thermalIcon,
+  "Hydro - Electric head": hydroIcon,
+  Gaseous: gaseousIcon,
+};
 
 const SelectStyles = {
   borderRadius: "4px",
@@ -117,6 +131,13 @@ const CustomizedSelect = ({
           {options.map((el, idx) => {
             return (
               <MenuItem value={el.value} key={idx} sx={MenuItemStyle}>
+                {mapSelectIcons[el.label] && (
+                  <img
+                    src={mapSelectIcons[el.label]}
+                    alt={el.label}
+                    style={{ marginRight: "5px" }}
+                  />
+                )}
                 {el.label}
               </MenuItem>
             );
