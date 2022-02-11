@@ -8,11 +8,13 @@ import {
     ManyToOne,
     OneToMany,
     PrimaryColumn,
+    Unique,
 } from 'typeorm';
 import { EEnergyType } from '../station-energyType.enum';
 import { Measurement } from '../../measurements/entities/measurement.entity';
 
 @Entity()
+@Unique(['name', 'organisationRegistryNumber'])
 export class Station extends BaseEntity {
     @PrimaryColumn()
     name: string;

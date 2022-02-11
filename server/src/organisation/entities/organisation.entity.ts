@@ -3,7 +3,7 @@ import { BaseEntity, Column, Entity, JoinTable, OneToMany, PrimaryColumn } from 
 
 @Entity()
 export class Organisation extends BaseEntity {
-    @PrimaryColumn()
+    @PrimaryColumn({ unique: true })
     registryNumber: string;
 
     @Column()
