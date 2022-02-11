@@ -3,6 +3,7 @@ import {
     InternalServerErrorException,
     Logger,
     NotFoundException,
+    UnprocessableEntityException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Country } from './entities/country.entity';
@@ -119,7 +120,11 @@ export class StationService {
             this.logger.verbose('Create Station in Context Broker status: ', response.status);
         } catch (error) {
             this.logger.error(`Failed to create new station: `, error.stack);
-            throw new InternalServerErrorException();
+            if (error.code === '23505') {
+                throw new UnprocessableEntityException('Station already exists');
+            } else {
+                throw new InternalServerErrorException();
+            }
         }
         return station;
     }
