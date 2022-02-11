@@ -13,14 +13,38 @@ const WrapperBoxStyle = {
   gap: "40px",
 };
 
-const InfoModal = ({ open, setOpen, img, keyWord }) => {
+const InfoModal = ({ open, setOpen, img, keyWord, infoType }) => {
   const navigate = useNavigate();
 
   const handleClose = useCallback(() => {
     setOpen(false);
   }, [setOpen]);
 
+  const content = {
+    success: {
+      title: "Congrats!",
+      description: `You successfully ${
+        keyWord === "Company" ? "register" : "create"
+      } ${keyWord}`,
+      btnText: keyWord === "EAC" ? "OK!" : "Next step",
+    },
+    error: {
+      title: "Error!",
+      description: infoType.msg,
+      btnText: "Try again!",
+    },
+  };
+
   const handleClick = () => {
+    if (infoType.type === "error") {
+      navigate("/", {
+        state: {
+          nextModal: keyWord,
+        },
+      });
+      handleClose();
+      return;
+    }
     if (keyWord !== "EAC") {
       navigate("/", {
         state: {
@@ -34,18 +58,14 @@ const InfoModal = ({ open, setOpen, img, keyWord }) => {
   return (
     <CustomizedModal open={open} handleClose={handleClose}>
       <Box sx={WrapperBoxStyle}>
-        <RegularText content={"Congrats!"} />
+        <RegularText content={content[infoType.type].title} />
         <Grid container justifyContent={"center"}>
           <img src={img} alt={keyWord} />
         </Grid>
-        <RegularText
-          content={`You successfully ${
-            keyWord === "Company" ? "register" : "create"
-          } ${keyWord}`}
-        />
+        <RegularText content={content[infoType.type].description} />
         <Box sx={{ height: "36px", maxWidth: "180px", width: "100%" }}>
           <CreateButton
-            text={keyWord === "EAC" ? "OK!" : "Next step"}
+            text={content[infoType.type].btnText}
             onClick={handleClick}
           />
         </Box>
