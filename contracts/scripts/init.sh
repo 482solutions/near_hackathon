@@ -17,7 +17,7 @@ near create-account market."$USERNAME" --masterAccount "$USERNAME"
 near deploy market."$USERNAME" out/market.wasm
 
 # Init FT factory
-near call "$USERNAME" new '{ "owner": "'"$USERNAME"'" }' --accountId "$USERNAME"
+near call "$USERNAME" new_default_meta '{ "owner_id": "'"$USERNAME"'" }' --accountId "$USERNAME"
 
 # Init market
 near call market."$USERNAME" new '{ "owner_id": "'"$USERNAME"'"}' --accountId "$USERNAME"
