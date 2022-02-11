@@ -67,6 +67,7 @@ const CustomizedSelect = ({
   value,
   handleChange,
   error,
+  disabled,
   variant = "outlined",
   labelName = undefined,
   fullWidth = false,
@@ -82,6 +83,7 @@ const CustomizedSelect = ({
         <Select
           value={value}
           error={error}
+          disabled={disabled}
           onChange={handleChange}
           labelId="selectId"
           displayEmpty

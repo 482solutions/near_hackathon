@@ -25,7 +25,11 @@ const Card = ({ title, img, description, btnText }) => {
       <TitleText title={title} />
       <img src={img} alt={title} style={{ width: "fit-content" }} />
       <RegularText content={description} />
-      <ModalSection btnText={btnText} keyWord={btnText.split(" ")[1]} />
+      <ModalSection
+        btnText={btnText}
+        keyWord={btnText.split(" ")[1]}
+        img={img}
+      />
     </Box>
   );
 };

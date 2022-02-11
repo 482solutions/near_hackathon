@@ -47,6 +47,7 @@ const CustomizedInput = ({
   options,
   passUpValue,
   error,
+  disabled = false,
   type = "text",
   required = false,
   isSelect = false,
@@ -86,6 +87,7 @@ const CustomizedInput = ({
         <CustomizedSelect
           value={value}
           error={localError}
+          disabled={disabled}
           handleChange={handleFormChange}
           options={options}
         />

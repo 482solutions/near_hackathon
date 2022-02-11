@@ -1,6 +1,6 @@
 //! Token Factory
 //!
-//! This module is used for creating sub accounts for use by companies.
+//! This module is used for creating sub accounts
 
 use near_contract_standards::fungible_token::metadata::{FungibleTokenMetadata, FT_METADATA_SPEC};
 use near_sdk::borsh::{self, BorshDeserialize, BorshSerialize};
@@ -13,15 +13,12 @@ use near_sdk::{
     env, ext_contract, log, near_bindgen, require, AccountId, Balance, BorshStorageKey,
     PanicOnDefault, Promise,
 };
+use std::cmp::min;
 use utils::utils;
 
 mod external;
 
 use external::*;
-
-/* TODO: I should definitely later dive deeper into economics of NEAR
-    to better understand how i can calc fee
-*/
 
 pub mod prices {
     use near_sdk::{Balance, Gas};
@@ -57,6 +54,7 @@ pub struct FactoryContract {
     pub tokens: UnorderedMap<AccountId, TokenArgs>,
 }
 
+/// Structure to hold info about token
 #[derive(Serialize, Deserialize, BorshDeserialize, BorshSerialize)]
 #[serde(crate = "near_sdk::serde")]
 pub struct TokenArgs {
@@ -65,6 +63,7 @@ pub struct TokenArgs {
     metadata: FungibleTokenMetadata,
 }
 
+/// Token object that combines [AccountId] name and [TokenArgs]
 #[derive(Serialize, Deserialize, BorshDeserialize, BorshSerialize)]
 #[serde(crate = "near_sdk::serde")]
 pub struct Token {
@@ -83,11 +82,14 @@ impl FactoryContract {
         }
     }
 
-    /// Creates subaccount for user
+    /// Create FT sub-account for user
     ///
     /// # Arguments
     ///
-    /// * `account_id` - Name of account that wants to create FT, should be in format user.testnet/mainnet
+    /// * `name`: unique name (company name, for example)
+    /// * `reference`: CID from IPFS
+    ///
+    /// returns: Promise
     ///
     #[payable]
     pub fn create_ft(&mut self, name: String, reference: String) -> Promise {
@@ -162,6 +164,16 @@ impl FactoryContract {
             ))
     }
 
+    /// Makes transfer of FT by hand , can used only by owner of contract
+    ///
+    /// # Arguments
+    ///
+    /// * `sender_id`:
+    /// * `receiver_id`:
+    /// * `amount`:
+    ///
+    /// returns: Promise that transfers tokens
+    ///
     pub fn force_transfer(
         &self,
         sender_id: AccountId,
@@ -195,20 +207,36 @@ impl FactoryContract {
         self.tokens.len()
     }
 
-    pub fn get_tokens(&self, from_index: u64, limit: u64) -> Vec<TokenArgs> {
-        let tokens = self.tokens.values_as_vector();
-        (from_index..std::cmp::min(from_index + limit, tokens.len()))
-            .filter_map(|index| tokens.get(index))
+    /// Get tokens with pagination
+    ///
+    /// # Arguments
+    ///
+    /// * `from_index`: Where to start pagination
+    /// * `limit`: How many elements to include
+    ///
+    /// returns: List of tokens
+    ///
+    pub fn get_tokens(&self, from_index: u64, limit: u64) -> Vec<Token> {
+        self.tokens
+            .iter()
+            .map(|(account, args)| Token { account, args })
             .collect()
     }
 
+    /// Get token by account
+    ///
+    /// # Arguments
+    ///
+    /// * `account_id`:
+    ///
+    /// returns: [Token] object
+    ///
     pub fn get_token(&self, account_id: &AccountId) -> Option<Token> {
+        let ft = get_token_account_id(&account_id);
+
         Some(Token {
-            account: get_token_account_id(&account_id),
-            args: self
-                .tokens
-                .get(&get_token_account_id(account_id))
-                .expect("Token not found"),
+            args: self.tokens.get(&ft).expect("Token not found"),
+            account: get_token_account_id(&ft),
         })
     }
 }

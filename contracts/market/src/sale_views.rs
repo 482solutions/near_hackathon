@@ -15,7 +15,15 @@ impl Contract {
         U64(self.bids.len())
     }
 
-    /// Returns the number of asks for a given account (result is a string)
+    /// Get number of [Position]s by [AccountId]
+    ///
+    /// # Arguments
+    ///
+    /// * `account_id`:
+    /// * `position`: [Position]
+    ///
+    /// returns: U64
+    ///
     pub fn get_supply_by_owner_id(&self, account_id: AccountId, position: Position) -> U64 {
         let by_owner_id: Option<UnorderedSet<ContractAndId>>;
         //get the set of sales for the given owner Id
@@ -37,11 +45,20 @@ impl Contract {
         }
     }
 
-    /// Returns paginated ask objects for a given account. (result is a vector of ask)
+    /// Get paginated list of [Ask]s for specified user
+    ///
+    /// # Arguments
+    ///
+    /// * `account_id`: [AccountId]
+    /// * `from`:
+    /// * `limit`:
+    ///
+    /// returns: Vec<Ask, Global>
+    ///
     pub fn get_asks_by_owner_id(
         &self,
         account_id: AccountId,
-        from: Option<U128>,
+        from: Option<u128>,
         limit: Option<u64>,
     ) -> Vec<Ask> {
         //get the set of token IDs for sale for the given account ID
@@ -57,7 +74,7 @@ impl Contract {
         let keys = asks.as_vector();
 
         //where to start pagination - if we have a from_index, we'll use that - otherwise start from 0 index
-        let start = u128::from(from.unwrap_or(U128(0)));
+        let start = from.unwrap_or(0);
 
         //iterate through the keys vector
         keys.iter()
@@ -74,7 +91,15 @@ impl Contract {
             .collect()
     }
 
-    /// Returns paginated bids objects for a given account. (result is a vector of bid)
+    /// Get paginated list of [Bid]s
+    ///
+    /// # Arguments
+    ///
+    /// * `from`:
+    /// * `limit`:
+    ///
+    /// returns: List of bids
+    ///
     pub fn get_bids(&self, from: Option<U128>, limit: Option<u64>) -> Vec<Bid> {
         //where to start pagination - if we have a from_index, we'll use that - otherwise start from 0 index
         let start = u128::from(from.unwrap_or(U128(0)));
@@ -91,7 +116,15 @@ impl Contract {
             .collect()
     }
 
-    /// Returns paginated asks objects for a given account. (result is a vector of bid)
+    /// Get paginated list of [Ask]s
+    ///
+    /// # Arguments
+    ///
+    /// * `from`:
+    /// * `limit`:
+    ///
+    /// returns: List of asks
+    ///  
     pub fn get_asks(&self, from: Option<U128>, limit: Option<u64>) -> Vec<Ask> {
         //where to start pagination - if we have a from_index, we'll use that - otherwise start from 0 index
         let start = u128::from(from.unwrap_or(U128(0)));
@@ -108,7 +141,16 @@ impl Contract {
             .collect()
     }
 
-    /// Returns paginated bids objects for a given account. (result is a vector of bid)
+    /// Get paginated list of [Bid]s for specified user
+    ///
+    /// # Arguments
+    ///
+    /// * `account_id`: [AccountId]
+    /// * `from`:
+    /// * `limit`:
+    ///
+    /// returns: Vec<Ask, Global>
+    ///
     pub fn get_bids_by_owner_id(
         &self,
         account_id: AccountId,
