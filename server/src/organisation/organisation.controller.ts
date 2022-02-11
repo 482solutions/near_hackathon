@@ -22,6 +22,7 @@ export class OrganisationController {
         @Param('id') registryNumber: string,
         @GetUser() publicKey: string,
     ): Promise<Organisation> {
+        this.logger.verbose(`Retrieving Organisation ${registryNumber}`);
         return this.organisationService.getOrganisationById(registryNumber, publicKey);
     }
 
@@ -30,6 +31,9 @@ export class OrganisationController {
         @Body(ValidationPipe) createOrganisationDto: CreateOrganisationDto,
         @GetUser() publicKey,
     ): Promise<Organisation> {
+        this.logger.verbose(
+            `Creating new Organisation. Data : ${JSON.stringify(createOrganisationDto)}`,
+        );
         return this.organisationService.createOrganisation(createOrganisationDto, publicKey);
     }
 

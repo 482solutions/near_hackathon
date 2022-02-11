@@ -3,6 +3,7 @@ import {
     InternalServerErrorException,
     Logger,
     NotFoundException,
+    UnprocessableEntityException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { CreateOrganisationDto } from './dto/create-organisation.dto';
@@ -52,9 +53,14 @@ export class OrganisationService {
         organisationInput: CreateOrganisationDto,
         userId: string,
     ): Promise<Organisation> {
+        let found = await this.organisationRepository.findOne({
+            where: { registryNumber: organisationInput.registryNumber },
+        });
+        if (found) throw new UnprocessableEntityException('Organisation already exists');
+
         let organisation = this.organisationRepository.create(organisationInput);
-        organisation.userId = userId;
         try {
+            organisation.userId = userId;
             await organisation.save();
         } catch (error) {
             throw new InternalServerErrorException('Organisation creation failed');
@@ -64,7 +70,7 @@ export class OrganisationService {
 
     public async deleteOrganisation(registryNumber: string, userId: string): Promise<void> {
         try {
-            this.organisationRepository
+            await this.organisationRepository
                 .createQueryBuilder('organisation')
                 .delete()
                 .where('registryNumber = :registryNumber AND userId = :userId', {
