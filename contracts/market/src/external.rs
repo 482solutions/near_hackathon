@@ -1,18 +1,33 @@
 use crate::*;
 
-/// External contract calls
-#[ext_contract(ext_ft)]
-pub trait ExtContract {
-    /// Initiate a cross contract call to the factory. This will transfer the token to the buyer
-    fn force_transfer(
+/// Used in cross-contract call to the NFT contract.
+/// Transfer the token to the buyer, return payout, transfer funds to seller
+#[ext_contract(ext_contract)]
+trait ExtContract {
+    fn nft_transfer_pay(
         &mut self,
-        sender_id: AccountId, // seller of FT, used to check if this account really possess this amount of tokens
-        receiver_id: AccountId, // purchaser (person to transfer the FT to),
-        amount: Balance,
-    ) -> Promise;
+        received_id: AccountId,
+        token_id: TokenId,
+        approval_id: u64,
+        memo: String,
+        balance: U128,
+        max_len_payout: u32,
+    );
 
-    fn ft_transfer_by_signer(&mut self, receiver_id: AccountId, amount: U128, memo: Option<String>);
-    fn ft_transfer_safe(&mut self, receiver_id: AccountId, amount: U128, memo: Option<String>);
+    fn nft_transfer(
+        &mut self,
+        receiver_id: AccountId,
+        token_id: TokenId,
+        approval_id: Option<u64>,
+        memo: Option<String>,
+    );
 
-    fn ft_balance_of(&self, account_id: AccountId) -> U128;
+    fn nft_is_approved(
+        &self,
+        token_id: TokenId,
+        approved_account_id: AccountId,
+        approval_id: Option<u64>,
+    ) -> bool;
+
+    fn nft_revoke(&mut self, token_id: TokenId, account_id: AccountId);
 }
