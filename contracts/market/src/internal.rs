@@ -1,12 +1,12 @@
 use crate::*;
+use near_contract_standards::non_fungible_token::hash_account_id;
 
 impl Contract {
-    // TODO: Find working in WASM uuid implementation
     pub fn internal_place_ask(&mut self, ask: Ask) -> Ask {
         // Increment id
         self.asks_id += 1;
 
-        let id = format!("{}.{}", ask.owner_id, self.asks_id);
+        let id = format!("{}.{}.{}", ask.owner_id, ask.token_id, self.asks_id);
 
         self.asks.insert(&id, &ask);
 
@@ -22,6 +22,24 @@ impl Contract {
                 self.asks_by_owner_id.insert(&ask.owner_id, &new_set);
             }
         }
+
+        let mut by_nft_contract_id = self
+            .by_nft_token_id
+            .get(&ask.nft_contract_id)
+            .unwrap_or_else(|| {
+                UnorderedSet::new(
+                    StorageKey::ByNFTContractIdInner {
+                        // Hash the owner to avoid collisions
+                        account_id_hash: hash_account_id(&ask.nft_contract_id),
+                    }
+                    .try_to_vec()
+                    .unwrap(),
+                )
+            });
+
+        by_nft_contract_id.insert(&ask.token_id);
+        self.by_nft_token_id
+            .insert(&ask.nft_contract_id, &by_nft_contract_id);
 
         ask
     }
@@ -50,8 +68,8 @@ impl Contract {
         bid
     }
 
-    /// Internal method for removing a ask from the market. This returns the previously removed object
-    pub fn internal_remove_ask(&mut self, id: ContractAndId) -> Ask {
+    /// Internal method for removing an ask from the market. This returns the previously removed object
+    pub fn internal_remove_ask(&mut self, id: TokenId) -> Ask {
         let ask = self.asks.remove(&id).expect("No ask");
         // Get the set of sales for the sale's owner. If there's no sale, panic.
         let mut by_owner_id = self
@@ -70,11 +88,17 @@ impl Contract {
             self.asks_by_owner_id.insert(&ask.owner_id, &by_owner_id);
         }
 
+        let mut by_nft_contract_id = self.by_nft_token_id.get(&ask.nft_contract_id).unwrap();
+
+        by_nft_contract_id.remove(&id);
+        self.by_nft_token_id
+            .insert(&ask.nft_contract_id, &by_nft_contract_id);
+
         ask
     }
 
     /// Internal method for removing a bid from the market. This returns the previously removed object
-    pub fn internal_remove_bid(&mut self, id: ContractAndId) -> Bid {
+    pub fn internal_remove_bid(&mut self, id: TokenId) -> Bid {
         // Get the unique sale ID (contract + DELIMITER + token ID)
         // Get the sale object by removing the unique sale ID. If there was no sale, panic
         let bid = self.bids.remove(&id).expect("No ask");
@@ -106,7 +130,7 @@ pub fn get_token_account_id(account_id: &AccountId) -> AccountId {
     // Get prefix for subaccount
     let prefix = split[0].to_string();
 
-    let current = current_account_id();
+    let current = env::current_account_id();
 
     let split_current = utils::split_account(&current);
 
