@@ -10,9 +10,9 @@ sh scripts/build.sh
 
 if [[ -z "${DEV}" ]]; then
   echo "Standard deploy"
-  near deploy --accountId "$NEAR_ACCOUNT" --wasmFile out/token_factory.wasm
+  near deploy --accountId "$NEAR_ACCOUNT" --wasmFile out/nft.wasm
 else
   echo "Deploying to testnet"
-  echo "Deploying Factory"
-  near dev-deploy out/token_factory.wasm
+  echo "Deploying NFT"
+  near dev-deploy out/nft.wasm
 fi

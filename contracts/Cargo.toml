@@ -1,5 +1,5 @@
 [workspace]
-members = ["factory", "ft", "market", "utils"]
+members = ["nft", "market", "utils"]
 
 [profile.release]
 codegen-units = 1

@@ -25,7 +25,7 @@ impl Contract {
     /// returns: U64
     ///
     pub fn get_supply_by_owner_id(&self, account_id: AccountId, position: Position) -> U64 {
-        let by_owner_id: Option<UnorderedSet<ContractAndId>>;
+        let by_owner_id: Option<UnorderedSet<TokenId>>;
         //get the set of sales for the given owner Id
 
         match position {
@@ -188,14 +188,14 @@ impl Contract {
     }
 
     /// Get a ask information for a given unique ask ID (contract + DELIMITER + uuid)
-    pub fn get_ask(&self, id: &ContractAndId) -> Option<Ask> {
+    pub fn get_ask(&self, id: &TokenId) -> Option<Ask> {
         //try and get the sale object for the given unique sale ID. Will return an option since
         //we're not guaranteed that the unique sale ID passed in will be valid.
         self.asks.get(id)
     }
 
     /// Get a bid information for a given unique bid ID (contract + DELIMITER + uuid)
-    pub fn get_bid(&self, id: &ContractAndId) -> Option<Bid> {
+    pub fn get_bid(&self, id: &TokenId) -> Option<Bid> {
         //try and get the sale object for the given unique sale ID. Will return an option since
         //we're not guaranteed that the unique sale ID passed in will be valid.
         self.bids.get(id)

@@ -1,19 +1,24 @@
 //! Market for EACs
 //!
 
+use near_contract_standards::non_fungible_token::approval::NonFungibleTokenApprovalReceiver;
+use near_contract_standards::non_fungible_token::TokenId;
 use near_sdk::borsh::{self, BorshDeserialize, BorshSerialize};
 use near_sdk::collections::{LookupMap, UnorderedMap, UnorderedSet};
-use near_sdk::env::*;
+use near_sdk::env;
+use near_sdk::env::STORAGE_PRICE_PER_BYTE;
 use near_sdk::json_types::{U128, U64};
 use near_sdk::serde::{Deserialize, Serialize};
 use near_sdk::{
     assert_one_yocto, ext_contract, is_promise_success, log, near_bindgen, require, AccountId,
     Balance, BorshStorageKey, CryptoHash, Gas, PanicOnDefault, Promise, ONE_YOCTO,
 };
+
 use utils::utils;
 
 use crate::sale::*;
 
+mod callbacks;
 mod external;
 mod internal;
 pub mod sale;
@@ -32,7 +37,8 @@ pub const CCC: Gas = Gas(20_000_000_000_000);
 
 //Creating custom types to use within the contract. This makes things more readable.
 pub type SalePriceInYoctoNear = U128;
-pub type ContractAndId = String;
+
+pub type PositionId = String;
 
 /// Struct for storing various information about market state
 #[near_bindgen]
@@ -43,9 +49,9 @@ pub struct Contract {
     /// To keep track of the ask, we map the ContractAndTokenId to a Sale.
     /// the ContractAndTokenId is the unique identifier for every sale. It is made
     /// up of the `contract ID + DELIMITER + UUIDv4`
-    pub asks: UnorderedMap<ContractAndId, Ask>,
+    pub asks: UnorderedMap<TokenId, Ask>,
     /// Same with bids
-    pub bids: UnorderedMap<ContractAndId, Bid>,
+    pub bids: UnorderedMap<TokenId, Bid>,
 
     /// Current id for asks
     pub asks_id: u128,
@@ -53,10 +59,13 @@ pub struct Contract {
     pub bids_id: u128,
 
     /// Keep track of all the Ask IDs for every account ID
-    pub asks_by_owner_id: LookupMap<AccountId, UnorderedSet<ContractAndId>>,
+    pub asks_by_owner_id: LookupMap<AccountId, UnorderedSet<TokenId>>,
 
     /// Keep track of all the Bids IDs for every account ID
-    pub bids_by_owner_id: LookupMap<AccountId, UnorderedSet<ContractAndId>>,
+    pub bids_by_owner_id: LookupMap<AccountId, UnorderedSet<TokenId>>,
+
+    /// By NFT Token Id
+    pub by_nft_token_id: LookupMap<AccountId, UnorderedSet<TokenId>>,
 
     /// Keep track of the storage that accounts have paid
     pub storage_deposits: LookupMap<AccountId, Balance>,
@@ -70,7 +79,8 @@ pub enum StorageKey {
     AsksByOwnerId,
     BidsByOwnerId,
     ByOwnerIdInner { account_id_hash: CryptoHash },
-    FTTokenIds,
+    ByNftContractId,
+    ByNFTContractIdInner { account_id_hash: CryptoHash },
     StorageDeposits,
 }
 
@@ -92,6 +102,7 @@ impl Contract {
             asks_by_owner_id: LookupMap::new(StorageKey::AsksByOwnerId),
             bids_by_owner_id: LookupMap::new(StorageKey::BidsByOwnerId),
             storage_deposits: LookupMap::new(StorageKey::StorageDeposits),
+            by_nft_token_id: LookupMap::new(StorageKey::ByNftContractId),
         }
     }
 
@@ -101,9 +112,9 @@ impl Contract {
         //get the account ID to pay for storage for
         let storage_account_id = account_id
             //if we didn't specify an account ID, we simply use the caller of the function
-            .unwrap_or_else(predecessor_account_id);
+            .unwrap_or_else(env::predecessor_account_id);
 
-        let deposit = attached_deposit();
+        let deposit = env::attached_deposit();
 
         require!(
             deposit >= STORAGE_PER_SALE,
@@ -125,7 +136,7 @@ impl Contract {
         assert_one_yocto();
 
         //the account to withdraw storage to is always the function caller
-        let owner_id = predecessor_account_id();
+        let owner_id = env::predecessor_account_id();
         //get the amount that the user has by removing them from the map. If they're not in the map, default to 0
         let mut amount = self.storage_deposits.remove(&owner_id).unwrap_or(0);
 
