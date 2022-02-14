@@ -1,6 +1,24 @@
-import { FormControl, InputLabel, Menu, MenuItem, Select } from "@mui/material";
+import {
+  Box,
+  FormControl,
+  InputLabel,
+  Menu,
+  MenuItem,
+  Select,
+  Typography,
+} from "@mui/material";
 import React from "react";
 import { LabelStyle } from "../inputs/CustomizedReadInput";
+import SelectIcons from "./assets/SelectIcons";
+
+const mapSelectIcons = [
+  "Solar",
+  "Wind",
+  "Liquid",
+  "Thermal",
+  "Hydro - Electric head",
+  "Gaseous",
+];
 
 const SelectStyles = {
   borderRadius: "4px",
@@ -12,6 +30,10 @@ const SelectStyles = {
   fontSize: "12px",
   lineHeight: "16px",
   fontWeight: "500",
+  ".MuiSelect-select": {
+    display: "flex",
+    alignItems: "center",
+  },
   input: {
     border: "1px solid #676767",
   },
@@ -48,19 +70,37 @@ const MenuItemStyle = {
   lineHeight: "16px",
   fontWeight: "500",
   padding: "8px 16px",
-  "&:hover": {
+  "&:hover, &.Mui-selected:hover": {
     backgroundColor: "#14D9C1",
     color: "#fff",
+    svg: {
+      path: {
+        fill: "#fff",
+      },
+    },
+    "&[data-value='Gaseous']": {
+      svg: {
+        path: {
+          fill: "#fff",
+          "&:nth-of-type(3), &:nth-of-type(4)": {
+            fill: "#0FB8C3",
+          },
+        },
+      },
+    },
   },
 };
 
 const CustomizedSelect = ({
   options,
+  value,
+  handleChange,
+  error,
+  disabled,
   variant = "outlined",
   labelName = undefined,
   fullWidth = false,
 }) => {
-  const handleChange = () => {};
   return (
     <>
       <FormControl variant="standard">
@@ -70,9 +110,31 @@ const CustomizedSelect = ({
           </InputLabel>
         )}
         <Select
-          value={options[0].value}
+          value={value}
+          error={error}
+          disabled={disabled}
           onChange={handleChange}
           labelId="selectId"
+          displayEmpty
+          renderValue={
+            value !== ""
+              ? undefined
+              : () => {
+                  return (
+                    <Typography
+                      variant="subtitle2"
+                      value={""}
+                      sx={{
+                        color: "#b9b9b9",
+                        fontSize: "12px",
+                        lineHeight: "16px",
+                      }}
+                    >
+                      Please, Select!
+                    </Typography>
+                  );
+                }
+          }
           MenuProps={{
             MenuListProps: {
               sx: fullWidth ? { ...MenuStyles, width: "100%" } : MenuStyles,
@@ -84,6 +146,11 @@ const CustomizedSelect = ({
           {options.map((el, idx) => {
             return (
               <MenuItem value={el.value} key={idx} sx={MenuItemStyle}>
+                {mapSelectIcons.includes(el.label) && (
+                  <Box marginRight={"4px"} width="fit-content">
+                    <SelectIcons type={el.label} />
+                  </Box>
+                )}
                 {el.label}
               </MenuItem>
             );

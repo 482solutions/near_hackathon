@@ -5,11 +5,7 @@ import {
   IconButton,
   TableRow,
   TableCell,
-  Typography,
   Grid,
-  TextField,
-  FormLabel,
-  InputLabel,
 } from "@mui/material";
 import React from "react";
 import ArrowIcon from "../assets/arrow-icon.svg";
@@ -64,19 +60,6 @@ const DotStyle = {
   display: "inline-block",
 };
 
-const CollapseContentSytle = {
-  "> div > div": {
-    display: "grid",
-    gridTemplateAreas: `
-                            "img a a"
-                            "img a a"
-                            "b b b"
-        `,
-    gridGap: "38px",
-    gridColumnGap: "85px",
-  },
-};
-
 const EacsTableCell = ({ data, idx }) => {
   const [isOpen, setIsOpen] = React.useState(false);
   const [isModalOpen, setIsModalOpen] = React.useState(false);
@@ -129,7 +112,6 @@ const EacsTableCell = ({ data, idx }) => {
             sx={{
               paddingTop: "58px",
               paddingBottom: "32px",
-              ...CollapseContentSytle,
             }}
           >
             <Box
@@ -137,7 +119,9 @@ const EacsTableCell = ({ data, idx }) => {
                 maxWidth: "140px",
                 width: "140px",
                 maxHeight: "107px",
-                gridArea: "img",
+                marginRight: "76px",
+                display: "inline-block",
+                float: "left",
               }}
             >
               <img
@@ -146,28 +130,26 @@ const EacsTableCell = ({ data, idx }) => {
                 style={{ width: "100%", height: "100%" }}
               />
             </Box>
-            <Grid container gap={"41px"} sx={{ gridArea: "a" }}>
-              {deviceData.slice(0, 6).map((i, idx) => {
-                return (
-                  <Grid sx={{ maxWidth: "198px" }} key={idx}>
-                    <CustomizedReadInput
-                      labelName={i}
-                      disabled
-                      adornMent={i === "Certified" ? "MWh" : undefined}
-                    />
-                  </Grid>
-                );
-              })}
-            </Grid>
-            <Grid container gap={"41px"} sx={{ gridArea: "b" }}>
-              {deviceData.slice(6).map((i, idx) => {
-                return (
-                  <Grid sx={{ maxWidth: "198px" }} key={idx}>
-                    <CustomizedReadInput labelName={i} disabled />
-                  </Grid>
-                );
-              })}
-            </Grid>
+
+            {deviceData.map((i, idx) => {
+              return (
+                <Grid
+                  sx={{
+                    maxWidth: "198px",
+                    display: "inline-flex",
+                    marginRight: "27px",
+                    marginBottom: "41px",
+                  }}
+                  key={idx}
+                >
+                  <CustomizedReadInput
+                    labelName={i}
+                    disabled
+                    adornMent={i === "Certified" ? "MWh" : undefined}
+                  />
+                </Grid>
+              );
+            })}
           </Collapse>
         </TableCell>
       </TableRow>

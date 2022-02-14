@@ -1,14 +1,17 @@
-import { Drawer, List, ListItem, ListItemText } from "@mui/material";
+import { Drawer, Grid, List, ListItem, ListItemText } from "@mui/material";
 import React from "react";
 import { useNavigate } from "react-router-dom";
+import RegularText from "../texts/RegularText";
+import TitleText from "../texts/TitleText";
 import eacsLogo from "./assets/eacsLogo.svg";
 
 const DrawerStyle = {
-  padding: "0 22px",
+  padding: "0 18px 30px",
   boxShadow: "unset",
   border: "unset",
   maxWidth: "256px",
   width: "100%",
+  justifyContent: "space-between",
   ul: {
     paddingTop: "47px",
     "li:first-of-type": {
@@ -40,19 +43,33 @@ const ListItemStyle = {
   },
 };
 
+const TextContainerStyle = {
+  h6: {
+    "&:first-of-type": {
+      fontSize: "16px",
+      lineHeight: "23px",
+    },
+    "&:last-of-type": {
+      fontSize: "14px",
+      lineHeight: "26px",
+      marginTop: "2px",
+    },
+  },
+};
+
 const paths = [
   {
     imgSrc: eacsLogo,
     text: "eac's logo",
+    path: "/dashboard",
+  },
+  {
+    text: "Energy market",
     path: "/",
   },
   {
     text: "My EAC's",
     path: "/my-eacs",
-  },
-  {
-    text: "Energy market",
-    path: "/energy-market",
   },
   {
     text: "Settings",
@@ -86,6 +103,12 @@ const Sidebar = ({ setIsModalOpen }) => {
           </ListItem>
         ))}
       </List>
+      <Grid sx={TextContainerStyle}>
+        <TitleText title={"NEAR MetaBUILD Hackathon"} />
+        <RegularText
+          content={`© ${new Date().getFullYear()} All Rights Reserved`}
+        />
+      </Grid>
     </Drawer>
   );
 };

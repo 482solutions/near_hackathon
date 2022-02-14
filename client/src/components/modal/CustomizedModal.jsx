@@ -12,6 +12,7 @@ const BoxStyle = {
   maxWidth: "769px",
   padding: "70px 62px 42px",
   borderRadius: "4px",
+  border: "unset",
   "> img": {
     position: "absolute",
     top: 0,
@@ -24,7 +25,7 @@ const BoxStyle = {
 
 const CustomizedModal = ({ open, handleClose, children }) => {
   return (
-    <Modal open={open} onClose={handleClose}>
+    <Modal open={open} onClose={handleClose} keepMounted={false}>
       <Box sx={BoxStyle}>
         <img src={closeIcon} alt={"close icon"} onClick={handleClose} />
         {children}

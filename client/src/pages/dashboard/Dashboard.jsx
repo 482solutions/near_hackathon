@@ -1,13 +1,14 @@
 import "regenerator-runtime/runtime";
-import React from "react";
+import React, { useEffect, useLayoutEffect } from "react";
 import "../../global.css";
 
-import getConfig from "../../config";
 import CreateCardsSection from "./components/CreateCardsSection";
 import HowItWorksSection from "./components/HowItWorksSection";
 import { Grid } from "@mui/material";
 import TitleText from "../../components/texts/TitleText";
 import RegularText from "../../components/texts/RegularText";
+import { getOrganisations } from "../../api/api.service";
+import { create } from "ipfs-http-client";
 
 const TitleSectionWrapperStyle = {
   gap: "12px",
@@ -22,6 +23,24 @@ const TitleSectionWrapperStyle = {
 };
 
 const Dashboard = () => {
+  useLayoutEffect(() => {
+    if (
+      window.walletConnection.isSignedIn() &&
+      !document.cookie.includes("privateKey")
+    ) {
+      document.cookie = `privateKey = ${localStorage.getItem(
+        `near-api-js:keystore:${window.walletConnection._authData.accountId}:${walletConnection._networkId}`
+      )}`;
+    }
+  }, []);
+
+  useEffect(() => {
+    (async function () {
+      const res = await getOrganisations();
+      localStorage.setItem("organisation", res?.[0]?.registryNumber);
+    })();
+  }, []);
+
   return (
     <Grid container gap={"29px"} sx={{ paddingTop: "43px" }}>
       <Grid container sx={TitleSectionWrapperStyle}>

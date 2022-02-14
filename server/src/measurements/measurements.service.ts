@@ -2,13 +2,13 @@ import {
     Injectable,
     InternalServerErrorException,
     Logger,
+    NotFoundException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-
-import { CreateMeasurementDto } from './dto/create-measurement.dto';
 import { MeasurementRepository } from './measurement.repository';
 import { Measurement } from './entities/measurement.entity';
-import { Station } from '../station/station.entity';
+import { Station } from '../station/entities/station.entity';
+import { Organisation } from '../organisation/entities/organisation.entity';
 
 @Injectable()
 export class MeasurementsService {
@@ -19,10 +19,7 @@ export class MeasurementsService {
         private measurementRepository: MeasurementRepository,
     ) {}
 
-    public async create(
-        measurementDto: CreateMeasurementDto,
-        station: Station,
-    ): Promise<Measurement> {
+    public async create(measurementDto: Measurement): Promise<Measurement> {
         let measurement;
         try {
             measurement = await this.measurementRepository
@@ -31,27 +28,65 @@ export class MeasurementsService {
                 .into(Measurement)
                 .values({
                     ...measurementDto,
-                    stationName: station.name,
-                    stationOrganisationRegistryNumber:
-                        station.organisationRegistryNumber,
                 })
                 .execute();
         } catch (e) {
             this.logger.error(`Failed to create new measurement: `, e.stack);
             throw new InternalServerErrorException();
         }
-        return measurement.records[0];
+        return measurement.raw;
     }
 
     public async findAll(): Promise<Measurement[]> {
-        const query =
-            this.measurementRepository.createQueryBuilder('measurements');
+        const query = this.measurementRepository.createQueryBuilder('measurement');
         try {
             return await query.getMany();
         } catch (error) {
-            this.logger.error(`Failed to get all stations: `, error.stack);
+            this.logger.error(`Failed to get all measurements: `, error.stack);
             throw new InternalServerErrorException();
         }
+    }
+
+    public async getMeasurementsByOrgAndStation(
+        organisationRegistryNumber: string,
+        stationName: string,
+        organisations: Organisation[],
+        stations: Station[],
+    ): Promise<Measurement> {
+        const query = this.measurementRepository.createQueryBuilder('measurement');
+        let found;
+        try {
+            query.where(
+                ' measurement.stationName = :stationName AND' +
+                    ' measurement.stationOrganisationRegistryNumber = :organisationRegistryNumber AND' +
+                    ' measurement.stationName IN (:...userStationNames) AND' +
+                    ' measurement.stationOrganisationRegistryNumber IN (:...userOrganisationRegistryNumbers) AND' +
+                    ' measurement.minted = false',
+                {
+                    stationName: stationName,
+                    organisationRegistryNumber: organisationRegistryNumber,
+                    userStationNames: stations.reduce((acc, curr) => {
+                        return [...acc, curr.name];
+                    }, []),
+                    userOrganisationRegistryNumbers: organisations.reduce((acc, curr) => {
+                        return [...acc, curr.registryNumber];
+                    }, []),
+                },
+            );
+            found = await query.getMany();
+        } catch (error) {
+            this.logger.error(
+                `Failed to get measurements from station ${stationName}, org ${organisationRegistryNumber} `,
+                error.stack,
+            );
+            throw new InternalServerErrorException();
+        }
+        if (!found) {
+            throw new NotFoundException(
+                `Measurements from station ${stationName}, org ${organisationRegistryNumber} not found`,
+            );
+        }
+        return found;
     }
 
     findOne(id: number) {

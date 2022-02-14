@@ -8,36 +8,39 @@ export class CreateStationDto {
     })
     name: string;
 
-    @IsNotEmpty({ message: 'Placement should not be empty' })
+    @IsNotEmpty({ message: 'Performance should not be empty' })
     @IsString()
     @MaxLength(50, {
-        message: 'Placement must be shorter than or equal to 50 characters',
+        message: 'Performance must be shorter than or equal to 50 characters',
     })
-    placement: string;
+    plantPerformance: string;
 
     @IsNotEmpty({ message: 'Government aid should not be empty' })
     @IsString()
     @MaxLength(80, {
-        message: 'Placement must be shorter than or equal to 80 characters',
+        message: 'Government aid must be shorter than or equal to 80 characters',
     })
-    supportGovernment: string;
+    governmentAid: string;
 
     @IsNotEmpty({ message: 'Investment aid should not be empty' })
     @IsString()
     @MaxLength(80, {
-        message: 'Placement must be shorter than or equal to 80 characters',
+        message: 'Investment aid be shorter than or equal to 80 characters',
     })
-    supportInvestment: string;
+    investmentAid: string;
 
     @IsNotEmpty({ message: 'Exploitation Start date should not be empty' })
     exploitationStart: Date;
 
     @IsNotEmpty({ message: 'Creation Date should not be empty' })
-    creationStart: Date;
+    manufactureDate: Date;
 
     @IsNotEmpty({ message: 'Country should not be empty' })
     countryId: number;
 
     @IsNotEmpty({ message: 'Region should not be empty' })
     regionId: number;
+
+    @IsNotEmpty({ message: 'Manufacturer Country should not be empty' })
+    manufacturerCountryId: number;
 }

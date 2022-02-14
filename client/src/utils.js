@@ -20,22 +20,23 @@ export async function initContract() {
   // Getting the Account ID. If still unauthorized, it's just empty string
   window.accountId = window.walletConnection.getAccountId();
 
-  // Initializing our contract APIs by contract name and configuration
-  window.contract = await new Contract(
-    window.walletConnection.account(),
-    nearConfig.contractName,
-    {
-      // View methods are read only. They don't modify the state, but usually return some value.
-      viewMethods: ["get_greeting"],
-      // Change methods can modify the state. But you don't receive the returned value when called.
-      changeMethods: ["set_greeting"],
-    }
-  );
+  // // Initializing our contract APIs by contract name and configuration
+  // window.contract = await new Contract(
+  //   window.walletConnection.account(),
+  //   nearConfig.contractName,
+  //   {
+  //     // View methods are read only. They don't modify the state, but usually return some value.
+  //     viewMethods: ["get_greeting"],
+  //     // Change methods can modify the state. But you don't receive the returned value when called.
+  //     changeMethods: ["set_greeting"],
+  //   }
+  // );
 }
 
 export function logout() {
   window.walletConnection.signOut();
   document.cookie = "privateKey=;expires=Thu, 01 Jan 1970 00:00:00 GMT";
+  localStorage.clear();
   // reload page
   window.location.replace(window.location.origin + window.location.pathname);
 }
@@ -45,5 +46,9 @@ export function login() {
   // user's behalf.
   // This works by creating a new access key for the user's account and storing
   // the private key in localStorage.
-  window.walletConnection.requestSignIn(nearConfig.contractName);
+  window.walletConnection.requestSignIn(
+    nearConfig.contractName,
+    undefined,
+    `${window.location.href}dashboard`
+  );
 }

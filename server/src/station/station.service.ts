@@ -3,18 +3,16 @@ import {
     InternalServerErrorException,
     Logger,
     NotFoundException,
+    UnprocessableEntityException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Country } from './country.entity';
+import { Country } from './entities/country.entity';
 import { CreateStationDto } from './dto/create-station.dto';
-import { Region } from './region.entity';
-import { Station } from './station.entity';
-import {
-    CountryRepository,
-    RegionRepository,
-    StationRepository,
-} from './station.repository';
-import { Organisation } from '../organisation/dto/organisation.entity';
+import { Region } from './entities/region.entity';
+import { Station } from './entities/station.entity';
+import { CountryRepository, RegionRepository, StationRepository } from './station.repository';
+import { Organisation } from '../organisation/entities/organisation.entity';
+import axios from 'axios';
 
 @Injectable()
 export class StationService {
@@ -29,15 +27,13 @@ export class StationService {
         private regionRepository: RegionRepository,
     ) {}
 
-    public async getAllStations(
-        organisations: Organisation[],
-    ): Promise<Station[]> {
+    public async getAllStations(organisations: Organisation[]): Promise<Station[]> {
         const query = this.stationRepository.createQueryBuilder('station');
         try {
-            query.where('station.organisationName IN (:organisationNames)', {
-                organisationIds: organisations
+            query.where('station.organisationRegistryNumber IN (:organisationRegistryNumbers)', {
+                organisationRegistryNumbers: organisations
                     .reduce((acc, curr) => {
-                        return [...acc, curr.name];
+                        return [...acc, curr.registryNumber];
                     }, [])
                     .toString(),
             });
@@ -59,15 +55,13 @@ export class StationService {
             query.where(
                 ' station.name = :name AND' +
                     ' station.organisationRegistryNumber = :organisation AND' +
-                    ' station.organisationRegistryNumber IN (:organisationRegistryNumbers)',
+                    ' station.organisationRegistryNumber IN (:...organisationRegistryNumbers)',
                 {
-                    organisation: organisation,
-                    organisationRegistryNumbers: organisations
-                        .reduce((acc, curr) => {
-                            return [...acc, curr.registryNumber];
-                        }, [])
-                        .toString(),
-                    name: name,
+                    name,
+                    organisation,
+                    organisationRegistryNumbers: organisations.reduce((acc, curr) => {
+                        return [...acc, curr.registryNumber];
+                    }, []),
                 },
             );
             found = await query.getOne();
@@ -81,16 +75,12 @@ export class StationService {
         return found;
     }
 
-    public async getStation(
-        organisation: string,
-        name: string,
-    ): Promise<Station> {
+    public async getStation(organisation: string, name: string): Promise<Station> {
         const query = this.stationRepository.createQueryBuilder('station');
         let found;
         try {
             query.where(
-                'station.name = :name AND' +
-                    ' station.organisationRegistryNumber = :organisation',
+                'station.name = :name AND' + ' station.organisationRegistryNumber = :organisation',
                 {
                     name: name,
                     organisation: organisation,
@@ -115,9 +105,26 @@ export class StationService {
         try {
             station.organisation = Promise.resolve(organisation);
             await station.save();
+
+            const response = await axios.post(
+                `${process.env.BROKER_HOST}:${process.env.BROKER_PORT}/v2/entities?options=keyValues`,
+                {
+                    type: 'Station',
+                    id: `${station.organisationRegistryNumber}.${station.name}`,
+                    startDate: '',
+                    endDate: '',
+                    generatedEnergy: '0',
+                },
+                { headers: { 'Content-Type': 'application/json' } },
+            );
+            this.logger.verbose('Create Station in Context Broker status: ', response.status);
         } catch (error) {
             this.logger.error(`Failed to create new station: `, error.stack);
-            throw new InternalServerErrorException();
+            if (error.code === '23505') {
+                throw new UnprocessableEntityException('Station already exists');
+            } else {
+                throw new InternalServerErrorException();
+            }
         }
         return station;
     }

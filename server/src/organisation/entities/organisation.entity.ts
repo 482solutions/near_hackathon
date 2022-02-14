@@ -1,16 +1,9 @@
-import { Station } from 'src/station/station.entity';
-import {
-    BaseEntity,
-    Column,
-    Entity,
-    JoinTable,
-    OneToMany,
-    PrimaryColumn,
-} from 'typeorm';
+import { Station } from 'src/station/entities/station.entity';
+import { BaseEntity, Column, Entity, JoinTable, OneToMany, PrimaryColumn } from 'typeorm';
 
 @Entity()
 export class Organisation extends BaseEntity {
-    @PrimaryColumn()
+    @PrimaryColumn({ unique: true })
     registryNumber: string;
 
     @Column()

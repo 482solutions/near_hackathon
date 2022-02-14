@@ -3,13 +3,17 @@ import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import * as cookieParser from 'cookie-parser';
+import axios from 'axios';
 
 async function bootstrap() {
     const logger = new Logger('bootstrap');
-    const port = 3030;
+    const port = process.env.PORT;
 
     const app = await NestFactory.create(AppModule);
-    app.enableCors();
+    app.enableCors({
+        origin: process.env.BASE_URL,
+        credentials: true,
+    });
     app.setGlobalPrefix('api');
     app.use(cookieParser());
 
@@ -23,8 +27,44 @@ async function bootstrap() {
     const document = SwaggerModule.createDocument(app, config);
     SwaggerModule.setup('swagger', app, document);
 
-    await app.listen(port);
+    try {
+        const response = await axios.get(
+            `${process.env.BROKER_HOST}:${process.env.BROKER_PORT}/v2/subscriptions`,
+        );
 
+        console.log(response.status);
+        const subs = response.data;
+
+        if (Array.isArray(subs) && subs.length === 0) {
+            const response = await axios.post(
+                `${process.env.BROKER_HOST}:${process.env.BROKER_PORT}/v2/subscriptions`,
+                {
+                    description: 'Notify backend of all context changes',
+                    subject: {
+                        entities: [
+                            {
+                                idPattern: '.*',
+                                type: 'Station',
+                            },
+                        ],
+                    },
+                    notification: {
+                        http: {
+                            url: `${process.env.SUBSC_URL}:${port}/api/measurements`,
+                        },
+                        attrsFormat: 'keyValues',
+                    },
+                    throttling: 1,
+                },
+            );
+            console.log(response);
+        }
+    } catch (e) {
+        console.log(e);
+    }
+
+    await app.listen(port);
     logger.log(`Application listening on port ${port}`);
 }
+
 bootstrap();

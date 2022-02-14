@@ -1,83 +1,19 @@
-import { Container, Modal, Typography, Box, Grid } from "@mui/material";
-import React, { useState } from "react";
+import { Grid } from "@mui/material";
+import React, { useRef, useState } from "react";
+import { useEffect } from "react";
+import { useCallback } from "react";
+import { getStation } from "../../../api/api.service";
 import CreateButton from "../../buttons/CreateButton";
 import CustomizedInput from "../../inputs/CustomizedInput";
 import CustomizedModal from "../../modal/CustomizedModal";
-import CustomizedSelect from "../../select/CustomizedSelect";
 import RegularText from "../../texts/RegularText";
 import TitleText from "../../texts/TitleText";
-
-const InputsData = {
-  Station: [
-    {
-      title: "Facility name",
-    },
-    {
-      title: "Device owner",
-    },
-    {
-      title: "Date of commercial exp",
-    },
-    {
-      title: "Registrational date",
-    },
-    {
-      title: "Type of national aid",
-    },
-    {
-      title: "API ID",
-    },
-  ],
-  Company: [
-    {
-      title: "Organization Name",
-      required: true,
-    },
-    {
-      title: "Organization Address",
-      required: true,
-    },
-    {
-      title: "Business type",
-      required: true,
-      isSelect: true,
-      options: ["Private", "Public", "Holding and Subsidary", "Associate"].map(
-        (i) => ({ value: i, label: `${i} Companies` })
-      ),
-    },
-    {
-      title: "Trade Registry Company number",
-      require: true,
-    },
-    {
-      title: "Signatory Full Name",
-      required: true,
-    },
-    {
-      title: "Signatory Address",
-      required: true,
-    },
-    {
-      title: "Signatory Email",
-      required: true,
-    },
-    {
-      title: "Signatory Telephone",
-      required: true,
-    },
-  ],
-  EAC: [
-    {
-      title: "Start date of creation",
-    },
-    {
-      title: "End date of creation",
-    },
-    {
-      title: "Amount of energy in MWh",
-    },
-  ],
-};
+import InfoModal from "../../modal/info-modal/InfoModal";
+import { useLocation, useNavigate } from "react-router-dom";
+import useIpfs from "../../../hooks/useIpfs.hook";
+import { InputsData } from "./constants";
+import { handleSubmit, passUpValueCallback } from "./modal.utils";
+import CustomizedDatePicker from "../../datepicker/CustomizedDatePicker";
 
 const BtnContainerStyle = {
   maxWidth: "141px",
@@ -97,45 +33,136 @@ const TitleContainerStyle = {
   marginBottom: "32px",
 };
 
-const ModalSection = ({ btnText }) => {
+const ModalSection = ({ btnText, keyWord, img }) => {
   const [open, setOpen] = useState(false);
+  const [infoModalIsOpen, setInfoModalIsOpen] = useState(false);
+  const [error, setError] = useState({});
+  const [disabled, setDisabled] = useState(
+    ((!localStorage.getItem("organisation") ||
+      localStorage.getItem("organisation") === "undefined") &&
+      (keyWord === "EAC" || keyWord === "Station")) ||
+      (localStorage.getItem("organisation") &&
+        localStorage.getItem("organisation") !== "undefined" &&
+        keyWord === "Company") ||
+      !window.walletConnection.isSignedIn()
+  );
+  const [data, setData] = useState(InputsData);
+  const [infoType, setInfoType] = useState({ type: "success", msg: "" });
+  const location = useLocation();
+  const navigate = useNavigate();
+  const { client } = useIpfs();
+
+  useEffect(() => {
+    if (location.state?.nextModal) {
+      if (location.state?.nextModal === keyWord) {
+        setOpen(true);
+        navigate("/dashboard", {
+          replace: { ...location, state: null },
+        });
+        setDisabled(false);
+      }
+    }
+  }, [location.state?.nextModal, navigate]);
+
+  const getAndTransformToSelectStations = useCallback(async () => {
+    const res = await getStation();
+    if (res && res.length) {
+      const toSelectData = res.map((i) => ({
+        value: i.name,
+        label: i.name,
+      }));
+      const idx = InputsData["EAC"].findIndex((i) => i.title === "Stations");
+
+      InputsData["EAC"][idx].options = toSelectData;
+    }
+  }, []);
+
+  useEffect(() => {
+    (async () => {
+      if (keyWord === "EAC") {
+        await getAndTransformToSelectStations();
+      }
+    })();
+  }, [keyWord]);
+
+  const dataRef = useRef(
+    InputsData[keyWord].reduce((acc, i) => ({ ...acc, [i.title]: "" }), {})
+  );
+
   const handleOpen = () => setOpen(true);
-  const handleClose = () => setOpen(false);
+
+  const handleClose = () => {
+    setOpen(false);
+    setError({});
+    dataRef.current = Object.keys(dataRef.current).reduce(
+      (acc, i) => ({ ...acc, [i]: "" }),
+      {}
+    );
+  };
 
   return (
     <>
-      <CreateButton
-        text={btnText}
-        onClick={handleOpen}
-        disabled={!window.walletConnection.isSignedIn()}
-      />
+      <CreateButton text={btnText} onClick={handleOpen} disabled={disabled} />
+      {keyWord === "EAC" && (
+        <CreateButton text={"Create EAC's Automatically"} disabled={disabled} />
+      )}
       <CustomizedModal open={open} handleClose={handleClose}>
         <Grid container sx={TitleContainerStyle}>
           <TitleText title={btnText} />
           <RegularText
-            content={`Please enter ${btnText.split(" ")[1]} info`}
+            content={`Please enter ${keyWord} info`}
             variant="small"
           />
         </Grid>
         <Grid container rowGap={"13px"} columnGap={"25px"}>
-          {InputsData[btnText.split(" ")[1]].map((i, idx) => {
+          {data[keyWord].map((i, idx) => {
             return (
               <CustomizedInput
                 labelName={i.title}
                 required={i?.required}
-                key={idx}
+                key={i.title}
+                error={error[i.title]}
                 isSelect={i.isSelect}
-                options={i?.options ?? []}
+                initialValue={i.default ?? ""}
+                options={i?.options || []}
+                type={i.type}
+                disabled={i.title === "Region" && !dataRef.current?.["Country"]}
+                passUpValue={(value) =>
+                  passUpValueCallback(value, i, dataRef, keyWord, setData)
+                }
               />
             );
           })}
         </Grid>
         <Grid container sx={BtnContainerWrapperStyle}>
           <Grid item sx={BtnContainerStyle}>
-            <CreateButton text="Submit" />
+            <CreateButton
+              text="Submit"
+              onClick={() =>
+                handleSubmit(
+                  dataRef.current,
+                  keyWord,
+                  InputsData,
+                  setError,
+                  client,
+                  setDisabled,
+                  handleClose,
+                  setInfoModalIsOpen,
+                  setInfoType,
+                  getAndTransformToSelectStations
+                )
+              }
+            />
           </Grid>
         </Grid>
       </CustomizedModal>
+      <InfoModal
+        open={infoModalIsOpen}
+        setOpen={setInfoModalIsOpen}
+        infoType={infoType}
+        img={img}
+        keyWord={keyWord}
+      />
     </>
   );
 };

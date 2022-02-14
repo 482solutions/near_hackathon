@@ -64,10 +64,8 @@ const MenuSection = () => {
         <MenuItem>
           <Link to="/coming-soon">Change password</Link>
         </MenuItem>
-        <MenuItem>
-          <Typography variant="subtitle1" onClick={() => logout()}>
-            Log out
-          </Typography>
+        <MenuItem onClick={() => logout()}>
+          <Typography variant="subtitle1">Log out</Typography>
         </MenuItem>
       </Menu>
     </>

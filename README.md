@@ -1,14 +1,21 @@
 # Near-EAC
 
 ## Requirements
-- node 14
+- node v16.14.0
 - postgres 12
 
 create DB with name ```near_eac``` and user/password ```postgres/postgres```
 
 ## Run commands
-### Install dependency
+### Install dependencies
 ```npm install```
+
+### Backend setup
+Copy .env.example file to .env and replace the appropriate fields
+
+```sh
+cp .env.example .env 
+```
 
 ### Run in prod mode
 ```
