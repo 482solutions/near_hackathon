@@ -60,7 +60,14 @@ const HowItWorksSection = () => {
         <Grid container sx={ImagesWrapperStyle}>
           {imgSectionData.map((el, index) => {
             return (
-              <Grid key={index}>
+              <Grid
+                flexDirection={"column"}
+                alignItems="center"
+                justifyContent={"center"}
+                display="flex"
+                gap="10px"
+                key={index}
+              >
                 <img src={el.img} alt="logo" key={index} />
                 {el.label && <RegularText content={el.label} variant="small" />}
               </Grid>

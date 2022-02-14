@@ -38,9 +38,12 @@ const ModalSection = ({ btnText, keyWord, img }) => {
   const [infoModalIsOpen, setInfoModalIsOpen] = useState(false);
   const [error, setError] = useState({});
   const [disabled, setDisabled] = useState(
-    (!localStorage.getItem("organisation") &&
+    ((!localStorage.getItem("organisation") ||
+      localStorage.getItem("organisation") === "undefined") &&
       (keyWord === "EAC" || keyWord === "Station")) ||
-      (localStorage.getItem("organisation") && keyWord === "Company") ||
+      (localStorage.getItem("organisation") &&
+        localStorage.getItem("organisation") !== "undefined" &&
+        keyWord === "Company") ||
       !window.walletConnection.isSignedIn()
   );
   const [data, setData] = useState(InputsData);
@@ -53,7 +56,7 @@ const ModalSection = ({ btnText, keyWord, img }) => {
     if (location.state?.nextModal) {
       if (location.state?.nextModal === keyWord) {
         setOpen(true);
-        navigate("/", {
+        navigate("/dashboard", {
           replace: { ...location, state: null },
         });
         setDisabled(false);
@@ -100,6 +103,9 @@ const ModalSection = ({ btnText, keyWord, img }) => {
   return (
     <>
       <CreateButton text={btnText} onClick={handleOpen} disabled={disabled} />
+      {keyWord === "EAC" && (
+        <CreateButton text={"Create EAC's Automatically"} disabled={disabled} />
+      )}
       <CustomizedModal open={open} handleClose={handleClose}>
         <Grid container sx={TitleContainerStyle}>
           <TitleText title={btnText} />
@@ -140,7 +146,7 @@ const ModalSection = ({ btnText, keyWord, img }) => {
                   setError,
                   client,
                   setDisabled,
-                  setOpen,
+                  handleClose,
                   setInfoModalIsOpen,
                   setInfoType,
                   getAndTransformToSelectStations

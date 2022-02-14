@@ -35,13 +35,9 @@ const Dashboard = () => {
   }, []);
 
   useEffect(() => {
-    console.log("here");
     (async function () {
-      if (!localStorage.getItem("organisation")) {
-        const res = await getOrganisations();
-        if (res?.[0]?.registryNumber)
-          localStorage.setItem("organisation", res?.[0]?.registryNumber);
-      }
+      const res = await getOrganisations();
+      localStorage.setItem("organisation", res?.[0]?.registryNumber);
     })();
   }, []);
 

@@ -6,7 +6,7 @@ import MyEacs from "../pages/my-eacs/MyEacs";
 
 export const routes = [
   {
-    path: "/",
+    path: "/dashboard",
     exact: true,
     component: Dashboard,
     fallback: null,
@@ -20,7 +20,7 @@ export const routes = [
     private: true,
   },
   {
-    path: "/energy-market",
+    path: "/",
     exact: true,
     component: EnergyMarket,
     fallback: null,

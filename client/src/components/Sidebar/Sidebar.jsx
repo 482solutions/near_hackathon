@@ -61,15 +61,15 @@ const paths = [
   {
     imgSrc: eacsLogo,
     text: "eac's logo",
+    path: "/dashboard",
+  },
+  {
+    text: "Energy market",
     path: "/",
   },
   {
     text: "My EAC's",
     path: "/my-eacs",
-  },
-  {
-    text: "Energy market",
-    path: "/energy-market",
   },
   {
     text: "Settings",

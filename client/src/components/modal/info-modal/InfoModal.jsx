@@ -37,7 +37,7 @@ const InfoModal = ({ open, setOpen, img, keyWord, infoType }) => {
 
   const handleClick = () => {
     if (infoType.type === "error") {
-      navigate("/", {
+      navigate("/dashboard", {
         state: {
           nextModal: keyWord,
         },
@@ -46,7 +46,7 @@ const InfoModal = ({ open, setOpen, img, keyWord, infoType }) => {
       return;
     }
     if (keyWord !== "EAC") {
-      navigate("/", {
+      navigate("/dashboard", {
         state: {
           nextModal: keyWord === "Company" ? "Station" : "EAC",
         },
