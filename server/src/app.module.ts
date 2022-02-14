@@ -1,4 +1,5 @@
 import { Module } from '@nestjs/common';
+import { ConfigModule } from '@nestjs/config';
 import { StationModule } from './station/station.module';
 import { OrganisationModule } from './organisation/organisation.module';
 import { TypeOrmModule } from '@nestjs/typeorm';
@@ -21,6 +22,9 @@ import { NftModule } from './nft/nft.module';
             Region,
             Measurement,
         ]),
+        ConfigModule.forRoot({
+            isGlobal: true
+        }),
         StationModule,
         OrganisationModule,
         MeasurementsModule,
