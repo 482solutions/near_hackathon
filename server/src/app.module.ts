@@ -9,6 +9,7 @@ import { Organisation } from './organisation/dto/organisation.entity';
 import { Station } from './station/station.entity';
 import { Country } from './station/country.entity';
 import { Region } from './station/region.entity';
+import { NftModule } from './nft/nft.module';
 
 @Module({
     imports: [
@@ -23,6 +24,7 @@ import { Region } from './station/region.entity';
         StationModule,
         OrganisationModule,
         MeasurementsModule,
+        NftModule,
     ],
 })
 export class AppModule {}
