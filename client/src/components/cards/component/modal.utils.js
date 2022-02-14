@@ -104,7 +104,7 @@ export const handleSubmit = async (
   setError,
   clientInstance,
   setDisabled,
-  setOpen,
+  handleClose,
   setInfoModalIsOpen,
   setInfoType,
   getAndTransformToSelectStations
@@ -167,6 +167,7 @@ export const handleSubmit = async (
       payload[keyWord],
       clientInstance
     );
+
     if (res) {
       if (keyWord === "Company") {
         localStorage.setItem("organisation", res.registryNumber);
@@ -177,15 +178,13 @@ export const handleSubmit = async (
       }
     }
   } catch (e) {
-    let message;
-    if (e.data.statusCode === 422) {
+    let message = `Something went wrong during creation ${keyWord}`;
+    if (e.data?.statusCode === 422) {
       message = `${keyWord} with the name ${payload[keyWord].name} is already exist`;
-    } else {
-      message = `Something went wrong during creation ${keyWord}`;
     }
     setInfoType({ type: "error", msg: message });
   } finally {
-    setOpen(false);
+    handleClose();
     setInfoModalIsOpen(true);
   }
 };

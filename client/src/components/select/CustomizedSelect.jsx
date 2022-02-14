@@ -1,4 +1,5 @@
 import {
+  Box,
   FormControl,
   InputLabel,
   Menu,
@@ -8,21 +9,16 @@ import {
 } from "@mui/material";
 import React from "react";
 import { LabelStyle } from "../inputs/CustomizedReadInput";
-import solarIcon from "./assets/Solar.svg";
-import windIcon from "./assets/Wind.svg";
-import thermalIcon from "./assets/Thermal.svg";
-import liquidIcon from "./assets/Liquid.svg";
-import hydroIcon from "./assets/Hydro.svg";
-import gaseousIcon from "./assets/Gaseous.svg";
+import SelectIcons from "./assets/SelectIcons";
 
-const mapSelectIcons = {
-  Solar: solarIcon,
-  Wind: windIcon,
-  Liquid: liquidIcon,
-  Thermal: thermalIcon,
-  "Hydro - Electric head": hydroIcon,
-  Gaseous: gaseousIcon,
-};
+const mapSelectIcons = [
+  "Solar",
+  "Wind",
+  "Liquid",
+  "Thermal",
+  "Hydro - Electric head",
+  "Gaseous",
+];
 
 const SelectStyles = {
   borderRadius: "4px",
@@ -34,6 +30,10 @@ const SelectStyles = {
   fontSize: "12px",
   lineHeight: "16px",
   fontWeight: "500",
+  ".MuiSelect-select": {
+    display: "flex",
+    alignItems: "center",
+  },
   input: {
     border: "1px solid #676767",
   },
@@ -70,9 +70,24 @@ const MenuItemStyle = {
   lineHeight: "16px",
   fontWeight: "500",
   padding: "8px 16px",
-  "&:hover": {
+  "&:hover, &.Mui-selected:hover": {
     backgroundColor: "#14D9C1",
     color: "#fff",
+    svg: {
+      path: {
+        fill: "#fff",
+      },
+    },
+    "&[data-value='Gaseous']": {
+      svg: {
+        path: {
+          fill: "#fff",
+          "&:nth-of-type(3), &:nth-of-type(4)": {
+            fill: "#0FB8C3",
+          },
+        },
+      },
+    },
   },
 };
 
@@ -131,12 +146,10 @@ const CustomizedSelect = ({
           {options.map((el, idx) => {
             return (
               <MenuItem value={el.value} key={idx} sx={MenuItemStyle}>
-                {mapSelectIcons[el.label] && (
-                  <img
-                    src={mapSelectIcons[el.label]}
-                    alt={el.label}
-                    style={{ marginRight: "5px" }}
-                  />
+                {mapSelectIcons.includes(el.label) && (
+                  <Box marginRight={"4px"} width="fit-content">
+                    <SelectIcons type={el.label} />
+                  </Box>
                 )}
                 {el.label}
               </MenuItem>
