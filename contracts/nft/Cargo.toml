@@ -10,5 +10,4 @@ crate-type = ["cdylib"]
 [dependencies]
 near-sdk = "4.0.0-pre.6"
 near-contract-standards = "4.0.0-pre.6"
-chrono = "0.4.19"
 utils = { path = "../utils" }

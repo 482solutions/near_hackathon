@@ -15,7 +15,6 @@ NOTES:
   - To prevent the deployed contract from being modified or deleted, it should not have any access
     keys on its account.
  */
-use chrono::prelude::*;
 use near_contract_standards::non_fungible_token::metadata::{
     NFTContractMetadata, NonFungibleTokenMetadataProvider, TokenMetadata, NFT_METADATA_SPEC,
 };
@@ -23,6 +22,7 @@ use near_contract_standards::non_fungible_token::NonFungibleToken;
 use near_contract_standards::non_fungible_token::{Token, TokenId};
 use near_sdk::borsh::{self, BorshDeserialize, BorshSerialize};
 use near_sdk::collections::LazyOption;
+use near_sdk::serde::{Deserialize, Serialize};
 use near_sdk::{
     env, near_bindgen, require, AccountId, BorshStorageKey, PanicOnDefault, Promise, PromiseOrValue,
 };
@@ -45,7 +45,7 @@ enum StorageKey {
 }
 
 /// This struct needs to be passed in mint method
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, BorshDeserialize, BorshSerialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 #[serde(crate = "near_sdk::serde")]
 pub struct BaseMetadata {
     pub title: Option<String>, // ex. "Arch Nemesis: Mail Carrier" or "Parcel #5055"
@@ -127,9 +127,9 @@ impl Contract {
             media: None,
             media_hash: None,
             copies: None,
-            issued_at: Some(Utc::now().to_string()),
-            expires_at: None.or_else(expires_at),
-            starts_at: starts_at.or_else(Utc::now().to_string()),
+            issued_at: Some(env::block_timestamp().to_string()),
+            expires_at: None.or(expires_at),
+            starts_at: starts_at.or_else(|| Some(env::block_timestamp().to_string())),
             updated_at: None,
             reference: None,
             reference_hash: None,
