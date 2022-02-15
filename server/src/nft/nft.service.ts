@@ -54,20 +54,24 @@ export class NftService {
 
     const account = await near.account(this.session.id);
 
-    const result = await account.functionCall({
-      methodName: "nft_tokens",
-      contractId: account.accountId,
-      args: {
-        from_index,
-        limit
-      },
-      gas: DEFAULT_GAS
-    });
+    try {
+      const result = await account.functionCall({
+        methodName: "nft_tokens",
+        contractId: account.accountId,
+        args: {
+          from_index,
+          limit
+        },
+        gas: DEFAULT_GAS
+      });
 
-    const value = await account.connection.provider.txStatus(result.transaction_outcome.id, account.accountId)
-      .then(resp => resp.status) as ExecutionStatus;
+      const value = await account.connection.provider.txStatus(result.transaction_outcome.id, account.accountId)
+        .then(resp => resp.status) as ExecutionStatus;
 
-    return atob(value.SuccessValue)
+      return atob(value.SuccessValue)
+    } catch (e) {
+      return e.message
+    }
   }
 
   findOne(id: number) {
