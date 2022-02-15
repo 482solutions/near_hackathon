@@ -22,6 +22,7 @@ use near_contract_standards::non_fungible_token::NonFungibleToken;
 use near_contract_standards::non_fungible_token::{Token, TokenId};
 use near_sdk::borsh::{self, BorshDeserialize, BorshSerialize};
 use near_sdk::collections::LazyOption;
+use near_sdk::serde::{Deserialize, Serialize};
 use near_sdk::{
     env, near_bindgen, require, AccountId, BorshStorageKey, PanicOnDefault, Promise, PromiseOrValue,
 };
@@ -31,6 +32,7 @@ use near_sdk::{
 pub struct Contract {
     tokens: NonFungibleToken,
     metadata: LazyOption<NFTContractMetadata>,
+    next_id: u128,
 }
 
 #[derive(BorshSerialize, BorshStorageKey)]
@@ -40,6 +42,20 @@ enum StorageKey {
     TokenMetadata,
     Enumeration,
     Approval,
+}
+
+/// This struct needs to be passed in mint method
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[serde(crate = "near_sdk::serde")]
+pub struct BaseMetadata {
+    pub title: Option<String>, // ex. "Arch Nemesis: Mail Carrier" or "Parcel #5055"
+    pub description: Option<String>, // free-form description
+    /// Field for storing our additional data in JSON-form
+    pub extra: Option<String>, // anything extra the NFT wants to store on-chain. Can be stringified JSON
+    /// If not provided `expires_at` will be `None`
+    pub expires_at: Option<String>,
+    /// If not provided current UTC time will be used for field
+    pub starts_at: Option<String>,
 }
 
 #[near_bindgen]
@@ -75,6 +91,7 @@ impl Contract {
                 Some(StorageKey::Approval),
             ),
             metadata: LazyOption::new(StorageKey::Metadata, Some(&metadata)),
+            next_id: 0,
         }
     }
 
@@ -87,19 +104,42 @@ impl Contract {
     /// `self.tokens.mint` will enforce `predecessor_account_id` to equal the `owner_id` given in
     /// initialization call to `new`.
     #[payable]
-    pub fn nft_mint(
-        &mut self,
-        token_id: TokenId,
-        token_owner_id: AccountId,
-        token_metadata: TokenMetadata,
-    ) -> Token {
+    pub fn nft_mint(&mut self, token_owner_id: AccountId, token_metadata: BaseMetadata) -> Token {
         assert_eq!(
             env::predecessor_account_id(),
             self.tokens.owner_id,
             "Unauthorized"
         );
-        self.tokens
-            .internal_mint(token_id, token_owner_id, Some(token_metadata))
+        self.next_id += 1;
+
+        let BaseMetadata {
+            title,
+            description,
+            extra,
+            starts_at,
+            expires_at,
+        } = token_metadata;
+
+        let full_metadata = TokenMetadata {
+            title,
+            description,
+            extra,
+            media: None,
+            media_hash: None,
+            copies: None,
+            issued_at: Some(env::block_timestamp().to_string()),
+            expires_at: None.or(expires_at),
+            starts_at: starts_at.or_else(|| Some(env::block_timestamp().to_string())),
+            updated_at: None,
+            reference: None,
+            reference_hash: None,
+        };
+
+        self.tokens.internal_mint(
+            self.next_id.to_string(),
+            token_owner_id,
+            Some(full_metadata),
+        )
     }
 }
 

@@ -10,6 +10,7 @@ import { Station } from './station/entities/station.entity';
 import { Country } from './station/entities/country.entity';
 import { Region } from './station/entities/region.entity';
 import { ConfigModule } from '@nestjs/config';
+import { NftModule } from "./nft/nft.module";
 
 @Module({
     imports: [
@@ -17,6 +18,7 @@ import { ConfigModule } from '@nestjs/config';
         TypeOrmModule.forRoot(typeOrmConfig),
         TypeOrmModule.forFeature([Organisation, Station, Country, Region, Measurement]),
         StationModule,
+        NftModule,
         OrganisationModule,
         MeasurementsModule,
     ],
