@@ -16,6 +16,11 @@ export class Nft {
     reference_hash: string | null
 }
 
+export interface Pagination {
+    from_index: string,
+    limit: number
+}
+
 export class Session {
     public readonly id: string;
     private readonly store: InMemoryKeyStore;

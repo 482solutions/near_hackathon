@@ -1,6 +1,7 @@
 import { Controller, Get, Post, Body, Param, Delete } from "@nestjs/common";
 import { NftService } from "./nft.service";
 import { CreateNftDto } from "./dto/create-nft.dto";
+import { Pagination } from "./entities/nft.entity";
 
 @Controller("nft")
 export class NftController {
@@ -13,8 +14,8 @@ export class NftController {
   }
 
   @Get()
-  findAll() {
-    return this.nftService.findAll();
+  findAll(@Body() params: Pagination) {
+    return this.nftService.findAll(params);
   }
 
   @Get(":id")

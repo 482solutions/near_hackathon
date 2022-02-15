@@ -2,10 +2,13 @@ import { Injectable, Logger } from "@nestjs/common";
 import { CreateNftDto } from "./dto/create-nft.dto";
 import { ConfigService } from "@nestjs/config";
 import { connect, DEFAULT_FUNCTION_CALL_GAS, Near } from "near-api-js";
-import { Session } from "./entities/nft.entity";
+import { Pagination, Session } from "./entities/nft.entity";
 import { BN } from "bn.js";
+import { ExecutionStatus } from "near-api-js/lib/providers/provider";
+import { atob } from "buffer";
 
 const STORAGE_DEPOSIT = new BN("5750000000000000000000", 10);
+const DEFAULT_GAS = new BN("300000000000000", 10);
 
 @Injectable()
 export class NftService {
@@ -37,11 +40,34 @@ export class NftService {
       attachedDeposit: STORAGE_DEPOSIT
     });
 
-    return await account.connection.provider.txStatus(result.transaction.hash, account.accountId)
+    const value = await account.connection.provider.txStatus(result.transaction_outcome.id, account.accountId)
+      .then(resp => resp.status) as ExecutionStatus;
+
+    return atob(value.SuccessValue);
   }
 
-  findAll() {
-    return `This action returns all nft`;
+  async findAll(params: Pagination) {
+    const config = this.session.defaultConfig();
+    const { from_index, limit } = params;
+
+    const near = await connect(config);
+
+    const account = await near.account(this.session.id);
+
+    const result = await account.functionCall({
+      methodName: "nft_tokens",
+      contractId: account.accountId,
+      args: {
+        from_index,
+        limit
+      },
+      gas: DEFAULT_GAS
+    });
+
+    const value = await account.connection.provider.txStatus(result.transaction_outcome.id, account.accountId)
+      .then(resp => resp.status) as ExecutionStatus;
+
+    return atob(value.SuccessValue)
   }
 
   findOne(id: number) {
