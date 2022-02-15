@@ -1,30 +1,43 @@
 import { Injectable, Logger } from "@nestjs/common";
 import { CreateNftDto } from "./dto/create-nft.dto";
-import { UpdateNftDto } from "./dto/update-nft.dto";
 import { ConfigService } from "@nestjs/config";
-import { connect, Near } from "near-api-js";
+import { connect, DEFAULT_FUNCTION_CALL_GAS, Near } from "near-api-js";
 import { Session } from "./entities/nft.entity";
+import { BN } from "bn.js";
+
+const STORAGE_DEPOSIT = new BN("5750000000000000000000", 10);
 
 @Injectable()
 export class NftService {
-  private logger = new Logger('NftService');
-  public connection: Near;
+  private logger = new Logger("NftService");
   private readonly session: Session;
+  public connection: Near;
 
   constructor(private configService: ConfigService) {
     this.logger.log("Constructing NftService");
-    this.session = new Session(configService.get("PRIVATE_KEY"));
+    this.session = new Session(configService.get("PRIVATE_KEY"), configService.get("ID"));
   }
 
-  public async connect() {
-    this.logger.log("Connecting to NEAR");
+  async create(data: CreateNftDto) {
+    const { owner, metadata } = data;
     const config = this.session.defaultConfig();
 
-    this.connection = await connect(config);
-  }
+    const near = await connect(config);
 
-  create(createNftDto: CreateNftDto) {
-    return 'This action adds a new nft';
+    const account = await near.account(this.session.id);
+
+    const result = await account.functionCall({
+      methodName: "nft_mint",
+      contractId: account.accountId,
+      args: {
+        token_owner_id: owner,
+        token_metadata: metadata
+      },
+      gas: DEFAULT_FUNCTION_CALL_GAS,
+      attachedDeposit: STORAGE_DEPOSIT
+    });
+
+    return await account.connection.provider.txStatus(result.transaction.hash, account.accountId)
   }
 
   findAll() {
@@ -33,10 +46,6 @@ export class NftService {
 
   findOne(id: number) {
     return `This action returns a #${id} nft`;
-  }
-
-  update(id: number, updateNftDto: UpdateNftDto) {
-    return `This action updates a #${id} nft`;
   }
 
   remove(id: number) {

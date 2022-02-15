@@ -1,4 +1,4 @@
-export class Metadata {
+export interface Metadata {
     title: string;
     description: string | null;
     expires_at: string | null;
@@ -6,7 +6,7 @@ export class Metadata {
     extra: string;
 }
 
-export class CreateNftDto {
-    token_owner_id: string;
-    token_metadata: Metadata;
+export interface CreateNftDto {
+    owner: string;
+    metadata: Metadata;
 }

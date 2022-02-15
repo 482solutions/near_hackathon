@@ -17,14 +17,8 @@ export class Nft {
 }
 
 export class Session {
-    private readonly pk: string;
     public readonly id: string;
-    private store: InMemoryKeyStore;
-
-    get privateKey() {
-        return this.pk
-
-    }
+    private readonly store: InMemoryKeyStore;
 
     defaultConfig(): ConnectConfig {
         return {
@@ -37,15 +31,11 @@ export class Session {
         }
     }
 
-    init() {
-        const keyStore = new keyStores.InMemoryKeyStore();
-        const keyPair = KeyPair.fromString(this.privateKey);
-        keyStore.setKey("testnet", this.id, keyPair);
-
-        this.store = keyStore;
-    }
-
-    constructor(pk: string) {
-        this.pk = pk
+    constructor(pk: string, id: string) {
+        this.id = id;
+        const keyPair = KeyPair.fromString(pk);
+        const store = new keyStores.InMemoryKeyStore();
+        store.setKey("testnet", id, keyPair);
+        this.store = store;
     }
 }
