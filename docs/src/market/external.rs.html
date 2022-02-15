@@ -16,23 +16,53 @@
 <span id="16">16</span>
 <span id="17">17</span>
 <span id="18">18</span>
+<span id="19">19</span>
+<span id="20">20</span>
+<span id="21">21</span>
+<span id="22">22</span>
+<span id="23">23</span>
+<span id="24">24</span>
+<span id="25">25</span>
+<span id="26">26</span>
+<span id="27">27</span>
+<span id="28">28</span>
+<span id="29">29</span>
+<span id="30">30</span>
+<span id="31">31</span>
+<span id="32">32</span>
+<span id="33">33</span>
 </pre><pre class="rust"><code><span class="kw">use</span> <span class="kw">crate</span>::<span class="kw-2">*</span>;
 
-<span class="doccomment">/// External contract calls</span>
-<span class="attribute">#[<span class="ident">ext_contract</span>(<span class="ident">ext_ft</span>)]</span>
-<span class="kw">pub</span> <span class="kw">trait</span> <span class="ident">ExtContract</span> {
-    <span class="doccomment">/// Initiate a cross contract call to the factory. This will transfer the token to the buyer</span>
-    <span class="kw">fn</span> <span class="ident">force_transfer</span>(
+<span class="doccomment">/// Used in cross-contract call to the NFT contract.</span>
+<span class="doccomment">/// Transfer the token to the buyer, return payout, transfer funds to seller</span>
+<span class="attribute">#[<span class="ident">ext_contract</span>(<span class="ident">ext_contract</span>)]</span>
+<span class="kw">trait</span> <span class="ident">ExtContract</span> {
+    <span class="kw">fn</span> <span class="ident">nft_transfer_pay</span>(
         <span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="self">self</span>,
-        <span class="ident">sender_id</span>: <span class="ident">AccountId</span>, <span class="comment">// seller of FT, used to check if this account really possess this amount of tokens</span>
-        <span class="ident">receiver_id</span>: <span class="ident">AccountId</span>, <span class="comment">// purchaser (person to transfer the FT to),</span>
-        <span class="ident">amount</span>: <span class="ident">Balance</span>,
-    ) <span class="op">-</span><span class="op">&gt;</span> <span class="ident">Promise</span>;
+        <span class="ident">received_id</span>: <span class="ident">AccountId</span>,
+        <span class="ident">token_id</span>: <span class="ident">TokenId</span>,
+        <span class="ident">approval_id</span>: <span class="ident">u64</span>,
+        <span class="ident">memo</span>: <span class="ident">String</span>,
+        <span class="ident">balance</span>: <span class="ident">U128</span>,
+        <span class="ident">max_len_payout</span>: <span class="ident">u32</span>,
+    );
 
-    <span class="kw">fn</span> <span class="ident">ft_transfer_by_signer</span>(<span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="self">self</span>, <span class="ident">receiver_id</span>: <span class="ident">AccountId</span>, <span class="ident">amount</span>: <span class="ident">U128</span>, <span class="ident">memo</span>: <span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="ident">String</span><span class="op">&gt;</span>);
-    <span class="kw">fn</span> <span class="ident">ft_transfer_safe</span>(<span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="self">self</span>, <span class="ident">receiver_id</span>: <span class="ident">AccountId</span>, <span class="ident">amount</span>: <span class="ident">U128</span>, <span class="ident">memo</span>: <span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="ident">String</span><span class="op">&gt;</span>);
+    <span class="kw">fn</span> <span class="ident">nft_transfer</span>(
+        <span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="self">self</span>,
+        <span class="ident">receiver_id</span>: <span class="ident">AccountId</span>,
+        <span class="ident">token_id</span>: <span class="ident">TokenId</span>,
+        <span class="ident">approval_id</span>: <span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="ident">u64</span><span class="op">&gt;</span>,
+        <span class="ident">memo</span>: <span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="ident">String</span><span class="op">&gt;</span>,
+    );
 
-    <span class="kw">fn</span> <span class="ident">ft_balance_of</span>(<span class="kw-2">&amp;</span><span class="self">self</span>, <span class="ident">account_id</span>: <span class="ident">AccountId</span>) <span class="op">-</span><span class="op">&gt;</span> <span class="ident">U128</span>;
+    <span class="kw">fn</span> <span class="ident">nft_is_approved</span>(
+        <span class="kw-2">&amp;</span><span class="self">self</span>,
+        <span class="ident">token_id</span>: <span class="ident">TokenId</span>,
+        <span class="ident">approved_account_id</span>: <span class="ident">AccountId</span>,
+        <span class="ident">approval_id</span>: <span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="ident">u64</span><span class="op">&gt;</span>,
+    ) <span class="op">-</span><span class="op">&gt;</span> <span class="ident">bool</span>;
+
+    <span class="kw">fn</span> <span class="ident">nft_revoke</span>(<span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="self">self</span>, <span class="ident">token_id</span>: <span class="ident">TokenId</span>, <span class="ident">account_id</span>: <span class="ident">AccountId</span>);
 }
 </code></pre></div>
 </section><section id="search" class="content hidden"></section><div id="rustdoc-vars" data-root-path="../../" data-current-crate="market" data-search-index-js="../../search-index.js" data-search-js="../../search.js"></div>

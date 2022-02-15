@@ -1,1 +1,1 @@
-initSidebarItems({"fn":[["resolve_position",""]]});
+initSidebarItems({"fn":[["resolve_place",""],["resolve_position",""]]});

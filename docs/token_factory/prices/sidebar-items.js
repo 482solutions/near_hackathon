@@ -1,1 +1,0 @@
-initSidebarItems({"constant":[["FACTORY_CROSS_CALL",""],["NO_DEPOSIT",""],["STORAGE_PRICE_PER_BYTE","Price per 1 byte of usage mainnet genesis config."],["TOKEN_INIT_BALANCE","Initial balance for the Token contract to cover usage and related."],["TOKEN_NEW","Gas to initialize Token contract."]]});

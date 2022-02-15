@@ -1,0 +1,3 @@
+(function() {var implementors = {};
+implementors["market"] = [{"text":"impl NonFungibleTokenApprovalReceiver for <a class=\"struct\" href=\"market/struct.Contract.html\" title=\"struct market::Contract\">Contract</a>","synthetic":false,"types":["market::Contract"]}];
+if (window.register_implementors) {window.register_implementors(implementors);} else {window.pending_implementors = implementors;}})()

@@ -1,0 +1,3 @@
+(function() {var implementors = {};
+implementors["nft"] = [{"text":"impl <a class=\"trait\" href=\"https://doc.rust-lang.org/1.56.0/core/cmp/trait.PartialEq.html\" title=\"trait core::cmp::PartialEq\">PartialEq</a>&lt;<a class=\"struct\" href=\"nft/struct.BaseMetadata.html\" title=\"struct nft::BaseMetadata\">BaseMetadata</a>&gt; for <a class=\"struct\" href=\"nft/struct.BaseMetadata.html\" title=\"struct nft::BaseMetadata\">BaseMetadata</a>","synthetic":false,"types":["nft::BaseMetadata"]}];
+if (window.register_implementors) {window.register_implementors(implementors);} else {window.pending_implementors = implementors;}})()

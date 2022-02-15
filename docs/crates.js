@@ -1,1 +1,1 @@
-window.ALL_CRATES = ["fungible_token","market","token_factory","utils"];
+window.ALL_CRATES = ["market","nft","utils"];

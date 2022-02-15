@@ -166,22 +166,38 @@
 <span id="166">166</span>
 <span id="167">167</span>
 <span id="168">168</span>
+<span id="169">169</span>
+<span id="170">170</span>
+<span id="171">171</span>
+<span id="172">172</span>
+<span id="173">173</span>
+<span id="174">174</span>
+<span id="175">175</span>
+<span id="176">176</span>
+<span id="177">177</span>
+<span id="178">178</span>
+<span id="179">179</span>
 </pre><pre class="rust"><code><span class="doccomment">//! Market for EACs</span>
 <span class="doccomment">//!</span>
 
+<span class="kw">use</span> <span class="ident">near_contract_standards::non_fungible_token::approval::NonFungibleTokenApprovalReceiver</span>;
+<span class="kw">use</span> <span class="ident">near_contract_standards::non_fungible_token::TokenId</span>;
 <span class="kw">use</span> <span class="ident">near_sdk::borsh</span>::{<span class="self">self</span>, <span class="ident">BorshDeserialize</span>, <span class="ident">BorshSerialize</span>};
 <span class="kw">use</span> <span class="ident">near_sdk::collections</span>::{<span class="ident">LookupMap</span>, <span class="ident">UnorderedMap</span>, <span class="ident">UnorderedSet</span>};
-<span class="kw">use</span> <span class="ident">near_sdk::env</span>::<span class="kw-2">*</span>;
+<span class="kw">use</span> <span class="ident">near_sdk::env</span>;
+<span class="kw">use</span> <span class="ident">near_sdk::env::STORAGE_PRICE_PER_BYTE</span>;
 <span class="kw">use</span> <span class="ident">near_sdk::json_types</span>::{<span class="ident">U128</span>, <span class="ident">U64</span>};
 <span class="kw">use</span> <span class="ident">near_sdk::serde</span>::{<span class="ident">Deserialize</span>, <span class="ident">Serialize</span>};
 <span class="kw">use</span> <span class="ident">near_sdk</span>::{
     <span class="ident">assert_one_yocto</span>, <span class="ident">ext_contract</span>, <span class="ident">is_promise_success</span>, <span class="ident">log</span>, <span class="ident">near_bindgen</span>, <span class="ident">require</span>, <span class="ident">AccountId</span>,
     <span class="ident">Balance</span>, <span class="ident">BorshStorageKey</span>, <span class="ident">CryptoHash</span>, <span class="ident">Gas</span>, <span class="ident">PanicOnDefault</span>, <span class="ident">Promise</span>, <span class="ident">ONE_YOCTO</span>,
 };
+
 <span class="kw">use</span> <span class="ident">utils::utils</span>;
 
 <span class="kw">use</span> <span class="ident"><span class="kw">crate</span>::sale</span>::<span class="kw-2">*</span>;
 
+<span class="kw">mod</span> <span class="ident">callbacks</span>;
 <span class="kw">mod</span> <span class="ident">external</span>;
 <span class="kw">mod</span> <span class="ident">internal</span>;
 <span class="kw">pub</span> <span class="kw">mod</span> <span class="ident">sale</span>;
@@ -200,7 +216,8 @@
 
 <span class="comment">//Creating custom types to use within the contract. This makes things more readable.</span>
 <span class="kw">pub</span> <span class="kw">type</span> <span class="ident">SalePriceInYoctoNear</span> <span class="op">=</span> <span class="ident">U128</span>;
-<span class="kw">pub</span> <span class="kw">type</span> <span class="ident">ContractAndId</span> <span class="op">=</span> <span class="ident">String</span>;
+
+<span class="kw">pub</span> <span class="kw">type</span> <span class="ident">PositionId</span> <span class="op">=</span> <span class="ident">String</span>;
 
 <span class="doccomment">/// Struct for storing various information about market state</span>
 <span class="attribute">#[<span class="ident">near_bindgen</span>]</span>
@@ -211,9 +228,9 @@
     <span class="doccomment">/// To keep track of the ask, we map the ContractAndTokenId to a Sale.</span>
     <span class="doccomment">/// the ContractAndTokenId is the unique identifier for every sale. It is made</span>
     <span class="doccomment">/// up of the `contract ID + DELIMITER + UUIDv4`</span>
-    <span class="kw">pub</span> <span class="ident">asks</span>: <span class="ident">UnorderedMap</span><span class="op">&lt;</span><span class="ident">ContractAndId</span>, <span class="ident">Ask</span><span class="op">&gt;</span>,
+    <span class="kw">pub</span> <span class="ident">asks</span>: <span class="ident">UnorderedMap</span><span class="op">&lt;</span><span class="ident">TokenId</span>, <span class="ident">Ask</span><span class="op">&gt;</span>,
     <span class="doccomment">/// Same with bids</span>
-    <span class="kw">pub</span> <span class="ident">bids</span>: <span class="ident">UnorderedMap</span><span class="op">&lt;</span><span class="ident">ContractAndId</span>, <span class="ident">Bid</span><span class="op">&gt;</span>,
+    <span class="kw">pub</span> <span class="ident">bids</span>: <span class="ident">UnorderedMap</span><span class="op">&lt;</span><span class="ident">TokenId</span>, <span class="ident">Bid</span><span class="op">&gt;</span>,
 
     <span class="doccomment">/// Current id for asks</span>
     <span class="kw">pub</span> <span class="ident">asks_id</span>: <span class="ident">u128</span>,
@@ -221,10 +238,13 @@
     <span class="kw">pub</span> <span class="ident">bids_id</span>: <span class="ident">u128</span>,
 
     <span class="doccomment">/// Keep track of all the Ask IDs for every account ID</span>
-    <span class="kw">pub</span> <span class="ident">asks_by_owner_id</span>: <span class="ident">LookupMap</span><span class="op">&lt;</span><span class="ident">AccountId</span>, <span class="ident">UnorderedSet</span><span class="op">&lt;</span><span class="ident">ContractAndId</span><span class="op">&gt;</span><span class="op">&gt;</span>,
+    <span class="kw">pub</span> <span class="ident">asks_by_owner_id</span>: <span class="ident">LookupMap</span><span class="op">&lt;</span><span class="ident">AccountId</span>, <span class="ident">UnorderedSet</span><span class="op">&lt;</span><span class="ident">TokenId</span><span class="op">&gt;</span><span class="op">&gt;</span>,
 
     <span class="doccomment">/// Keep track of all the Bids IDs for every account ID</span>
-    <span class="kw">pub</span> <span class="ident">bids_by_owner_id</span>: <span class="ident">LookupMap</span><span class="op">&lt;</span><span class="ident">AccountId</span>, <span class="ident">UnorderedSet</span><span class="op">&lt;</span><span class="ident">ContractAndId</span><span class="op">&gt;</span><span class="op">&gt;</span>,
+    <span class="kw">pub</span> <span class="ident">bids_by_owner_id</span>: <span class="ident">LookupMap</span><span class="op">&lt;</span><span class="ident">AccountId</span>, <span class="ident">UnorderedSet</span><span class="op">&lt;</span><span class="ident">TokenId</span><span class="op">&gt;</span><span class="op">&gt;</span>,
+
+    <span class="doccomment">/// By NFT Token Id</span>
+    <span class="kw">pub</span> <span class="ident">by_nft_token_id</span>: <span class="ident">LookupMap</span><span class="op">&lt;</span><span class="ident">AccountId</span>, <span class="ident">UnorderedSet</span><span class="op">&lt;</span><span class="ident">TokenId</span><span class="op">&gt;</span><span class="op">&gt;</span>,
 
     <span class="doccomment">/// Keep track of the storage that accounts have paid</span>
     <span class="kw">pub</span> <span class="ident">storage_deposits</span>: <span class="ident">LookupMap</span><span class="op">&lt;</span><span class="ident">AccountId</span>, <span class="ident">Balance</span><span class="op">&gt;</span>,
@@ -238,7 +258,8 @@
     <span class="ident">AsksByOwnerId</span>,
     <span class="ident">BidsByOwnerId</span>,
     <span class="ident">ByOwnerIdInner</span> { <span class="ident">account_id_hash</span>: <span class="ident">CryptoHash</span> },
-    <span class="ident">FTTokenIds</span>,
+    <span class="ident">ByNftContractId</span>,
+    <span class="ident">ByNFTContractIdInner</span> { <span class="ident">account_id_hash</span>: <span class="ident">CryptoHash</span> },
     <span class="ident">StorageDeposits</span>,
 }
 
@@ -260,6 +281,7 @@
             <span class="ident">asks_by_owner_id</span>: <span class="ident">LookupMap::new</span>(<span class="ident">StorageKey::AsksByOwnerId</span>),
             <span class="ident">bids_by_owner_id</span>: <span class="ident">LookupMap::new</span>(<span class="ident">StorageKey::BidsByOwnerId</span>),
             <span class="ident">storage_deposits</span>: <span class="ident">LookupMap::new</span>(<span class="ident">StorageKey::StorageDeposits</span>),
+            <span class="ident">by_nft_token_id</span>: <span class="ident">LookupMap::new</span>(<span class="ident">StorageKey::ByNftContractId</span>),
         }
     }
 
@@ -269,9 +291,9 @@
         <span class="comment">//get the account ID to pay for storage for</span>
         <span class="kw">let</span> <span class="ident">storage_account_id</span> <span class="op">=</span> <span class="ident">account_id</span>
             <span class="comment">//if we didn&#39;t specify an account ID, we simply use the caller of the function</span>
-            .<span class="ident">unwrap_or_else</span>(<span class="ident">predecessor_account_id</span>);
+            .<span class="ident">unwrap_or_else</span>(<span class="ident">env::predecessor_account_id</span>);
 
-        <span class="kw">let</span> <span class="ident">deposit</span> <span class="op">=</span> <span class="ident">attached_deposit</span>();
+        <span class="kw">let</span> <span class="ident">deposit</span> <span class="op">=</span> <span class="ident">env::attached_deposit</span>();
 
         <span class="macro">require!</span>(
             <span class="ident">deposit</span> <span class="op">&gt;</span><span class="op">=</span> <span class="ident">STORAGE_PER_SALE</span>,
@@ -293,7 +315,7 @@
         <span class="ident">assert_one_yocto</span>();
 
         <span class="comment">//the account to withdraw storage to is always the function caller</span>
-        <span class="kw">let</span> <span class="ident">owner_id</span> <span class="op">=</span> <span class="ident">predecessor_account_id</span>();
+        <span class="kw">let</span> <span class="ident">owner_id</span> <span class="op">=</span> <span class="ident">env::predecessor_account_id</span>();
         <span class="comment">//get the amount that the user has by removing them from the map. If they&#39;re not in the map, default to 0</span>
         <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">amount</span> <span class="op">=</span> <span class="self">self</span>.<span class="ident">storage_deposits</span>.<span class="ident">remove</span>(<span class="kw-2">&amp;</span><span class="ident">owner_id</span>).<span class="ident">unwrap_or</span>(<span class="number">0</span>);
 

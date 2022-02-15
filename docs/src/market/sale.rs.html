@@ -297,8 +297,42 @@
 <span id="297">297</span>
 <span id="298">298</span>
 <span id="299">299</span>
-</pre><pre class="rust"><code><span class="kw">use</span> <span class="ident"><span class="kw">crate</span>::internal::get_token_account_id</span>;
-<span class="kw">use</span> <span class="kw">crate</span>::<span class="kw-2">*</span>;
+<span id="300">300</span>
+<span id="301">301</span>
+<span id="302">302</span>
+<span id="303">303</span>
+<span id="304">304</span>
+<span id="305">305</span>
+<span id="306">306</span>
+<span id="307">307</span>
+<span id="308">308</span>
+<span id="309">309</span>
+<span id="310">310</span>
+<span id="311">311</span>
+<span id="312">312</span>
+<span id="313">313</span>
+<span id="314">314</span>
+<span id="315">315</span>
+<span id="316">316</span>
+<span id="317">317</span>
+<span id="318">318</span>
+<span id="319">319</span>
+<span id="320">320</span>
+<span id="321">321</span>
+<span id="322">322</span>
+<span id="323">323</span>
+<span id="324">324</span>
+<span id="325">325</span>
+<span id="326">326</span>
+<span id="327">327</span>
+<span id="328">328</span>
+<span id="329">329</span>
+<span id="330">330</span>
+<span id="331">331</span>
+<span id="332">332</span>
+</pre><pre class="rust"><code><span class="kw">use</span> <span class="kw">crate</span>::<span class="kw-2">*</span>;
+<span class="kw">use</span> <span class="ident">near_sdk::PromiseOrValue</span>;
+<span class="kw">use</span> <span class="ident">std::ops::Sub</span>;
 
 <span class="doccomment">/// Ask struct, defines who sells, how much, and on what conditions</span>
 <span class="attribute">#[<span class="ident">derive</span>(<span class="ident">BorshDeserialize</span>, <span class="ident">BorshSerialize</span>, <span class="ident">Serialize</span>, <span class="ident">Deserialize</span>, <span class="ident">Debug</span>)]</span>
@@ -307,10 +341,21 @@
     <span class="doccomment">/// Owner of the ask</span>
     <span class="kw">pub</span> <span class="ident">owner_id</span>: <span class="ident">AccountId</span>,
     <span class="doccomment">/// FT contract where the token was minted</span>
-    <span class="kw">pub</span> <span class="ident">ft_contract_id</span>: <span class="ident">AccountId</span>,
+    <span class="kw">pub</span> <span class="ident">nft_contract_id</span>: <span class="ident">AccountId</span>,
 
-    <span class="kw">pub</span> <span class="ident">amount</span>: <span class="ident">Balance</span>,
+    <span class="doccomment">/// NFT token Id</span>
+    <span class="kw">pub</span> <span class="ident">token_id</span>: <span class="ident">TokenId</span>,
+    <span class="doccomment">/// Id of approval</span>
+    <span class="kw">pub</span> <span class="ident">approval_id</span>: <span class="ident">u64</span>,
 
+    <span class="doccomment">/// Sale prices in yoctoNEAR that the token is listed for</span>
+    <span class="kw">pub</span> <span class="ident">sale_conditions</span>: <span class="ident">Balance</span>,
+}
+
+<span class="doccomment">/// Struct that `nft_on_approve` will receive and use for Ask creating</span>
+<span class="attribute">#[<span class="ident">derive</span>(<span class="ident">BorshDeserialize</span>, <span class="ident">BorshSerialize</span>, <span class="ident">Serialize</span>, <span class="ident">Deserialize</span>, <span class="ident">Debug</span>)]</span>
+<span class="attribute">#[<span class="ident">serde</span>(<span class="kw">crate</span> <span class="op">=</span> <span class="string">&quot;near_sdk::serde&quot;</span>)]</span>
+<span class="kw">pub</span> <span class="kw">struct</span> <span class="ident">AskArgs</span> {
     <span class="doccomment">/// Sale prices in yoctoNEAR that the token is listed for</span>
     <span class="kw">pub</span> <span class="ident">sale_conditions</span>: <span class="ident">Balance</span>,
 }
@@ -321,8 +366,6 @@
 <span class="kw">pub</span> <span class="kw">struct</span> <span class="ident">Bid</span> {
     <span class="doccomment">/// Owner of the bid</span>
     <span class="kw">pub</span> <span class="ident">owner_id</span>: <span class="ident">AccountId</span>,
-
-    <span class="kw">pub</span> <span class="ident">amount</span>: <span class="ident">Balance</span>,
 
     <span class="doccomment">/// Sale prices in yoctoNEAR that the token is listed for.</span>
     <span class="doccomment">/// Acts as a trigger</span>
@@ -345,33 +388,6 @@
 
 <span class="attribute">#[<span class="ident">near_bindgen</span>]</span>
 <span class="kw">impl</span> <span class="ident">Contract</span> {
-    <span class="doccomment">/// Place [Ask] position on a market</span>
-    <span class="doccomment">///</span>
-    <span class="doccomment">/// # Arguments</span>
-    <span class="doccomment">///</span>
-    <span class="doccomment">/// * `amount`: FT amount</span>
-    <span class="doccomment">/// * `conditions`: For how much $NEAR</span>
-    <span class="doccomment">///</span>
-    <span class="doccomment">/// returns: Promise to transfer</span>
-    <span class="doccomment">///</span>
-    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">place_ask</span>(<span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="self">self</span>, <span class="ident">amount</span>: <span class="ident">Balance</span>, <span class="ident">conditions</span>: <span class="ident">U128</span>) <span class="op">-</span><span class="op">&gt;</span> <span class="ident">Promise</span> {
-        <span class="kw">let</span> <span class="ident">caller</span> <span class="op">=</span> <span class="ident">predecessor_account_id</span>();
-        <span class="kw">let</span> <span class="ident">current</span> <span class="op">=</span> <span class="ident">current_account_id</span>();
-        <span class="kw">let</span> <span class="ident">ft</span> <span class="op">=</span> <span class="ident">get_token_account_id</span>(<span class="kw-2">&amp;</span><span class="ident">caller</span>);
-
-        <span class="kw">let</span> <span class="ident">ask</span> <span class="op">=</span> <span class="ident">Ask</span> {
-            <span class="ident">owner_id</span>: <span class="ident">caller</span>,
-            <span class="ident">ft_contract_id</span>: <span class="ident">ft</span>.<span class="ident">clone</span>(),
-            <span class="ident">amount</span>,
-            <span class="ident">sale_conditions</span>: <span class="ident">conditions</span>.<span class="ident">into</span>(),
-        };
-        <span class="macro">log!</span>(<span class="string">&quot;Creating new ask: {:?}&quot;</span>, <span class="ident">ask</span>);
-        <span class="self">self</span>.<span class="ident">internal_place_ask</span>(<span class="ident">ask</span>);
-
-        <span class="macro">log!</span>(<span class="string">&quot;Transferring FT to market (hold)&quot;</span>);
-        <span class="ident">ext_ft::ft_transfer_by_signer</span>(<span class="ident">current</span>, <span class="ident">amount</span>.<span class="ident">into</span>(), <span class="prelude-val">None</span>, <span class="ident">ft</span>, <span class="ident">ONE_YOCTO</span>, <span class="ident">CCC</span>)
-    }
-
     <span class="doccomment">/// Place [Bid] on a market</span>
     <span class="doccomment">///</span>
     <span class="doccomment">/// # Arguments</span>
@@ -382,9 +398,9 @@
     <span class="doccomment">/// returns: Bid that was created</span>
     <span class="doccomment">///</span>
     <span class="attribute">#[<span class="ident">payable</span>]</span>
-    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">place_bid</span>(<span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="self">self</span>, <span class="ident">amount</span>: <span class="ident">Balance</span>, <span class="ident">conditions</span>: <span class="ident">U128</span>) <span class="op">-</span><span class="op">&gt;</span> <span class="ident">Bid</span> {
-        <span class="kw">let</span> <span class="ident">deposit</span> <span class="op">=</span> <span class="ident">attached_deposit</span>();
-        <span class="kw">let</span> <span class="ident">caller</span> <span class="op">=</span> <span class="ident">predecessor_account_id</span>();
+    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">place_bid</span>(<span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="self">self</span>, <span class="ident">conditions</span>: <span class="ident">U128</span>) <span class="op">-</span><span class="op">&gt;</span> <span class="ident">Bid</span> {
+        <span class="kw">let</span> <span class="ident">deposit</span> <span class="op">=</span> <span class="ident">env::attached_deposit</span>();
+        <span class="kw">let</span> <span class="ident">caller</span> <span class="op">=</span> <span class="ident">env::predecessor_account_id</span>();
 
         <span class="macro">log!</span>(<span class="string">&quot;Caller: {}, Deposit: {:?}&quot;</span>, <span class="ident">caller</span>, <span class="ident">deposit</span>);
 
@@ -394,9 +410,8 @@
         );
 
         <span class="kw">let</span> <span class="ident">bid</span> <span class="op">=</span> <span class="ident">Bid</span> {
-            <span class="ident">owner_id</span>: <span class="ident">predecessor_account_id</span>(),
-            <span class="ident">amount</span>,
-            <span class="ident">sale_conditions</span>: <span class="ident">attached_deposit</span>(),
+            <span class="ident">owner_id</span>: <span class="ident">env::predecessor_account_id</span>(),
+            <span class="ident">sale_conditions</span>: <span class="ident">deposit</span>,
         };
         <span class="macro">log!</span>(<span class="string">&quot;Creating new bid: {:?}&quot;</span>, <span class="ident">bid</span>);
 
@@ -405,11 +420,10 @@
 
     <span class="doccomment">/// Removes ask from the market.</span>
     <span class="attribute">#[<span class="ident">private</span>]</span>
-    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">remove_position</span>(<span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="self">self</span>, <span class="ident">id</span>: <span class="ident">ContractAndId</span>, <span class="ident">position</span>: <span class="ident">Position</span>) {
+    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">remove_position</span>(<span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="self">self</span>, <span class="ident">id</span>: <span class="ident">PositionId</span>, <span class="ident">position</span>: <span class="ident">Position</span>) {
         <span class="comment">//get the sale object as the return value from removing the sale internally</span>
-        <span class="comment">// TODO: Replace internal_remove_sale with implementation that removed ask/bid</span>
         <span class="kw">match</span> <span class="ident">position</span> {
-            <span class="comment">//if this fails, the remove will revert</span>
+            <span class="comment">// if this fails, the remove will revert</span>
             <span class="ident">Position::Ask</span> <span class="op">=</span><span class="op">&gt;</span> {
                 <span class="self">self</span>.<span class="ident">internal_remove_ask</span>(<span class="ident">id</span>);
             }
@@ -420,46 +434,44 @@
     }
 
     <span class="doccomment">/// Cancels position from &quot;user-mode&quot;</span>
+    <span class="doccomment">/// After this call front-end should revoke access to token</span>
     <span class="doccomment">///</span>
     <span class="doccomment">/// # Arguments</span>
     <span class="doccomment">///</span>
     <span class="doccomment">/// * `id`: [ContractAndId] of position</span>
     <span class="doccomment">/// * `position`: [Position] type</span>
     <span class="doccomment">///</span>
-    <span class="doccomment">/// returns: Promise that transfers FT or $NEAR</span>
+    <span class="doccomment">/// returns: Promise that transfers $NEAR or removed [Ask]</span>
     <span class="doccomment">///</span>
-    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">cancel_position</span>(<span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="self">self</span>, <span class="ident">id</span>: <span class="ident">ContractAndId</span>, <span class="ident">position</span>: <span class="ident">Position</span>) <span class="op">-</span><span class="op">&gt;</span> <span class="ident">Promise</span> {
-        <span class="kw">let</span> <span class="ident">caller</span> <span class="op">=</span> <span class="ident">predecessor_account_id</span>();
+    <span class="attribute">#[<span class="ident">payable</span>]</span>
+    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">cancel_position</span>(<span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="self">self</span>, <span class="ident">id</span>: <span class="ident">PositionId</span>, <span class="ident">position</span>: <span class="ident">Position</span>) <span class="op">-</span><span class="op">&gt;</span> <span class="ident">PromiseOrValue</span><span class="op">&lt;</span><span class="ident">Ask</span><span class="op">&gt;</span> {
+        <span class="kw">let</span> <span class="ident">caller</span> <span class="op">=</span> <span class="ident">env::predecessor_account_id</span>();
+        <span class="ident">assert_one_yocto</span>();
 
         <span class="kw">match</span> <span class="ident">position</span> {
             <span class="comment">//if this fails, the remove will revert</span>
             <span class="ident">Position::Ask</span> <span class="op">=</span><span class="op">&gt;</span> {
-                <span class="kw">let</span> <span class="ident">ask</span> <span class="op">=</span> <span class="self">self</span>.<span class="ident">internal_remove_ask</span>(<span class="ident">id</span>);
+                <span class="kw">let</span> <span class="ident">ask</span> <span class="op">=</span> <span class="self">self</span>.<span class="ident">get_ask</span>(<span class="kw-2">&amp;</span><span class="ident">id</span>).<span class="ident">expect</span>(<span class="string">&quot;This ask does not exist&quot;</span>);
                 <span class="macro">require!</span>(<span class="ident">caller</span> <span class="op">=</span><span class="op">=</span> <span class="ident">ask</span>.<span class="ident">owner_id</span>, <span class="string">&quot;You cannot do that!&quot;</span>);
-                <span class="ident">ext_ft::ft_transfer_safe</span>(
-                    <span class="ident">ask</span>.<span class="ident">owner_id</span>,
-                    <span class="ident">ask</span>.<span class="ident">amount</span>.<span class="ident">into</span>(),
-                    <span class="prelude-val">None</span>,
-                    <span class="ident">ask</span>.<span class="ident">ft_contract_id</span>,
-                    <span class="ident">ONE_YOCTO</span>,
-                    <span class="ident">CCC</span>,
-                )
+                <span class="kw">let</span> <span class="ident">ask</span>: <span class="ident">Ask</span> <span class="op">=</span> <span class="self">self</span>.<span class="ident">internal_remove_ask</span>(<span class="ident">id</span>);
+                <span class="ident">PromiseOrValue::Value</span>(<span class="ident">ask</span>)
             }
             <span class="ident">Position::Bid</span> <span class="op">=</span><span class="op">&gt;</span> {
                 <span class="kw">let</span> <span class="ident">bid</span> <span class="op">=</span> <span class="self">self</span>.<span class="ident">internal_remove_bid</span>(<span class="ident">id</span>);
                 <span class="macro">require!</span>(<span class="ident">caller</span> <span class="op">=</span><span class="op">=</span> <span class="ident">bid</span>.<span class="ident">owner_id</span>, <span class="string">&quot;You cannot do that!&quot;</span>);
-                <span class="ident">Promise::new</span>(<span class="ident">bid</span>.<span class="ident">owner_id</span>).<span class="ident">transfer</span>(<span class="ident">bid</span>.<span class="ident">sale_conditions</span>)
+                <span class="ident">PromiseOrValue::Promise</span>(<span class="ident">Promise::new</span>(<span class="ident">bid</span>.<span class="ident">owner_id</span>).<span class="ident">transfer</span>(<span class="ident">bid</span>.<span class="ident">sale_conditions</span>))
             }
         }
     }
 
     <span class="doccomment">/// Updates the price for a sale on the market</span>
     <span class="attribute">#[<span class="ident">payable</span>]</span>
-    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">update_price</span>(<span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="self">self</span>, <span class="ident">id</span>: <span class="ident">ContractAndId</span>, <span class="ident">price</span>: <span class="ident">U128</span>, <span class="ident">position</span>: <span class="ident">Position</span>) {
+    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">update_price</span>(<span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="self">self</span>, <span class="ident">id</span>: <span class="ident">PositionId</span>, <span class="ident">price</span>: <span class="ident">U128</span>, <span class="ident">position</span>: <span class="ident">Position</span>) {
         <span class="comment">//assert that the user has attached exactly 1 yoctoNEAR (for security reasons)</span>
-        <span class="ident">assert_one_yocto</span>();
+        <span class="kw">let</span> <span class="ident">deposit</span> <span class="op">=</span> <span class="ident">env::attached_deposit</span>();
+        <span class="macro">require!</span>(<span class="ident">deposit</span> <span class="op">&gt;</span><span class="op">=</span> <span class="number">1</span>, <span class="string">&quot;Required 1 YoctoNEAR to be attached&quot;</span>);
 
-        <span class="kw">let</span> <span class="ident">owner_id</span> <span class="op">=</span> <span class="ident">predecessor_account_id</span>();
+        <span class="kw">let</span> <span class="ident">owner_id</span> <span class="op">=</span> <span class="ident">env::predecessor_account_id</span>();
 
         <span class="kw">match</span> <span class="ident">position</span> {
             <span class="comment">// Also assert that the caller of the function is the sale owner</span>
@@ -468,19 +480,57 @@
                 <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">ask</span> <span class="op">=</span> <span class="self">self</span>.<span class="ident">asks</span>.<span class="ident">get</span>(<span class="kw-2">&amp;</span><span class="ident">id</span>).<span class="ident">expect</span>(<span class="string">&quot;No asks&quot;</span>);
                 <span class="macro">require!</span>(<span class="ident">owner_id</span> <span class="op">=</span><span class="op">=</span> <span class="ident">ask</span>.<span class="ident">owner_id</span>, <span class="string">&quot;Must be ask owner&quot;</span>);
 
-                <span class="ident">ask</span>.<span class="ident">sale_conditions</span> <span class="op">=</span> <span class="ident">price</span>.<span class="ident">into</span>();
+                <span class="kw">let</span> <span class="ident">price</span>: <span class="ident">u128</span> <span class="op">=</span> <span class="ident">price</span>.<span class="ident">into</span>();
 
-                <span class="self">self</span>.<span class="ident">asks</span>.<span class="ident">insert</span>(<span class="kw-2">&amp;</span><span class="ident">id</span>, <span class="kw-2">&amp;</span><span class="ident">ask</span>);
+                <span class="kw">match</span> <span class="ident">ask</span>.<span class="ident">sale_conditions</span>.<span class="ident">checked_sub</span>(<span class="ident">price</span>) {
+                    <span class="prelude-val">Some</span>(<span class="kw">_</span>) <span class="op">=</span><span class="op">&gt;</span> {
+                        <span class="macro">log!</span>(<span class="string">&quot;Updating price to: {}&quot;</span>, <span class="ident">price</span>);
+                        <span class="ident">ask</span>.<span class="ident">sale_conditions</span> <span class="op">=</span> <span class="ident">price</span>;
+                        <span class="self">self</span>.<span class="ident">asks</span>.<span class="ident">insert</span>(<span class="kw-2">&amp;</span><span class="ident">id</span>, <span class="kw-2">&amp;</span><span class="ident">ask</span>);
+                    }
+                    <span class="prelude-val">None</span> <span class="op">=</span><span class="op">&gt;</span> {
+                        <span class="ident">env::panic_str</span>(<span class="string">&quot;You cannot update Ask sale_conditions to be negative&quot;</span>);
+                    }
+                }
             }
             <span class="ident">Position::Bid</span> <span class="op">=</span><span class="op">&gt;</span> {
-                <span class="ident">panic_str</span>(<span class="string">&quot;You cannot update price of Bid, for now&quot;</span>);
-                <span class="comment">// TODO: Because it can cause abuse, it&#39;ll be temporarily disabled</span>
-                <span class="comment">// let mut bid = self.bids.get(&amp;id).expect(&quot;No bids&quot;);</span>
-                <span class="comment">// require!(owner_id == bid.owner_id, &quot;Must be bid owner&quot;);</span>
-                <span class="comment">//</span>
-                <span class="comment">// bid.sale_conditions = price.into();</span>
-                <span class="comment">//</span>
-                <span class="comment">// self.bids.insert(&amp;id, &amp;bid);</span>
+                <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">bid</span> <span class="op">=</span> <span class="self">self</span>.<span class="ident">bids</span>.<span class="ident">get</span>(<span class="kw-2">&amp;</span><span class="ident">id</span>).<span class="ident">expect</span>(<span class="string">&quot;No bids&quot;</span>);
+                <span class="macro">require!</span>(<span class="ident">owner_id</span> <span class="op">=</span><span class="op">=</span> <span class="ident">bid</span>.<span class="ident">owner_id</span>, <span class="string">&quot;Must be bid owner&quot;</span>);
+
+                <span class="kw">let</span> <span class="ident">price</span>: <span class="ident">u128</span> <span class="op">=</span> <span class="ident">price</span>.<span class="ident">into</span>();
+
+                <span class="macro">log!</span>(<span class="string">&quot;New price: {}&quot;</span>, <span class="ident">price</span>);
+
+                <span class="kw">match</span> <span class="ident">price</span> <span class="op">&gt;</span><span class="op">=</span> <span class="ident">bid</span>.<span class="ident">sale_conditions</span> {
+                    <span class="bool-val">true</span> <span class="op">=</span><span class="op">&gt;</span> {
+                        <span class="kw">let</span> <span class="ident">needed</span> <span class="op">=</span> <span class="ident">price</span>.<span class="ident">sub</span>(<span class="ident">bid</span>.<span class="ident">sale_conditions</span>);
+                        <span class="macro">assert_eq!</span>(
+                            <span class="ident">deposit</span>,
+                            <span class="ident">needed</span> <span class="op">+</span> <span class="ident">ONE_YOCTO</span>,
+                            <span class="string">&quot;You need to attach {} to update price&quot;</span>,
+                            <span class="ident">needed</span>
+                        );
+                        <span class="macro">log!</span>(<span class="string">&quot;Updating price to: {}&quot;</span>, <span class="ident">price</span>);
+                        <span class="ident">bid</span>.<span class="ident">sale_conditions</span> <span class="op">=</span> <span class="ident">price</span>;
+                        <span class="self">self</span>.<span class="ident">bids</span>.<span class="ident">insert</span>(<span class="kw-2">&amp;</span><span class="ident">id</span>, <span class="kw-2">&amp;</span><span class="ident">bid</span>);
+                    }
+                    <span class="bool-val">false</span> <span class="op">=</span><span class="op">&gt;</span> {
+                        <span class="kw">let</span> <span class="ident">returned</span> <span class="op">=</span> <span class="ident">bid</span>.<span class="ident">sale_conditions</span>.<span class="ident">checked_sub</span>(<span class="ident">price</span>);
+
+                        <span class="kw">match</span> <span class="ident">returned</span> {
+                            <span class="prelude-val">Some</span>(<span class="ident">left</span>) <span class="op">=</span><span class="op">&gt;</span> {
+                                <span class="macro">log!</span>(<span class="string">&quot;Updating price to: {}&quot;</span>, <span class="ident">price</span>);
+                                <span class="ident">bid</span>.<span class="ident">sale_conditions</span> <span class="op">=</span> <span class="ident">price</span>;
+                                <span class="self">self</span>.<span class="ident">bids</span>.<span class="ident">insert</span>(<span class="kw-2">&amp;</span><span class="ident">id</span>, <span class="kw-2">&amp;</span><span class="ident">bid</span>);
+                                <span class="ident">Promise::new</span>(<span class="ident">bid</span>.<span class="ident">owner_id</span>).<span class="ident">transfer</span>(<span class="ident">left</span>);
+                            }
+                            <span class="prelude-val">None</span> <span class="op">=</span><span class="op">&gt;</span> <span class="ident">env::panic_str</span>(<span class="kw-2">&amp;</span><span class="kw-2">*</span><span class="macro">format!</span>(
+                                <span class="string">&quot;You cannot update bid sale conditions to be negative, current is: {}&quot;</span>,
+                                <span class="ident">bid</span>.<span class="ident">sale_conditions</span>
+                            )),
+                        }
+                    }
+                }
             }
         }
     }
@@ -494,10 +544,11 @@
     <span class="doccomment">///</span>
     <span class="doccomment">/// returns: Promise</span>
     <span class="doccomment">///</span>
-    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">process_bid</span>(<span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="self">self</span>, <span class="ident">ask_id</span>: <span class="ident">ContractAndId</span>, <span class="ident">bid_id</span>: <span class="ident">ContractAndId</span>) <span class="op">-</span><span class="op">&gt;</span> <span class="ident">Promise</span> {
+    <span class="attribute">#[<span class="ident">payable</span>]</span>
+    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">process_bid</span>(<span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="self">self</span>, <span class="ident">ask_id</span>: <span class="ident">PositionId</span>, <span class="ident">bid_id</span>: <span class="ident">PositionId</span>) <span class="op">-</span><span class="op">&gt;</span> <span class="ident">Promise</span> {
         <span class="comment">// I don&#39;t want to deal with sub-account names too much</span>
         <span class="macro">require!</span>(
-            <span class="ident">predecessor_account_id</span>() <span class="op">=</span><span class="op">=</span> <span class="self">self</span>.<span class="ident">owner_id</span>,
+            <span class="ident">env::signer_account_id</span>() <span class="op">=</span><span class="op">=</span> <span class="self">self</span>.<span class="ident">owner_id</span>,
             <span class="string">&quot;You are not allowed to do that&quot;</span>
         );
 
@@ -511,21 +562,23 @@
 
         <span class="macro">require!</span>(<span class="ident">ask</span>.<span class="ident">owner_id</span> <span class="op">!</span><span class="op">=</span> <span class="ident">bid</span>.<span class="ident">owner_id</span>, <span class="string">&quot;Cannot bid on your own sale.&quot;</span>);
 
-        <span class="kw">let</span> <span class="ident">transfer_ft</span> <span class="op">=</span> <span class="ident">ext_ft::force_transfer</span>(
-            <span class="ident">ask</span>.<span class="ident">owner_id</span>.<span class="ident">clone</span>(),
+        <span class="kw">let</span> <span class="ident">transfer_nft</span> <span class="op">=</span> <span class="ident">ext_contract::nft_transfer</span>(
             <span class="ident">bid</span>.<span class="ident">owner_id</span>,
-            <span class="ident">ask</span>.<span class="ident">amount</span>,
-            <span class="self">self</span>.<span class="ident">owner_id</span>.<span class="ident">clone</span>(),
-            <span class="ident">NO_DEPOSIT</span>,
+            <span class="ident">ask</span>.<span class="ident">token_id</span>,
+            <span class="prelude-val">Some</span>(<span class="ident">ask</span>.<span class="ident">approval_id</span>),
+            <span class="prelude-val">None</span>,
+            <span class="ident">ask</span>.<span class="ident">nft_contract_id</span>,
+            <span class="ident">ONE_YOCTO</span>,
             <span class="ident">PROCESS_ASK</span>,
         );
 
-        <span class="kw">let</span> <span class="ident">remove_ask</span> <span class="op">=</span>
-            <span class="ident">ext_self::resolve_position</span>(<span class="ident">ask_id</span>, <span class="ident">Position::Ask</span>, <span class="ident">current_account_id</span>(), <span class="ident">ONE_YOCTO</span>, <span class="ident">CCC</span>);
-        <span class="kw">let</span> <span class="ident">remove_bid</span> <span class="op">=</span>
-            <span class="ident">ext_self::resolve_position</span>(<span class="ident">bid_id</span>, <span class="ident">Position::Bid</span>, <span class="ident">current_account_id</span>(), <span class="ident">ONE_YOCTO</span>, <span class="ident">CCC</span>);
+        <span class="kw">let</span> <span class="ident">current</span> <span class="op">=</span> <span class="ident">env::current_account_id</span>();
 
-        <span class="ident">transfer_ft</span>
+        <span class="kw">let</span> <span class="ident">remove_ask</span> <span class="op">=</span>
+            <span class="ident">ext_self::resolve_position</span>(<span class="ident">ask_id</span>, <span class="ident">Position::Ask</span>, <span class="ident">current</span>.<span class="ident">clone</span>(), <span class="ident">ONE_YOCTO</span>, <span class="ident">CCC</span>);
+        <span class="kw">let</span> <span class="ident">remove_bid</span> <span class="op">=</span> <span class="ident">ext_self::resolve_position</span>(<span class="ident">bid_id</span>, <span class="ident">Position::Bid</span>, <span class="ident">current</span>, <span class="ident">ONE_YOCTO</span>, <span class="ident">CCC</span>);
+
+        <span class="ident">transfer_nft</span>
             .<span class="ident">then</span>(<span class="ident">remove_ask</span>)
             .<span class="ident">then</span>(<span class="ident">remove_bid</span>)
             .<span class="ident">then</span>(<span class="ident">Promise::new</span>(<span class="ident">ask</span>.<span class="ident">owner_id</span>).<span class="ident">transfer</span>(<span class="ident">ask</span>.<span class="ident">sale_conditions</span>))
@@ -540,16 +593,21 @@
     <span class="doccomment">/// returns: Promise</span>
     <span class="doccomment">///</span>
     <span class="attribute">#[<span class="ident">payable</span>]</span>
-    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">direct_ask_sell</span>(<span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="self">self</span>, <span class="ident">id</span>: <span class="ident">ContractAndId</span>) <span class="op">-</span><span class="op">&gt;</span> <span class="ident">Promise</span> {
+    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">direct_ask_sell</span>(<span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="self">self</span>, <span class="ident">id</span>: <span class="ident">TokenId</span>) <span class="op">-</span><span class="op">&gt;</span> <span class="ident">Promise</span> {
         <span class="comment">// Get the attached deposit and make sure it&#39;s greater than 0</span>
-        <span class="kw">let</span> <span class="ident">deposit</span> <span class="op">=</span> <span class="ident">attached_deposit</span>();
+        <span class="kw">let</span> <span class="ident">deposit</span> <span class="op">=</span> <span class="ident">env::attached_deposit</span>();
         <span class="macro">require!</span>(<span class="ident">deposit</span> <span class="op">&gt;</span> <span class="number">0</span>, <span class="string">&quot;Attached deposit must be greater than 0&quot;</span>);
+
+        <span class="macro">require!</span>(
+            <span class="ident">deposit</span> <span class="op">&gt;</span> <span class="ident">ONE_YOCTO</span> <span class="op">*</span> <span class="number">2</span>,
+            <span class="string">&quot;Requires 2 YoctoNEAR to be attached&quot;</span>
+        );
 
         <span class="comment">// Get ask object, panic if not exists</span>
         <span class="kw">let</span> <span class="ident">ask</span> <span class="op">=</span> <span class="self">self</span>.<span class="ident">asks</span>.<span class="ident">get</span>(<span class="kw-2">&amp;</span><span class="ident">id</span>).<span class="ident">expect</span>(<span class="string">&quot;No such ask&quot;</span>);
 
         <span class="comment">// Get the buyer ID which is the person who called the function and make sure they&#39;re not the owner of the sale</span>
-        <span class="kw">let</span> <span class="ident">buyer_id</span> <span class="op">=</span> <span class="ident">predecessor_account_id</span>();
+        <span class="kw">let</span> <span class="ident">buyer_id</span> <span class="op">=</span> <span class="ident">env::predecessor_account_id</span>();
 
         <span class="macro">require!</span>(<span class="ident">ask</span>.<span class="ident">owner_id</span> <span class="op">!</span><span class="op">=</span> <span class="ident">buyer_id</span>, <span class="string">&quot;Cannot bid on your own sale.&quot;</span>);
 
@@ -564,24 +622,31 @@
         );
 
         <span class="comment">// Process the purchase (which will remove the ask, transfer and get the payout from the ft contract)</span>
-        <span class="kw">let</span> <span class="ident">transfer_near</span> <span class="op">=</span> <span class="ident">Promise::new</span>(<span class="ident">ask</span>.<span class="ident">owner_id</span>.<span class="ident">clone</span>()).<span class="ident">transfer</span>(<span class="ident">price</span>);
-        <span class="kw">let</span> <span class="ident">transfer_ft</span> <span class="op">=</span> <span class="ident">ext_ft::ft_transfer_safe</span>(
+        <span class="kw">let</span> <span class="ident">transfer_nft</span> <span class="op">=</span> <span class="ident">ext_contract::nft_transfer</span>(
             <span class="ident">buyer_id</span>,
-            <span class="ident">ask</span>.<span class="ident">amount</span>.<span class="ident">into</span>(),
+            <span class="ident">ask</span>.<span class="ident">token_id</span>,
+            <span class="prelude-val">Some</span>(<span class="ident">ask</span>.<span class="ident">approval_id</span>),
             <span class="prelude-val">None</span>,
-            <span class="ident">ask</span>.<span class="ident">ft_contract_id</span>,
+            <span class="ident">ask</span>.<span class="ident">nft_contract_id</span>,
             <span class="ident">ONE_YOCTO</span>,
             <span class="ident">CCC</span>,
         );
-        <span class="kw">let</span> <span class="ident">remove_ask</span> <span class="op">=</span>
-            <span class="ident">ext_self::resolve_position</span>(<span class="ident">id</span>, <span class="ident">Position::Ask</span>, <span class="ident">current_account_id</span>(), <span class="ident">ONE_YOCTO</span>, <span class="ident">CCC</span>);
+        <span class="kw">let</span> <span class="ident">remove_ask</span> <span class="op">=</span> <span class="ident">ext_self::resolve_position</span>(
+            <span class="ident">id</span>,
+            <span class="ident">Position::Ask</span>,
+            <span class="ident">env::current_account_id</span>(),
+            <span class="ident">ONE_YOCTO</span>,
+            <span class="ident">CCC</span>,
+        );
 
-        <span class="ident">transfer_ft</span>.<span class="ident">then</span>(<span class="ident">remove_ask</span>).<span class="ident">then</span>(<span class="ident">transfer_near</span>)
+        <span class="ident">transfer_nft</span>
+            .<span class="ident">then</span>(<span class="ident">remove_ask</span>)
+            .<span class="ident">then</span>(<span class="ident">Promise::new</span>(<span class="ident">ask</span>.<span class="ident">owner_id</span>).<span class="ident">transfer</span>(<span class="ident">ask</span>.<span class="ident">sale_conditions</span>))
     }
 
     <span class="attribute">#[<span class="ident">private</span>]</span>
     <span class="attribute">#[<span class="ident">payable</span>]</span>
-    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">resolve_position</span>(<span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="self">self</span>, <span class="ident">id</span>: <span class="ident">ContractAndId</span>, <span class="ident">position</span>: <span class="ident">Position</span>) {
+    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">resolve_position</span>(<span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="self">self</span>, <span class="ident">id</span>: <span class="ident">TokenId</span>, <span class="ident">position</span>: <span class="ident">Position</span>) {
         <span class="macro">require!</span>(
             <span class="ident">is_promise_success</span>(),
             <span class="string">&quot;Previous promise in chain not succeeded&quot;</span>
@@ -594,7 +659,8 @@
 <span class="comment">// Fired as a last promise in the chain of buy method. In such way we only remove sale if all previous promises succeeded</span>
 <span class="attribute">#[<span class="ident">ext_contract</span>(<span class="ident">ext_self</span>)]</span>
 <span class="kw">pub</span> <span class="kw">trait</span> <span class="ident">ExtSelf</span> {
-    <span class="kw">fn</span> <span class="ident">resolve_position</span>(<span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="self">self</span>, <span class="ident">id</span>: <span class="ident">ContractAndId</span>, <span class="ident">position</span>: <span class="ident">Position</span>) <span class="op">-</span><span class="op">&gt;</span> <span class="ident">Promise</span>;
+    <span class="kw">fn</span> <span class="ident">resolve_position</span>(<span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="self">self</span>, <span class="ident">id</span>: <span class="ident">TokenId</span>, <span class="ident">position</span>: <span class="ident">Position</span>) <span class="op">-</span><span class="op">&gt;</span> <span class="ident">Promise</span>;
+    <span class="kw">fn</span> <span class="ident">resolve_place</span>(<span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="self">self</span>, <span class="ident">ask</span>: <span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="ident">Ask</span><span class="op">&gt;</span>, <span class="ident">bid</span>: <span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="ident">Bid</span><span class="op">&gt;</span>, <span class="ident">position</span>: <span class="ident">Position</span>);
 }
 </code></pre></div>
 </section><section id="search" class="content hidden"></section><div id="rustdoc-vars" data-root-path="../../" data-current-crate="market" data-search-index-js="../../search-index.js" data-search-js="../../search.js"></div>
