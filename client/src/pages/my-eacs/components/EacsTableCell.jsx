@@ -12,6 +12,8 @@ import ArrowIcon from "../assets/arrow-icon.svg";
 import SolarImg from "../assets/solar-station.svg";
 import WindImg from "../assets/wind-station.svg";
 import ThermoImg from "../assets/thermo-station.svg";
+import GaseousImg from "../assets/gaseous-station.svg";
+import LiquidImg from "../assets/liquid-station.svg";
 import HydroImg from "../../dashboard/components/assets/hydroStationImg.svg";
 
 import { TableCellStyle } from "../MyEacs";
@@ -23,6 +25,8 @@ const mapStations = {
   Wind: WindImg,
   Thermo: ThermoImg,
   Hydro: HydroImg,
+  Gaseous: GaseousImg,
+  Liquid: LiquidImg,
 };
 
 const deviceData = [
@@ -92,7 +96,7 @@ const EacsTableCell = ({ data, idx }) => {
                   }
                 ></span>
               )}{" "}
-              {i}
+              {i instanceof Date ? i.toDateString() : i}
             </TableCell>
           );
         })}

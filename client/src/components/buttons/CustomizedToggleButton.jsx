@@ -18,12 +18,17 @@ const ToggleButtonStyle = {
   },
 };
 
-const CustomizedToggleButton = ({ toggleData }) => {
+const CustomizedToggleButton = ({
+  toggleData,
+  passUpToggleValue,
+  disabled,
+}) => {
   const [toggleValue, setToggleValue] = useState(toggleData[0].value);
 
   const handleToggleChange = (_, newAlignment) => {
     if (newAlignment === null) return;
     setToggleValue(newAlignment);
+    passUpToggleValue(newAlignment);
   };
   return (
     <ToggleButtonGroup
@@ -32,7 +37,12 @@ const CustomizedToggleButton = ({ toggleData }) => {
       onChange={handleToggleChange}
     >
       {toggleData.map((i) => (
-        <ToggleButton key={i.value} value={i.value} sx={ToggleButtonStyle}>
+        <ToggleButton
+          key={i.value}
+          value={i.value}
+          sx={ToggleButtonStyle}
+          disabled={disabled}
+        >
           {i.label}
         </ToggleButton>
       ))}

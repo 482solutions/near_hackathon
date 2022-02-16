@@ -1,9 +1,10 @@
 import { allCountries } from "country-region-data";
 import { Contract } from "near-api-js";
 import {
+  createNFT,
   createOrganisation,
   createStation,
-  getMeasurmentByOrgAndStation,
+  getMeasurments,
 } from "../../../api/api.service";
 import { InputsData } from "./constants";
 
@@ -12,7 +13,9 @@ export const passUpValueCallback = async (
   currentIterable,
   localDataRefereance,
   keyWord,
-  setData
+  setData,
+  eacMintType,
+  setDisableSubmitBtn
 ) => {
   const payload = {
     [currentIterable.title]: value,
@@ -26,75 +29,56 @@ export const passUpValueCallback = async (
     }));
     setData((prev) => ({ ...prev, ...InputsData }));
   }
-  if (currentIterable.title === "Stations") {
-    const res = await getMeasurmentByOrgAndStation(
-      localStorage.getItem("organisation"),
-      value
-    );
-    // if (true) {
-    //   const resMock = [
-    //     {
-    //       startDate: "1/2/2022",
-    //       endDate: "2/2/2022",
-    //       generatedEnergy: 1500,
-    //       station: "Station1",
-    //       organisation: "1",
-    //     },
-    //     {
-    //       startDate: "2/20/2022",
-    //       endDate: "3/5/2022",
-    //       generatedEnergy: 1500,
-    //       station: "Station1",
-    //       organisation: "1",
-    //     },
-    //   ];
-    //   const amountTotal = resMock.reduce(
-    //     (acc, i) => (acc += i.generatedEnergy),
-    //     0
-    //   );
-    //   const startDate = new Date(resMock[0].startDate);
-    //   const EACTotal = {
-    //     "Start date of creation": `${startDate.getFullYear()}-${
-    //       startDate.getMonth() + 1
-    //     }-${startDate.getDay()}`,
-    //     "End date of creation": new Date(resMock[resMock.length - 1].endDate),
-    //     "Amount of energy in MWh": amountTotal,
-    //   };
+  if (currentIterable.title === "Stations" && eacMintType === "Automatically") {
+    const res = await getMeasurments(localStorage.organization, value);
+    console.log(res);
+    if (res && !res.length) return setDisableSubmitBtn(true);
+    if (res && res.length) {
+      // const resMock = [
+      //   {
+      //     startDate: "2/20/2022",
+      //     endDate: "3/5/2022",
+      //     generatedEnergy: 1500,
+      //     station: "Station1",
+      //     organisation: "1",
+      //   },
+      //   {
+      //     startDate: "1/2/2022",
+      //     endDate: "2/2/2022",
+      //     generatedEnergy: 1500,
+      //     station: "Station1",
+      //     organisation: "1",
+      //   },
+      // ];
+      res.sort((a, b) => {
+        console.log(new Date(a.startDate), new Date(b.startDate));
+        return new Date(a.startDate) - new Date(b.startDate);
+      });
+      const amountTotal = res.reduce((acc, i) => (acc += i.generatedEnergy), 0);
+      const startDate = new Date(res[0].startDate).toISOString().split("T")[0];
+      const endDate = new Date(res[res.length - 1].endDate)
+        .toISOString()
+        .split("T")[0];
+      const EACTotal = {
+        "Start date of creation": startDate,
+        "End date of creation": endDate,
+        "Amount of energy in MWh": amountTotal,
+      };
 
-    //   InputsData[keyWord].forEach((i) => {
-    //     if (i.default === "") {
-    //       i.default = EACTotal[i.title];
-    //     }
-    //   });
-    //   setData((prev) => ({
-    //     ...prev,
-    //     ...InputsData[keyWord],
-    //   }));
-
-    //   console.log("data", data);
-    // }
-  }
-};
-
-const handleEACCreation = async (payload, clientInstance) => {
-  const ipfsData = await client.add(JSON.stringify(payload));
-  const contract = new Contract(
-    window.walletConnection.account(),
-    "dev-1644404282656-99413275182628",
-    {
-      viewMethods: ["getMessages"],
-      changeMethods: ["create_ft"],
-      sender: window.walletConnection.account(),
+      const filtered = InputsData[keyWord].map((i) => {
+        if (i.default === "") {
+          return { ...i, default: EACTotal[i.title] };
+        }
+        return i;
+      });
+      setData((prev) => {
+        return {
+          ...prev,
+          [keyWord]: filtered,
+        };
+      });
     }
-  );
-
-  const res = contract["create_ft"](
-    { name: "token2", reference: ipfsData.path },
-    "300000000000000",
-    "3000000000000000000000000"
-  )
-    .then((res) => console.log(res))
-    .catch((err) => console.log(err));
+  }
 };
 
 export const handleSubmit = async (
@@ -123,7 +107,7 @@ export const handleSubmit = async (
   const mapOfBackendCalls = {
     Station: createStation,
     Company: createOrganisation,
-    EAC: handleEACCreation,
+    EAC: createNFT,
   };
 
   const payload = {
@@ -154,11 +138,17 @@ export const handleSubmit = async (
       organisation: localStorage.organisation,
     },
     EAC: {
-      startDate: data["Start date of creation"],
-      endDate: data["End date of creation"],
-      generatedEnergy: +data["Amount of energy in MWh"],
-      station: +data["Stations"],
-      organisation: localStorage.organisation,
+      owner: window.walletConnection.getAccountId(),
+      metadata: {
+        title: "test",
+        extra: JSON.stringify({
+          startDate: new Date(data["Start date of creation"]),
+          endDate: new Date(data["End date of creation"]),
+          generatedEnergy: +data["Amount of energy in MWh"],
+          station: data["Stations"],
+          organisation: localStorage.organisation,
+        }),
+      },
     },
   };
 
@@ -176,6 +166,7 @@ export const handleSubmit = async (
       if (keyWord === "Station") {
         getAndTransformToSelectStations();
       }
+      setInfoType({ type: "success" });
     }
   } catch (e) {
     let message = `Something went wrong during creation ${keyWord}`;

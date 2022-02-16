@@ -120,16 +120,13 @@ export const InputsData = {
     {
       title: "Amount of energy in MWh",
       required: true,
-      isSelect: true,
-      options: Array.from({ length: 100 }, (_, i) => i + 1).map((el) => ({
-        value: el,
-        label: `${el} MWh`,
-      })),
+      default: "",
     },
     {
       title: "Stations",
       options: [],
       isSelect: true,
+      required: true,
     },
   ],
 };
