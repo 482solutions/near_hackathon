@@ -5,7 +5,7 @@ import * as path from "path";
 
 const homedir = os.homedir();
 
-const CREDENTIALS_DIR = ".near";
+const CREDENTIALS_DIR = ".near-credentials";
 const credentialsPath = path.join(homedir, CREDENTIALS_DIR);
 
 export class Session {
