@@ -61,7 +61,7 @@ export class NftService {
 
       const tokens: Nft[] = JSON.parse(Buffer.from(value.SuccessValue, "base64").toString());
 
-      return tokens.find(pred => pred.owner_id === owner_id);
+      return owner_id ? tokens.filter(pred => pred.owner_id === owner_id) : tokens;
     } catch (e) {
       return e.message;
     }
