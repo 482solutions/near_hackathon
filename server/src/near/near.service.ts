@@ -1,9 +1,11 @@
 import { Injectable, Logger } from "@nestjs/common";
 import { Session } from "../types/session";
 import { ConfigService } from "@nestjs/config";
-import { Account, connect, KeyPair, Near } from "near-api-js";
+import { Account, connect, Near } from "near-api-js";
 import { BN } from "bn.js";
 import { FinalExecutionOutcome } from "near-api-js/lib/providers";
+import { ViewStateResult } from "near-api-js/lib/providers/provider";
+import { KeyPairEd25519 } from "near-api-js/lib/utils";
 
 export const NO_DEPOSIT = new BN("0", 10);
 export const DEFAULT_GAS = new BN("300000000000000", 10);
@@ -36,10 +38,20 @@ export class NearService {
     return await this.near.account(`${id}.${this.session.id}`)
   }
 
+  async contract_state(id: string): Promise<ViewStateResult> {
+    return await this.near.connection.provider.query({
+      request_type: "view_state",
+      finality: "final",
+      account_id: id,
+      prefix_base64: "",
+    })
+  }
+
   async deploy(id: string, contract: Uint8Array): Promise<Account> {
     const account = `${id}.${this.session.id}`;
-    const keyPair = KeyPair.fromRandom("ed25519");
-    return await this.ownerAccount.createAndDeployContract(account, keyPair.getPublicKey(), contract, INITIAL_BALANCE)
+    const keyPair = KeyPairEd25519.fromRandom();
+    await this.session.addToStore(account, keyPair);
+    return await this.ownerAccount.createAndDeployContract(account, keyPair.getPublicKey(), contract, INITIAL_BALANCE);
   }
 
   async initContract(account: Account, method: string, args: object): Promise<FinalExecutionOutcome> {
@@ -55,7 +67,7 @@ export class NearService {
   // TODO: Add saving of keyPair to JSON-file
   async createSubAccount(id: string): Promise<Account> {
     const account = `${id}.${this.session.id}`;
-    const keyPair = KeyPair.fromRandom("ed25519");
+    const keyPair = KeyPairEd25519.fromRandom();
     const publicKey = keyPair.getPublicKey();
 
     await this.session.addToStore(id, keyPair);

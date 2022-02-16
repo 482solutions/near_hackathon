@@ -17,7 +17,7 @@ export class DeployService implements OnModuleInit {
 
   async onModuleInit(): Promise<void> {
     const nftContract = fs.readFileSync(NFT_PATH);
-    const marketContract = fs.readFileSync(NFT_PATH);
+    const marketContract = fs.readFileSync(MARKET_PATH);
     const ownerId = this.near.owner().accountId;
 
     let market = await this.near.subAccount("market");
@@ -29,9 +29,8 @@ export class DeployService implements OnModuleInit {
       if (e.message.includes("does not exist while viewing")) {
         this.logger.error("Market sub-account does not exist, creating it now and deploying");
         market = await this.near.deploy("market", marketContract);
-        await this.near.initContract(market, "new", { owner_id: ownerId });
-        return await market.state();
 
+        return await market.state();
       }
     });
 
@@ -41,9 +40,20 @@ export class DeployService implements OnModuleInit {
       this.logger.warn("Market contract is not deployed");
       /* TODO: Not sure what to do rn, because cannot figure out how to properly store
        creds after account creation (probably need to manually create JSON-file */
-      await this.near.deploy("market", marketContract);
+      await market.deployContract(marketContract);
     } else {
       this.logger.log("Market already deployed");
+
+      // I have to wait because RPS updates slow
+      setTimeout(async () => {
+        const market_state = await this.near.contract_state(market.accountId);
+        if (market_state.values.length == 0) {
+          this.logger.log("Initializing market contract");
+          await this.near.initContract(market, "new", { owner_id: ownerId });
+        }
+      }, 10000);
+
+
     }
 
     if (!isDeployed(nftState.code_hash)) {
@@ -53,9 +63,12 @@ export class DeployService implements OnModuleInit {
     } else {
       this.logger.log("NFT already deployed");
 
-      // const result = await this.near.initContract(nft, "new_default_meta", { owner_id: ownerId });
+      const nft_state = await this.near.contract_state(nft.accountId);
 
-      // this.logger.log(result);
+      if (nft_state.values.length == 0) {
+        this.logger.log("Initializing NFT contract");
+        await this.near.initContract(nft, "new_default_meta", { owner_id: ownerId });
+      }
     }
 
   }
