@@ -38,7 +38,9 @@ export class Session {
       public_key: pair.publicKey.toString(),
       private_key: pair.secretKey
     }
-    fs.writeFileSync(`${credentialsPath}/testnet/${id}.json`, JSON.stringify(creds))
+    const path = `${credentialsPath}/testnet`;
+    fs.mkdirSync(path, { recursive: true });
+    fs.writeFileSync(`${path}/${id}.json`, JSON.stringify(creds), {  })
   }
 
   getStore() {
