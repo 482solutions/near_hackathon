@@ -11,10 +11,14 @@ import { Country } from './station/entities/country.entity';
 import { Region } from './station/entities/region.entity';
 import { ConfigModule } from '@nestjs/config';
 import { NftModule } from "./nft/nft.module";
+import { DeployModule } from './deploy/deploy.module';
+import { NearModule } from "./near/near.module";
 
 @Module({
     imports: [
         ConfigModule.forRoot({ isGlobal: true }),
+        NearModule,
+        DeployModule,
         TypeOrmModule.forRoot(typeOrmConfig),
         TypeOrmModule.forFeature([Organisation, Station, Country, Region, Measurement]),
         StationModule,
