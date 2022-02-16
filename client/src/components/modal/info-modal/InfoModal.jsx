@@ -51,8 +51,8 @@ const InfoModal = ({ open, setOpen, img, keyWord, infoType }) => {
           nextModal: keyWord === "Company" ? "Station" : "EAC",
         },
       });
-      handleClose();
     }
+    handleClose();
   };
 
   return (

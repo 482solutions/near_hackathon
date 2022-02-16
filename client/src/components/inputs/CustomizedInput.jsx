@@ -48,18 +48,24 @@ const CustomizedInput = ({
   options,
   passUpValue,
   error,
+  resetData = false,
   initialValue = "",
   disabled = false,
   type = "text",
   required = false,
   isSelect = false,
 }) => {
-  const [value, setValue] = useState(initialValue);
+  const [value, setValue] = useState("");
   const [localError, setLocalError] = useState(error);
+
+  useEffect(() => {
+    setValue("");
+  }, [resetData]);
 
   useEffect(() => {
     setValue(initialValue);
   }, [initialValue]);
+
   useEffect(() => {
     setLocalError(error);
   }, [error]);
@@ -87,6 +93,7 @@ const CustomizedInput = ({
           name={labelName}
           value={value}
           onChange={(e) => handleFormChange(e)}
+          disabled={disabled}
         />
       ) : (
         <CustomizedSelect

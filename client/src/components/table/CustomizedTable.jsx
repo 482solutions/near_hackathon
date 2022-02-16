@@ -82,6 +82,9 @@ const CustomizedTable = ({ headData, bodyData, renderCell }) => {
               },
             }}
             sx={{
+              svg: {
+                right: "-5px",
+              },
               p: {
                 color: "rgba(103, 103, 103, 0.6)",
                 fontWeight: 400,

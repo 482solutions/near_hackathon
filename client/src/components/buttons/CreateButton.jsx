@@ -5,7 +5,7 @@ import { FormContext } from "../../pages/dashboard/components/context/FormContex
 const BtnStyle = {
   borderRadius: "4px",
   backgroundColor: "#0FC391",
-  lineHeight: "16px",
+  lineHeight: "21px",
   fontSize: "16px",
   paddingTop: "17px",
   paddingBottom: "17px",

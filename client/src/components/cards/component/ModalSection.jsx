@@ -13,7 +13,7 @@ import { useLocation, useNavigate } from "react-router-dom";
 import useIpfs from "../../../hooks/useIpfs.hook";
 import { InputsData } from "./constants";
 import { handleSubmit, passUpValueCallback } from "./modal.utils";
-import CustomizedDatePicker from "../../datepicker/CustomizedDatePicker";
+import CustomizedToggleButton from "../../buttons/CustomizedToggleButton";
 
 const BtnContainerStyle = {
   maxWidth: "141px",
@@ -51,6 +51,14 @@ const ModalSection = ({ btnText, keyWord, img }) => {
   const location = useLocation();
   const navigate = useNavigate();
   const { client } = useIpfs();
+  const initDataRef = InputsData[keyWord].reduce(
+    (acc, i) => ({ ...acc, [i.title]: "" }),
+    {}
+  );
+  const dataRef = useRef(initDataRef);
+  const [toggleValue, setTogglevalue] = useState("Manually");
+  const [resetData, setResetData] = useState(false);
+  const [disableSubmitBtn, setDisableSubmitBtn] = useState(false);
 
   useEffect(() => {
     if (location.state?.nextModal) {
@@ -85,10 +93,6 @@ const ModalSection = ({ btnText, keyWord, img }) => {
     })();
   }, [keyWord]);
 
-  const dataRef = useRef(
-    InputsData[keyWord].reduce((acc, i) => ({ ...acc, [i.title]: "" }), {})
-  );
-
   const handleOpen = () => setOpen(true);
 
   const handleClose = () => {
@@ -103,9 +107,6 @@ const ModalSection = ({ btnText, keyWord, img }) => {
   return (
     <>
       <CreateButton text={btnText} onClick={handleOpen} disabled={disabled} />
-      {keyWord === "EAC" && (
-        <CreateButton text={"Create EAC's Automatically"} disabled={disabled} />
-      )}
       <CustomizedModal open={open} handleClose={handleClose}>
         <Grid container sx={TitleContainerStyle}>
           <TitleText title={btnText} />
@@ -114,21 +115,51 @@ const ModalSection = ({ btnText, keyWord, img }) => {
             variant="small"
           />
         </Grid>
+        {keyWord === "EAC" && (
+          <Grid container sx={{ marginBottom: "16px" }}>
+            <CustomizedToggleButton
+              toggleData={["Manually", "Automatically"].map((i) => ({
+                value: i,
+                label: i,
+              }))}
+              passUpToggleValue={(value) => {
+                setTogglevalue(value);
+                setResetData((prev) => !prev);
+                dataRef.current = initDataRef;
+                setError({});
+                setData(InputsData);
+                setDisableSubmitBtn(false);
+              }}
+            />
+          </Grid>
+        )}
         <Grid container rowGap={"13px"} columnGap={"25px"}>
           {data[keyWord].map((i, idx) => {
             return (
               <CustomizedInput
                 labelName={i.title}
                 required={i?.required}
-                key={i.title}
+                key={idx}
                 error={error[i.title]}
                 isSelect={i.isSelect}
-                initialValue={i.default ?? ""}
                 options={i?.options || []}
+                resetData={resetData}
+                initialValue={i?.default ?? ""}
                 type={i.type}
-                disabled={i.title === "Region" && !dataRef.current?.["Country"]}
+                disabled={
+                  (i.title === "Region" && !dataRef.current?.["Country"]) ||
+                  (i.title !== "Stations" && toggleValue === "Automatically")
+                }
                 passUpValue={(value) =>
-                  passUpValueCallback(value, i, dataRef, keyWord, setData)
+                  passUpValueCallback(
+                    value,
+                    i,
+                    dataRef,
+                    keyWord,
+                    setData,
+                    toggleValue,
+                    setDisableSubmitBtn
+                  )
                 }
               />
             );
@@ -138,6 +169,7 @@ const ModalSection = ({ btnText, keyWord, img }) => {
           <Grid item sx={BtnContainerStyle}>
             <CreateButton
               text="Submit"
+              disabled={disableSubmitBtn}
               onClick={() =>
                 handleSubmit(
                   dataRef.current,

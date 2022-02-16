@@ -1,10 +1,17 @@
 import { Box, Grid } from "@mui/material";
-import * as React from "react";
-import { getOrganisations } from "../../api/api.service";
+import React, { useState, useEffect } from "react";
+import { useMemo } from "react";
+import {
+  getNFTs,
+  getOrganisations,
+  getStation,
+  getStationByOrgAndStationName,
+} from "../../api/api.service";
 import CustomizedTable from "../../components/table/CustomizedTable";
 import RegularText from "../../components/texts/RegularText";
 import TitleText from "../../components/texts/TitleText";
 import EacsTableCell from "./components/EacsTableCell";
+import { allCountries } from "country-region-data";
 
 const BoxStyle = {
   padding: "0 56px",
@@ -52,12 +59,57 @@ const bodyData = [
 ];
 
 const MyEacs = () => {
-  React.useEffect(() => {
-    (async function () {
-      const res = await getOrganisations(
-        "ed25519:3Ns1T3Axq15unnELdLso8ebYhDT7ghzBQPrVyTcfovVLeY7UqCARNKecn49yiaL6NnAb7XjuwFjmRHaP7WqQNH7R"
+  const [eacs, setEacs] = useState();
+  const [body, setBody] = useState();
+
+  const transformedDataOfEacsToBodyData = useMemo(() => {
+    if (!eacs) return null;
+    (async () => {
+      const deviceInfo = eacs.map((i) => {
+        const parsed = JSON.parse(i.metadata.extra);
+        return { ...i, metadata: { ...i.metadata, extra: parsed } };
+      });
+
+      let result = [];
+      for await (let data of deviceInfo) {
+        if (data.metadata.extra.organisation && data.metadata.extra.station) {
+          try {
+            const res = await getStationByOrgAndStationName(
+              data.metadata.extra.organisation,
+              data.metadata.extra.station
+            );
+            result.push({ ...data, stationInfo: res });
+          } catch (e) {}
+        }
+      }
+      setBody(
+        result.map((i) => {
+          console.log(i.metadata.issued_at);
+          return {
+            "Device Type": i.stationInfo.stationEnergyType,
+            Date: i.metadata.extra.startDate,
+            "Grid Operator": allCountries[i.stationInfo.countryId][0],
+            MWh: i.metadata.extra.generatedEnergy,
+            Status: "Exchange",
+          };
+        })
       );
-      console.log(res);
+    })();
+    //  {
+    //   "Device Type": "Solar",
+    //   Date: "01/02/2022",
+    //   "Grid Operator": "Germany",
+    //   MWh: "400",
+    //   Status: "Archivated",
+    // },
+  }, [eacs]);
+
+  useEffect(() => {
+    (async function () {
+      const res = await getNFTs();
+      if (res) {
+        setEacs(res);
+      }
     })();
   }, []);
 
@@ -78,7 +130,7 @@ const MyEacs = () => {
           "Status",
           "Actions",
         ]}
-        bodyData={bodyData}
+        bodyData={body}
         renderCell={(el, idx) => (
           <EacsTableCell data={el} idx={idx} key={idx} />
         )}
