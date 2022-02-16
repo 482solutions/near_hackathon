@@ -1,4 +1,4 @@
-export class Nft {
+export class NftMetadata {
     title: string | null;
     description: string | null;
     media: string | null;
@@ -13,7 +13,14 @@ export class Nft {
     reference_hash: string | null
 }
 
+export class Nft {
+    token_id: string;
+    owner_id: string;
+    metadata: NftMetadata;
+}
+
 export interface Pagination {
     from_index: string,
-    limit: number
+    limit: number,
+    owner_id: string
 }

@@ -1,7 +1,7 @@
 import { Injectable, Logger } from "@nestjs/common";
 import { CreateNftDto } from "./dto/create-nft.dto";
 import { DEFAULT_FUNCTION_CALL_GAS } from "near-api-js";
-import { Pagination } from "./entities/nft.entity";
+import { Nft, Pagination } from "./entities/nft.entity";
 import { BN } from "bn.js";
 import { ExecutionStatus } from "near-api-js/lib/providers/provider";
 import { DEFAULT_GAS, NearService } from "src/near/near.service";
@@ -41,7 +41,7 @@ export class NftService {
   }
 
   async findAll(params: Pagination) {
-    const { from_index, limit } = params;
+    const { from_index, limit, owner_id } = params;
 
     const account = this.near.owner();
 
@@ -59,7 +59,9 @@ export class NftService {
       const value = await account.connection.provider.txStatus(result.transaction_outcome.id, account.accountId)
         .then(resp => resp.status) as ExecutionStatus;
 
-      return Buffer.from(value.SuccessValue, "base64").toString()
+      const tokens: Nft[] = JSON.parse(Buffer.from(value.SuccessValue, "base64").toString());
+
+      return owner_id ? tokens.filter(pred => pred.owner_id === owner_id) : tokens;
     } catch (e) {
       return e.message;
     }
