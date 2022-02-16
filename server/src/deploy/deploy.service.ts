@@ -18,6 +18,7 @@ export class DeployService implements OnModuleInit {
   async onModuleInit(): Promise<void> {
     const nftContract = fs.readFileSync(NFT_PATH);
     const marketContract = fs.readFileSync(NFT_PATH);
+    const ownerId = this.near.owner().accountId;
 
     let market = await this.near.subAccount("market");
     const nft = this.near.owner();
@@ -28,6 +29,7 @@ export class DeployService implements OnModuleInit {
       if (e.message.includes("does not exist while viewing")) {
         this.logger.error("Market sub-account does not exist, creating it now and deploying");
         market = await this.near.deploy("market", marketContract);
+        await this.near.initContract(market, "new", { owner_id: ownerId });
         return await market.state();
 
       }
@@ -50,6 +52,10 @@ export class DeployService implements OnModuleInit {
       await nft.deployContract(nftContract);
     } else {
       this.logger.log("NFT already deployed");
+
+      // const result = await this.near.initContract(nft, "new_default_meta", { owner_id: ownerId });
+
+      // this.logger.log(result);
     }
 
   }

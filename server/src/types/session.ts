@@ -5,7 +5,7 @@ import * as path from "path";
 
 const homedir = os.homedir();
 
-const CREDENTIALS_DIR = ".near-credentials";
+const CREDENTIALS_DIR = ".near";
 const credentialsPath = path.join(homedir, CREDENTIALS_DIR);
 
 export class Session {
@@ -20,19 +20,23 @@ export class Session {
       nodeUrl: "https://rpc.testnet.near.org",
       walletUrl: "https://wallet.testnet.near.org",
       helperUrl: "https://helper.testnet.near.org"
-    }
+    };
   }
 
   async addToStore(id: string, pair: KeyPair) {
-    await this.store.setKey("testnet", id, pair)
+    await this.store.setKey("testnet", id, pair);
   }
 
   getStore() {
-    return this.store
+    return this.store;
   }
 
-  constructor(id: string) {
+  constructor(id: string, pk: string) {
+    const pair = KeyPair.fromString(pk);
+    const store = new keyStores.UnencryptedFileSystemKeyStore(credentialsPath);
+    store.setKey("testnet", id, pair);
+
     this.id = id;
-    this.store = new keyStores.UnencryptedFileSystemKeyStore(credentialsPath);
+    this.store = store
   }
 }

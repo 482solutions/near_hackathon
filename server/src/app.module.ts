@@ -18,10 +18,10 @@ import { NearModule } from "./near/near.module";
     imports: [
         ConfigModule.forRoot({ isGlobal: true }),
         NearModule,
-        DeployModule,
         TypeOrmModule.forRoot(typeOrmConfig),
         TypeOrmModule.forFeature([Organisation, Station, Country, Region, Measurement]),
         StationModule,
+        DeployModule,
         NftModule,
         OrganisationModule,
         MeasurementsModule,

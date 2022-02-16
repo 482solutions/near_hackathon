@@ -4,10 +4,9 @@ import { DEFAULT_FUNCTION_CALL_GAS } from "near-api-js";
 import { Pagination } from "./entities/nft.entity";
 import { BN } from "bn.js";
 import { ExecutionStatus } from "near-api-js/lib/providers/provider";
-import { NearService } from "../near/near.service";
+import { DEFAULT_GAS, NearService } from "src/near/near.service";
 
 const STORAGE_DEPOSIT = new BN("9750000000000000000000", 10);
-const DEFAULT_GAS = new BN("300000000000000", 10);
 
 @Injectable()
 export class NftService {
@@ -38,7 +37,7 @@ export class NftService {
     const value = await account.connection.provider.txStatus(result.transaction_outcome.id, account.accountId)
       .then(resp => resp.status) as ExecutionStatus;
 
-    return Buffer.from(value.SuccessValue, "base64")
+    return Buffer.from(value.SuccessValue, "base64").toString()
   }
 
   async findAll(params: Pagination) {
@@ -60,7 +59,7 @@ export class NftService {
       const value = await account.connection.provider.txStatus(result.transaction_outcome.id, account.accountId)
         .then(resp => resp.status) as ExecutionStatus;
 
-      return Buffer.from(value.SuccessValue, "base64")
+      return Buffer.from(value.SuccessValue, "base64").toString()
     } catch (e) {
       return e.message;
     }
