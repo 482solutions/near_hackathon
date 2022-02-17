@@ -47,3 +47,8 @@ export const getNFTs = async (owner) => {
   );
   return res?.data;
 };
+
+export const getNFTById = async (id) => {
+  const res = await httpClient.get(`${NFT}/${id}`);
+  return res?.data;
+};
