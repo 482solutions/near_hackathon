@@ -1,6 +1,7 @@
-import { Button } from "@mui/material";
+import { Box, Button } from "@mui/material";
 import React, { useContext } from "react";
 import { FormContext } from "../../pages/dashboard/components/context/FormContext";
+import CustomizedLoader from "../loader/CustomizedLoader";
 
 const BtnStyle = {
   borderRadius: "4px",
@@ -18,7 +19,7 @@ const BtnStyle = {
   },
 };
 
-const CreateButton = ({ text, onClick, disabled }) => {
+const CreateButton = ({ text, onClick, disabled, loading }) => {
   return (
     <Button
       variant="contained"
@@ -26,7 +27,11 @@ const CreateButton = ({ text, onClick, disabled }) => {
       onClick={onClick}
       disabled={disabled}
     >
-      {text}
+      {!loading ? (
+        text
+      ) : (
+        <CustomizedLoader type="circle" color="inherit" size="small" />
+      )}
     </Button>
   );
 };

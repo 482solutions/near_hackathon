@@ -45,7 +45,9 @@ export const createNFT = async (body) => {
   return res?.data;
 };
 
-export const getNFTs = async () => {
-  const res = await httpClient.get(NFT);
+export const getNFTs = async (owner) => {
+  const res = await httpClient.get(
+    `${NFT}${owner !== undefined ? `?owner=${owner}` : ""}`
+  );
   return res?.data;
 };

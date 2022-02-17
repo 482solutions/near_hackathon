@@ -65,6 +65,11 @@ export const passUpValueCallback = async (
         "Amount of energy in MWh": amountTotal,
       };
 
+      localDataRefereance.current = {
+        ...localDataRefereance.current,
+        ...EACTotal,
+      };
+
       const filtered = InputsData[keyWord].map((i) => {
         if (i.default === "") {
           return { ...i, default: EACTotal[i.title] };
@@ -91,8 +96,10 @@ export const handleSubmit = async (
   handleClose,
   setInfoModalIsOpen,
   setInfoType,
-  getAndTransformToSelectStations
+  getAndTransformToSelectStations,
+  setLoading
 ) => {
+  setLoading(true);
   const requiredFilds = inputsData[keyWord]
     .filter((i) => i.required)
     .map((i) => i.title)
@@ -177,5 +184,6 @@ export const handleSubmit = async (
   } finally {
     handleClose();
     setInfoModalIsOpen(true);
+    setLoading(false);
   }
 };

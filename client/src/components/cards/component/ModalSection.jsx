@@ -59,6 +59,7 @@ const ModalSection = ({ btnText, keyWord, img }) => {
   const [toggleValue, setTogglevalue] = useState("Manually");
   const [resetData, setResetData] = useState(false);
   const [disableSubmitBtn, setDisableSubmitBtn] = useState(false);
+  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     if (location.state?.nextModal) {
@@ -170,6 +171,7 @@ const ModalSection = ({ btnText, keyWord, img }) => {
             <CreateButton
               text="Submit"
               disabled={disableSubmitBtn}
+              loading={loading}
               onClick={() =>
                 handleSubmit(
                   dataRef.current,
@@ -181,7 +183,8 @@ const ModalSection = ({ btnText, keyWord, img }) => {
                   handleClose,
                   setInfoModalIsOpen,
                   setInfoType,
-                  getAndTransformToSelectStations
+                  getAndTransformToSelectStations,
+                  setLoading
                 )
               }
             />

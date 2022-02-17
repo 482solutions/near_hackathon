@@ -7,7 +7,7 @@ import {
   TableCell,
   Grid,
 } from "@mui/material";
-import React from "react";
+import React, { useEffect } from "react";
 import ArrowIcon from "../assets/arrow-icon.svg";
 import SolarImg from "../assets/solar-station.svg";
 import WindImg from "../assets/wind-station.svg";
@@ -19,6 +19,8 @@ import HydroImg from "../../dashboard/components/assets/hydroStationImg.svg";
 import { TableCellStyle } from "../MyEacs";
 import CellsModalSection from "./CellsModalSection";
 import CustomizedReadInput from "../../../components/inputs/CustomizedReadInput";
+import { Contract } from "near-api-js";
+import { useLocation } from "react-router-dom";
 
 const mapStations = {
   Solar: SolarImg,
@@ -42,7 +44,7 @@ const deviceData = [
   "Generation End Date",
 ];
 
-const BtnStyle = {
+export const BtnStyle = {
   backgroundColor: "#14D9C1",
   borderRadius: "4px",
   fontSize: "12px",
@@ -67,11 +69,33 @@ const DotStyle = {
 const EacsTableCell = ({ data, idx }) => {
   const [isOpen, setIsOpen] = React.useState(false);
   const [isModalOpen, setIsModalOpen] = React.useState(false);
+  const [isExchange, setIsExchange] = React.useState();
+
+  useEffect(() => {
+    (async () => {
+      const contract = await new Contract(
+        window.walletConnection.account(),
+        "market.dev-1645073849820-60274470736035",
+        {
+          viewMethods: ["get_asks_by_owner_id"],
+          changeMethods: [],
+        }
+      );
+      const asks = await contract["get_asks_by_owner_id"]({
+        account_id: window.accountId,
+      });
+      console.log("asks: ", asks);
+      if (asks && asks.length) {
+        const finded = asks.find((i) => i.token_id === data["id"]);
+        if (finded) setIsExchange(true);
+      }
+    })();
+  }, []);
 
   return (
     <>
       <TableRow>
-        <TableCell>{idx + 1}</TableCell>
+        <TableCell>{data["id"]}</TableCell>
         <TableCell>
           <IconButton size="small" onClick={() => setIsOpen((prev) => !prev)}>
             <img
@@ -81,25 +105,27 @@ const EacsTableCell = ({ data, idx }) => {
             />
           </IconButton>
         </TableCell>
-        {Object.values(data).map((i, index) => {
-          return (
-            <TableCell key={i} sx={TableCellStyle}>
-              {index === 4 && (
-                <span
-                  style={
-                    i === "Exchange"
-                      ? DotStyle
-                      : {
-                          ...DotStyle,
-                          backgroundColor: "rgba(103, 103, 103, 0.3)",
-                        }
-                  }
-                ></span>
-              )}{" "}
-              {i instanceof Date ? i.toDateString() : i}
-            </TableCell>
-          );
-        })}
+        {Object.values(data)
+          .slice(1, 6)
+          .map((i, index) => {
+            return (
+              <TableCell key={i} sx={TableCellStyle}>
+                {index === 4 && (
+                  <span
+                    style={
+                      isExchange
+                        ? DotStyle
+                        : {
+                            ...DotStyle,
+                            backgroundColor: "rgba(103, 103, 103, 0.3)",
+                          }
+                    }
+                  ></span>
+                )}{" "}
+                {i instanceof Date ? i.toDateString() : i}
+              </TableCell>
+            );
+          })}
         <TableCell>
           <Button onClick={() => setIsModalOpen(true)} sx={BtnStyle}>
             + Sale
@@ -149,6 +175,9 @@ const EacsTableCell = ({ data, idx }) => {
                   <CustomizedReadInput
                     labelName={i}
                     disabled
+                    defaultValue={
+                      data[i] instanceof Date ? data[i].toDateString() : data[i]
+                    }
                     adornMent={i === "Certified" ? "MWh" : undefined}
                   />
                 </Grid>
@@ -159,8 +188,14 @@ const EacsTableCell = ({ data, idx }) => {
       </TableRow>
       <CellsModalSection
         isModalOpen={isModalOpen}
-        id={idx + 1}
         setIsModalOpen={setIsModalOpen}
+        setIsExchange={setIsExchange}
+        data={{
+          "Creation time": data.Date.toDateString(),
+          MWh: data.MWh,
+          id: data.id,
+          accountId: data["Device owner"],
+        }}
       />
     </>
   );

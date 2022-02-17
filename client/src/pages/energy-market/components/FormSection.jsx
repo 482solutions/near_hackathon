@@ -1,6 +1,6 @@
 import { Box, Grid } from "@mui/material";
 import { Contract } from "near-api-js";
-import React from "react";
+import React, { useCallback, useState } from "react";
 import CreateButton from "../../../components/buttons/CreateButton";
 import CustomizedToggleButton from "../../../components/buttons/CustomizedToggleButton";
 import SecondaryButton from "../../../components/buttons/SecondaryButton";
@@ -52,20 +52,29 @@ const ButtonsContainer = {
   },
 };
 
-const FormSection = () => {
-  const handleSubmit = async () => {
-    const contract = await new Contract(
-      window.walletConnection.account(),
-      "market.dev-1644489132064-20411269655435",
-      {
-        viewMethods: ["get_supply_asks", "get_asks", "get_ask"],
-        changeMethods: ["setMarket"],
-      }
-    );
-    const res = await contract["get_ask"]();
+const InputsData = [
+  {
+    labelName: "Energy*",
+    adornMent: "MWh",
+  },
+  {
+    labelName: "Price*",
+    adornMent: "USD",
+  },
+  {
+    labelName: "Total*",
+    adornMent: "USD",
+    adornMentDirection: "startAdornment",
+  },
+];
 
-    console.log(res);
-  };
+const FormSection = ({ asks }) => {
+  const [form, setForm] = useState({});
+
+  const handleFormChange = useCallback((e, labelName) => {
+    setForm((prev) => ({ ...prev, [labelName]: e.target.value }));
+  }, []);
+
   return (
     <Box sx={FirstBoxStyle}>
       <RegularText content={"Browse by keyword and attributes"} />
@@ -83,26 +92,36 @@ const FormSection = () => {
               <CustomizedSelect
                 fullWidth
                 options={[{ value: "asd", label: "asd" }]}
+                value={form[i.labelName] ?? ""}
+                handleChange={(e) => handleFormChange(e, i.labelName)}
               />
             </Grid>
           );
         })}
       </Grid>
       <Grid container sx={{ marginTop: "24px" }}>
-        <CustomizedToggleButton toggleData={toggleData} />
+        <CustomizedToggleButton
+          toggleData={toggleData}
+          passUpToggleValue={(e) => setForm((prev) => ({ ...prev }))}
+        />
       </Grid>
       <Grid container gap={"20px"} sx={{ marginTop: "32px" }}>
-        <CustomizedReadInput labelName={"Energy*"} adornMent="MWh" />
-        <CustomizedReadInput labelName={"Price*"} adornMent="USD" />
-        <CustomizedReadInput
-          labelName={"Total*"}
-          adornMent="USD"
-          adornMentDirection="startAdornment"
-        />
+        {InputsData.map((i) => {
+          return (
+            <CustomizedReadInput
+              controlled
+              value={form[i.labelName] ?? ""}
+              onChange={(e) => handleFormChange(e, i.labelName)}
+              labelName={i.labelName}
+              adornMent={i.adornMent}
+              adornMentDirection={i.adornMentDirection && "startAdornment"}
+            />
+          );
+        })}
       </Grid>
       <Grid container sx={ButtonsContainer}>
         <SecondaryButton text={"Clear All"} />
-        <CreateButton text="Place Bid Order" onClick={handleSubmit} />
+        <CreateButton text="Place Bid Order" />
       </Grid>
     </Box>
   );

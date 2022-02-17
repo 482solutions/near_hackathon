@@ -11,6 +11,11 @@ export const LabelStyle = {
 
 const CustomizedReadInput = ({
   labelName,
+  controlled = false,
+  type = "text",
+  defaultValue = "N/A",
+  value = undefined,
+  onChange = undefined,
   adornMent = "",
   disabled = false,
   adornMentDirection = "endAdornment",
@@ -19,9 +24,12 @@ const CustomizedReadInput = ({
     <>
       <TextField
         variant="standard"
+        type={type}
         fullWidth
         label={labelName}
-        defaultValue={"asd"}
+        defaultValue={controlled ? undefined : defaultValue}
+        value={value}
+        onChange={onChange}
         sx={{
           label: {
             ...LabelStyle,

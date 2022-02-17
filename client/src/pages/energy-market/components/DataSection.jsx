@@ -3,6 +3,7 @@ import React from "react";
 import CustomizedTable from "../../../components/table/CustomizedTable";
 import RegularText from "../../../components/texts/RegularText";
 import TitleText from "../../../components/texts/TitleText";
+import MarketDataCell from "./MarketDataCell";
 
 const SecondBoxStyle = {
   maxWidth: "605px",
@@ -23,13 +24,19 @@ const TableContainerStyle = {
   },
 };
 
-const DataSection = ({ title, matchingData, data }) => {
+const DataSection = ({ title, matchingData, data, bodyData }) => {
   return (
     <Box sx={SecondBoxStyle}>
       <TitleText title={title} />
       <RegularText content={`${matchingData} matching`} />
       <Grid sx={TableContainerStyle}>
-        <CustomizedTable headData={data} />
+        <CustomizedTable
+          headData={data}
+          bodyData={bodyData}
+          renderCell={(el, idx) => {
+            return <MarketDataCell data={el} key={idx} keyWord={title} />;
+          }}
+        />
       </Grid>
     </Box>
   );
