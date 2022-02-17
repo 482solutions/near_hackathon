@@ -49,8 +49,8 @@ export class StationService {
         name: string,
         organisations: Organisation[],
     ): Promise<Station> {
-        const query = this.stationRepository.createQueryBuilder('station');
         let found;
+        const query = this.stationRepository.createQueryBuilder('station');
         try {
             query.where(
                 ' station.name = :name AND' +
@@ -120,7 +120,7 @@ export class StationService {
             this.logger.verbose('Create Station in Context Broker status: ', response.status);
         } catch (error) {
             this.logger.error(`Failed to create new station: `, error.stack);
-            if (error.code === '23505') {
+            if (error.code === '23505' || error.response.data.error === 'Unprocessable') {
                 throw new UnprocessableEntityException('Station already exists');
             } else {
                 throw new InternalServerErrorException();
