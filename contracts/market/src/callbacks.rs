@@ -13,6 +13,7 @@ impl NonFungibleTokenApprovalReceiver for Contract {
     ) -> PromiseOrValue<String> {
         let nft_contract_id = env::predecessor_account_id();
         let signer_id = env::signer_account_id();
+        let deposit = env::attached_deposit();
 
         // Safety check
         require!(
@@ -22,6 +23,12 @@ impl NonFungibleTokenApprovalReceiver for Contract {
 
         // Another one
         require!(owner_id == signer_id, "owner_id should be signer_id");
+
+        let mut balance: u128 = self.storage_deposits.get(&signer_id).unwrap_or(0);
+
+        balance += deposit;
+
+        self.storage_deposits.insert(&signer_id, &balance);
 
         // Calculate needed storage
         let storage_amount = self.storage_minimum_balance().0;
