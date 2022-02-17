@@ -23,7 +23,7 @@ const CellsModalSection = ({
   const handleSubmit = async (id, ownerId, price) => {
     const contract = await new Contract(
       window.walletConnection.account(),
-      "dev-1645073849820-60274470736035",
+      process.env.REACT_APP_NFT_DEV_ACCOUNT_ID,
       {
         viewMethods: [],
         changeMethods: ["nft_approve"],
@@ -33,7 +33,7 @@ const CellsModalSection = ({
     await contract["nft_approve"](
       {
         token_id: id,
-        account_id: "market.dev-1645073849820-60274470736035",
+        account_id: `market.${process.env.REACT_APP_NFT_DEV_ACCOUNT_ID}`,
         msg: JSON.stringify({
           sale_conditions: `${price}000000000000000000000000`,
         }),

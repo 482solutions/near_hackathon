@@ -32,7 +32,7 @@ const EnergyMarket = () => {
   const getAsksFromContract = useCallback(async () => {
     contract = await new Contract(
       window.walletConnection.account(),
-      "market.dev-1645073849820-60274470736035",
+      `market.${process.env.REACT_APP_NFT_DEV_ACCOUNT_ID}`,
       {
         viewMethods: ["get_supply_bids", "get_bids", "get_asks"],
         changeMethods: ["direct_ask_sell"],

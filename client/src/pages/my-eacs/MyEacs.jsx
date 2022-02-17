@@ -96,10 +96,9 @@ const MyEacs = () => {
               "Generation End Date": new Date(i.metadata.extra.endDate),
               "Certified Energy (MWh)": i.metadata.extra.generatedEnergy,
               "Generation Date": new Date(i.metadata.issued_at / 1000000),
-              // "Certificate ID",
-              // "Certified",
-              // "Facility name",
-              // "Certified by registry",
+              "Certificate ID": i.token_id,
+              Certified: i.metadata.extra.generatedEnergy,
+              "Facility name": i.stationInfo.name,
             };
           })
         );
