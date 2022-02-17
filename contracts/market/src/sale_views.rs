@@ -1,5 +1,21 @@
 use crate::*;
 
+/// Response for ask views
+#[derive(BorshDeserialize, BorshSerialize, Serialize, Deserialize, Debug)]
+#[serde(crate = "near_sdk::serde")]
+pub struct AskResponse {
+    pub id: TokenId,
+    pub ask: Ask,
+}
+
+/// Response for bid views
+#[derive(BorshDeserialize, BorshSerialize, Serialize, Deserialize, Debug)]
+#[serde(crate = "near_sdk::serde")]
+pub struct BidResponse {
+    pub id: TokenId,
+    pub bid: Bid,
+}
+
 /// Views. Used to retrieve information from market
 #[near_bindgen]
 impl Contract {
@@ -60,7 +76,7 @@ impl Contract {
         account_id: AccountId,
         from: Option<u128>,
         limit: Option<u64>,
-    ) -> Vec<Ask> {
+    ) -> Vec<AskResponse> {
         //get the set of token IDs for sale for the given account ID
         let by_owner_id = self.asks_by_owner_id.get(&account_id);
         //if there was some set, we set the sales variable equal to that set. If there wasn't, sales is set to an empty vector
@@ -85,7 +101,8 @@ impl Contract {
             //we'll map the token IDs which are strings into Sale objects
             .map(|id| {
                 log!("Searching id: {}", id);
-                self.asks.get(&id).unwrap()
+                let ask = self.asks.get(&id).unwrap();
+                AskResponse { id, ask }
             })
             //since we turned the keys into an iterator, we need to turn it back into a vector to return
             .collect()
@@ -96,11 +113,11 @@ impl Contract {
     /// # Arguments
     ///
     /// * `from`:
-    /// * `limit`:
+    /// * `limit`i:
     ///
     /// returns: List of bids
     ///
-    pub fn get_bids(&self, from: Option<U128>, limit: Option<u64>) -> Vec<Bid> {
+    pub fn get_bids(&self, from: Option<U128>, limit: Option<u64>) -> Vec<BidResponse> {
         //where to start pagination - if we have a from_index, we'll use that - otherwise start from 0 index
         let start = u128::from(from.unwrap_or(U128(0)));
 
@@ -111,7 +128,7 @@ impl Contract {
             .skip(start as usize)
             //take the first "limit" elements in the vector. If we didn't specify a limit, use 0
             .take(limit.unwrap_or(0) as usize)
-            .map(|(_, bid)| bid)
+            .map(|(id, bid)| BidResponse { id, bid })
             //since we turned the keys into an iterator, we need to turn it back into a vector to return
             .collect()
     }
@@ -125,7 +142,7 @@ impl Contract {
     ///
     /// returns: List of asks
     ///  
-    pub fn get_asks(&self, from: Option<U128>, limit: Option<u64>) -> Vec<Ask> {
+    pub fn get_asks(&self, from: Option<U128>, limit: Option<u64>) -> Vec<AskResponse> {
         //where to start pagination - if we have a from_index, we'll use that - otherwise start from 0 index
         let start = u128::from(from.unwrap_or(U128(0)));
 
@@ -136,7 +153,7 @@ impl Contract {
             .skip(start as usize)
             //take the first "limit" elements in the vector. If we didn't specify a limit, use 0
             .take(limit.unwrap_or(0) as usize)
-            .map(|(_, ask)| ask)
+            .map(|(id, ask)| AskResponse { id, ask })
             //since we turned the keys into an iterator, we need to turn it back into a vector to return
             .collect()
     }
@@ -156,7 +173,7 @@ impl Contract {
         account_id: AccountId,
         from: Option<U128>,
         limit: Option<u64>,
-    ) -> Vec<Bid> {
+    ) -> Vec<BidResponse> {
         //get the set of token IDs for sale for the given account ID
         let by_owner_id = self.bids_by_owner_id.get(&account_id);
         //if there was some set, we set the sales variable equal to that set. If there wasn't, sales is set to an empty vector
@@ -181,23 +198,32 @@ impl Contract {
             //we'll map the token IDs which are strings into Sale objects
             .map(|id| {
                 log!("Searching id: {}", id);
-                self.bids.get(&id).unwrap()
+                let bid = self.bids.get(&id).unwrap();
+                BidResponse { id, bid }
             })
             //since we turned the keys into an iterator, we need to turn it back into a vector to return
             .collect()
     }
 
     /// Get a ask information for a given unique ask ID (contract + DELIMITER + uuid)
-    pub fn get_ask(&self, id: &TokenId) -> Option<Ask> {
+    pub fn get_ask(&self, id: &TokenId) -> Option<AskResponse> {
         //try and get the sale object for the given unique sale ID. Will return an option since
         //we're not guaranteed that the unique sale ID passed in will be valid.
-        self.asks.get(id)
+        let ask = self.asks.get(id).unwrap();
+        Some(AskResponse {
+            id: id.to_owned(),
+            ask,
+        })
     }
 
     /// Get a bid information for a given unique bid ID (contract + DELIMITER + uuid)
-    pub fn get_bid(&self, id: &TokenId) -> Option<Bid> {
+    pub fn get_bid(&self, id: &TokenId) -> Option<BidResponse> {
         //try and get the sale object for the given unique sale ID. Will return an option since
         //we're not guaranteed that the unique sale ID passed in will be valid.
-        self.bids.get(id)
+        let bid = self.bids.get(id).unwrap();
+        Some(BidResponse {
+            id: id.to_owned(),
+            bid,
+        })
     }
 }
