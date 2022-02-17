@@ -58,7 +58,7 @@ const CustomizedTable = ({ headData, bodyData, renderCell }) => {
               </TableRow>
             </TableHead>
             <TableBody>
-              {bodyData?.length &&
+              {bodyData?.length > 0 &&
                 bodyData
                   .slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage)
                   .map((el, idx) => {

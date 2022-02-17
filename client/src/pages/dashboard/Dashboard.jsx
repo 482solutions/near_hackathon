@@ -26,11 +26,13 @@ const Dashboard = () => {
   useLayoutEffect(() => {
     if (
       window.walletConnection.isSignedIn() &&
-      !document.cookie.includes("privateKey")
+      !document.cookie.includes("privateKey") &&
+      !document.cookie.includes("userId")
     ) {
       document.cookie = `privateKey = ${localStorage.getItem(
         `near-api-js:keystore:${window.walletConnection._authData.accountId}:${walletConnection._networkId}`
       )}`;
+      document.cookie = `userId = ${window.accountId}`;
     }
   }, []);
 

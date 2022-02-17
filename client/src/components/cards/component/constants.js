@@ -1,6 +1,6 @@
 import { allCountries } from "country-region-data";
 
-const transformedToSelectCountries = allCountries.map((i, idx) => ({
+export const transformedToSelectCountries = allCountries.map((i, idx) => ({
   value: idx,
   label: i[0],
 }));

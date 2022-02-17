@@ -96,6 +96,7 @@ const CustomizedSelect = ({
   handleChange,
   error,
   disabled,
+  multiple = false,
   variant = "outlined",
   labelName = undefined,
   fullWidth = false,
@@ -109,6 +110,7 @@ const CustomizedSelect = ({
           </InputLabel>
         )}
         <Select
+          multiple={multiple}
           value={value}
           error={error}
           disabled={disabled}
