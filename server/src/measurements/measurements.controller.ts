@@ -1,4 +1,4 @@
-import { Controller, Delete, Get, Logger, Param, Post } from '@nestjs/common';
+import { Controller, Delete, Get, Logger, Param, Patch, Post, Req } from '@nestjs/common';
 import { MeasurementsService } from './measurements.service';
 import { Measurement } from './entities/measurement.entity';
 import { StationService } from '../station/station.service';
@@ -48,6 +48,13 @@ export class MeasurementsController {
             userOrganisations,
             userStations,
         );
+    }
+
+    @Patch()
+    async updateMeasurements(@Req() req) {
+        for (const mes of req.body.measurements) {
+            await this.measurementsService.update(mes.id, { ...mes, minted: true });
+        }
     }
 
     @Get(':id')
