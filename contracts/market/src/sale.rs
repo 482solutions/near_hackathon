@@ -13,7 +13,7 @@ pub struct Ask {
 
     /// NFT token Id
     pub token_id: TokenId,
-    /// Id of approval
+    /// ID of approval
     pub approval_id: u64,
 
     /// Sale prices in yoctoNEAR that the token is listed for
@@ -120,7 +120,7 @@ impl Contract {
             //if this fails, the remove will revert
             Position::Ask => {
                 let ask = self.get_ask(&id).expect("This ask does not exist");
-                require!(caller == ask.owner_id, "You cannot do that!");
+                require!(caller == ask.ask.owner_id, "You cannot do that!");
                 let ask: Ask = self.internal_remove_ask(id);
                 PromiseOrValue::Value(ask)
             }
@@ -220,8 +220,8 @@ impl Contract {
             "You are not allowed to do that"
         );
 
-        let ask = self.get_ask(&ask_id).expect("This ask does not exist");
-        let bid = self.get_bid(&bid_id).expect("This bid does not exist");
+        let ask = self.get_ask(&ask_id).expect("This ask does not exist").ask;
+        let bid = self.get_bid(&bid_id).expect("This bid does not exist").bid;
 
         require!(
             ask.sale_conditions.eq(&bid.sale_conditions),
