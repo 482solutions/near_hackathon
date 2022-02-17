@@ -28,6 +28,7 @@ export class StationService {
     ) {}
 
     public async getAllStations(organisations: Organisation[]): Promise<Station[]> {
+        let found;
         const query = this.stationRepository.createQueryBuilder('station');
         try {
             query.where('station.organisationRegistryNumber IN (:organisationRegistryNumbers)', {
@@ -37,11 +38,15 @@ export class StationService {
                     }, [])
                     .toString(),
             });
-            return await query.getMany();
+            found = await query.getMany();
         } catch (error) {
             this.logger.error(`Failed to get all stations: `, error.stack);
             throw new InternalServerErrorException();
         }
+        if (!found) {
+            throw new NotFoundException(`Stations not found`);
+        }
+        return found;
     }
 
     public async getStationById(
