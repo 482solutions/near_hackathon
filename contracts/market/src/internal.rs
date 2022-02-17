@@ -6,7 +6,7 @@ impl Contract {
         // Increment id
         self.asks_id += 1;
 
-        let id = format!("{}.{}.{}", ask.owner_id, ask.token_id, self.asks_id);
+        let id = self.asks_id.to_string();
 
         self.asks.insert(&id, &ask);
 
@@ -48,7 +48,7 @@ impl Contract {
         // Increment id
         self.bids_id += 1;
 
-        let id = format!("{}.{}", bid.owner_id, self.bids_id);
+        let id = self.bids_id.to_string();
 
         require!(self.bids.insert(&id, &bid).is_none(), "Bid already exist");
 
