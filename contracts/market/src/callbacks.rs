@@ -49,12 +49,14 @@ impl NonFungibleTokenApprovalReceiver for Contract {
         let AskArgs { sale_conditions } =
             near_sdk::serde_json::from_str(&msg).expect("Not valid AskArgs");
 
+        let price: u128 = sale_conditions.parse().unwrap();
+
         let ask = near_sdk::serde_json::to_string(&self.internal_place_ask(Ask {
-            owner_id,        //owner of the sale / token
-            approval_id,     //approval ID for that token that was given to the market
-            nft_contract_id, //NFT contract the token was minted on
-            token_id,        //the actual token ID
-            sale_conditions, //the sale conditions
+            owner_id,               //owner of the sale / token
+            approval_id,            //approval ID for that token that was given to the market
+            nft_contract_id,        //NFT contract the token was minted on
+            token_id,               //the actual token ID
+            sale_conditions: price, //the sale conditions
         }));
 
         PromiseOrValue::Value(ask.unwrap())

@@ -25,7 +25,7 @@ pub struct Ask {
 #[serde(crate = "near_sdk::serde")]
 pub struct AskArgs {
     /// Sale prices in yoctoNEAR that the token is listed for
-    pub sale_conditions: Balance,
+    pub sale_conditions: String,
 }
 
 /// Bid struct defines who want to buy, how much, and on what conditions
