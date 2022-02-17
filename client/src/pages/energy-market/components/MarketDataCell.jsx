@@ -15,7 +15,6 @@ const MarketDataCell = ({ data, keyWord }) => {
     ],
     Bids: [data.sale_conditions, "N/A", "N/A"],
   });
-  console.log(data);
 
   async function handlePurchase(tokenId) {
     const contract = await new Contract(
@@ -33,8 +32,8 @@ const MarketDataCell = ({ data, keyWord }) => {
 
   return (
     <TableRow>
-      {dataRef.current &&
-        dataRef.current[keyWord].map((i, idx) => {
+      {data.view &&
+        Object.values(data.view).map((i, idx) => {
           return <TableCell key={idx}>{i}</TableCell>;
         })}
     </TableRow>

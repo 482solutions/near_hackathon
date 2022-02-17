@@ -86,65 +86,7 @@ const InputsData = [
   },
 ];
 
-const init = { toggleValue: "one_time_purchase" };
-
-const FormSection = ({ asks }) => {
-  const [form, setForm] = useState({ toggleValue: "one_time_purchase" });
-  const [nfts, setNfts] = useState();
-
-  const handleFormChange = useCallback((e, labelName) => {
-    setForm((prev) => ({ ...prev, [labelName]: e.target.value }));
-  }, []);
-
-  useEffect(() => {
-    (async () => {
-      const res = await getNFTs();
-      if (res) {
-        const deviceInfo = res.map((i) => {
-          const parsed = JSON.parse(i.metadata.extra);
-          return { ...i, metadata: { ...i.metadata, extra: parsed } };
-        });
-
-        let result = [];
-        for await (let data of deviceInfo) {
-          if (data.metadata.extra.organisation && data.metadata.extra.station) {
-            try {
-              const resStation = await getStationByOrgAndStationName(
-                data.metadata.extra.organisation,
-                data.metadata.extra.station
-              );
-              result.push({ ...data, stationInfo: resStation });
-            } catch (e) {}
-          }
-        }
-
-        setNfts(
-          result.map((i) => {
-            return {
-              id: i.token_id,
-              "Device Type": i.stationInfo.stationEnergyType,
-              Date: new Date(i.metadata.issued_at / 1000000),
-              "Grid Operator": allCountries[i.stationInfo?.countryId][0],
-              MWh: i.metadata.extra.generatedEnergy,
-              Status: "Exchange",
-              "Device owner": i.owner_id,
-              "Generation Start Date": new Date(i.metadata.extra.startDate),
-              "Generation End Date": new Date(i.metadata.extra.endDate),
-              "Certified Energy (MWh)": i.metadata.extra.generatedEnergy,
-              "Generation Date": new Date(i.metadata.issued_at / 1000000),
-              "Certificate ID": i.token_id,
-              Certified: i.metadata.extra.generatedEnergy,
-              "Facility name": i.stationInfo.name,
-              // "Certified by registry",
-            };
-          })
-        );
-      }
-    })();
-  }, []);
-
-  console.log(nfts);
-
+const FormSection = ({ asks, form, setForm, handleFormChange, placeBid }) => {
   return (
     <Box sx={FirstBoxStyle}>
       <RegularText content={"Browse by keyword and attributes"} />
@@ -161,7 +103,6 @@ const FormSection = ({ asks }) => {
               <RegularText content={i.labelName} variant="small" />
               <CustomizedSelect
                 fullWidth
-                multiple
                 options={i.options}
                 value={form[i.labelName] ?? []}
                 handleChange={(e) => handleFormChange(e, i.labelName)}
@@ -171,14 +112,7 @@ const FormSection = ({ asks }) => {
           );
         })}
       </Grid>
-      {/* <Grid container sx={{ marginTop: "24px" }}>
-        <CustomizedToggleButton
-          toggleData={toggleData}
-          passUpToggleValue={(e) =>
-            setForm((prev) => ({ ...prev, toggleValue: e }))
-          }
-        />
-      </Grid> */}
+
       <Grid container gap={"20px"} sx={{ marginTop: "32px" }}>
         {InputsData.map((i) => {
           return (
@@ -198,12 +132,13 @@ const FormSection = ({ asks }) => {
       <Grid container sx={ButtonsContainer}>
         <SecondaryButton
           text={"Clear All"}
-          onClick={() => setForm(init)}
+          onClick={() => setForm({})}
           disabled={!window.walletConnection.isSignedIn()}
         />
         <CreateButton
           text="Place Bid Order"
           disabled={!window.walletConnection.isSignedIn()}
+          onClick={() => placeBid()}
         />
       </Grid>
     </Box>
