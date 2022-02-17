@@ -38,7 +38,7 @@ const CellsModalSection = ({
           sale_conditions: `${price}000000000000000000000000`,
         }),
       },
-      undefined,
+      "300000000000000",
       "1510000000000000000000"
     );
     setIsExchange((prev) => ({ ...prev, [ownerId]: true }));
