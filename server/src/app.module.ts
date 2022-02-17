@@ -13,9 +13,13 @@ import { ConfigModule } from '@nestjs/config';
 import { NftModule } from "./nft/nft.module";
 import { DeployModule } from './deploy/deploy.module';
 import { NearModule } from "./near/near.module";
+import { ScheduleModule } from "@nestjs/schedule";
+import { TasksModule } from "./tasks/tasks.module";
+import { MarketModule } from './market/market.module';
 
 @Module({
     imports: [
+        ScheduleModule.forRoot(),
         ConfigModule.forRoot({ isGlobal: true }),
         NearModule,
         TypeOrmModule.forRoot(typeOrmConfig),
@@ -25,6 +29,8 @@ import { NearModule } from "./near/near.module";
         NftModule,
         OrganisationModule,
         MeasurementsModule,
+        MarketModule,
+        TasksModule,
     ],
 })
 export class AppModule {}

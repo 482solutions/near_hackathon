@@ -30,16 +30,16 @@ export class DeployService implements OnModuleInit {
         this.logger.error("Market sub-account does not exist, creating it now and deploying");
         market = await this.near.deploy("market", marketContract);
 
+        await this.near.initContract(market, "new", { owner_id: ownerId });
         return await market.state();
       }
     });
 
     const nftState = await nft.state();
 
+
     if (!isDeployed(marketState.code_hash)) {
       this.logger.warn("Market contract is not deployed");
-      /* TODO: Not sure what to do rn, because cannot figure out how to properly store
-       creds after account creation (probably need to manually create JSON-file */
       await market.deployContract(marketContract);
     } else {
       this.logger.log("Market already deployed");
@@ -51,7 +51,8 @@ export class DeployService implements OnModuleInit {
           this.logger.log("Initializing market contract");
           await this.near.initContract(market, "new", { owner_id: ownerId });
         }
-      }, 10000);
+        this.logger.log(`${JSON.stringify(market_state)}`)
+      }, 1000);
 
 
     }
