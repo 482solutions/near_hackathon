@@ -33,7 +33,10 @@ export const passUpValueCallback = async (
     setData((prev) => ({ ...prev, ...InputsData }));
   }
   if (currentIterable.title === "Stations" && eacMintType === "Automatically") {
-    const res = await getMeasurments(localStorage.organization, value);
+    const res = await getMeasurments(
+      localStorage.getItem("organisation"),
+      value
+    );
     measurmentGlobal = [...res];
 
     if (res && !res.length) return setDisableSubmitBtn(true);
