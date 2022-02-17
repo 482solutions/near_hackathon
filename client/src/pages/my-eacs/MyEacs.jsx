@@ -59,56 +59,50 @@ const bodyData = [
 ];
 
 const MyEacs = () => {
-  const [eacs, setEacs] = useState();
   const [body, setBody] = useState();
-
-  const transformedDataOfEacsToBodyData = useMemo(() => {
-    if (!eacs) return null;
-    (async () => {
-      const deviceInfo = eacs.map((i) => {
-        const parsed = JSON.parse(i.metadata.extra);
-        return { ...i, metadata: { ...i.metadata, extra: parsed } };
-      });
-
-      let result = [];
-      for await (let data of deviceInfo) {
-        if (data.metadata.extra.organisation && data.metadata.extra.station) {
-          try {
-            const res = await getStationByOrgAndStationName(
-              data.metadata.extra.organisation,
-              data.metadata.extra.station
-            );
-            result.push({ ...data, stationInfo: res });
-          } catch (e) {}
-        }
-      }
-      setBody(
-        result.map((i) => {
-          console.log(i.metadata.issued_at);
-          return {
-            "Device Type": i.stationInfo.stationEnergyType,
-            Date: i.metadata.extra.startDate,
-            "Grid Operator": allCountries[i.stationInfo.countryId][0],
-            MWh: i.metadata.extra.generatedEnergy,
-            Status: "Exchange",
-          };
-        })
-      );
-    })();
-    //  {
-    //   "Device Type": "Solar",
-    //   Date: "01/02/2022",
-    //   "Grid Operator": "Germany",
-    //   MWh: "400",
-    //   Status: "Archivated",
-    // },
-  }, [eacs]);
 
   useEffect(() => {
     (async function () {
-      const res = await getNFTs();
+      const res = await getNFTs(window.accountId);
       if (res) {
-        setEacs(res);
+        const deviceInfo = res.map((i) => {
+          const parsed = JSON.parse(i.metadata.extra);
+          return { ...i, metadata: { ...i.metadata, extra: parsed } };
+        });
+
+        let result = [];
+        for await (let data of deviceInfo) {
+          if (data.metadata.extra.organisation && data.metadata.extra.station) {
+            try {
+              const resStation = await getStationByOrgAndStationName(
+                data.metadata.extra.organisation,
+                data.metadata.extra.station
+              );
+              result.push({ ...data, stationInfo: resStation });
+            } catch (e) {}
+          }
+        }
+        setBody(
+          result.map((i) => {
+            return {
+              id: i.token_id,
+              "Device Type": i.stationInfo.stationEnergyType,
+              Date: new Date(i.metadata.issued_at / 1000000),
+              "Grid Operator": allCountries[i.stationInfo.countryId][0],
+              MWh: i.metadata.extra.generatedEnergy,
+              Status: "Exchange",
+              "Device owner": i.owner_id,
+              "Generation Start Date": new Date(i.metadata.extra.startDate),
+              "Generation End Date": new Date(i.metadata.extra.endDate),
+              "Certified Energy (MWh)": i.metadata.extra.generatedEnergy,
+              "Generation Date": new Date(i.metadata.issued_at / 1000000),
+              // "Certificate ID",
+              // "Certified",
+              // "Facility name",
+              // "Certified by registry",
+            };
+          })
+        );
       }
     })();
   }, []);

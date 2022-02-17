@@ -1,8 +1,9 @@
 import { Button, Grid, Box } from "@mui/material";
-import React from "react";
+import { Contract, transactions } from "near-api-js";
+
+import React, { useState } from "react";
 import CreateButton from "../../../components/buttons/CreateButton";
 import SecondaryButton from "../../../components/buttons/SecondaryButton";
-import CustomizedInput from "../../../components/inputs/CustomizedInput";
 import CustomizedReadInput from "../../../components/inputs/CustomizedReadInput";
 import CustomizedModal from "../../../components/modal/CustomizedModal";
 import CustomizedSelect from "../../../components/select/CustomizedSelect";
@@ -10,19 +11,52 @@ import TitleText from "../../../components/texts/TitleText";
 
 const inputNames = ["Facility", "Creation time", "MWh", "Price", "Currency"];
 
-const CellsModalSection = ({ id, isModalOpen, setIsModalOpen }) => {
+const CellsModalSection = ({
+  data,
+  isModalOpen,
+  setIsModalOpen,
+  setIsExchange,
+}) => {
+  const [value, setValue] = useState(0);
+  const [disabled, setDisabled] = useState(false);
+
+  const handleSubmit = async (id, ownerId, price) => {
+    const contract = await new Contract(
+      window.walletConnection.account(),
+      "dev-1645073849820-60274470736035",
+      {
+        viewMethods: [],
+        changeMethods: ["nft_approve"],
+      }
+    );
+
+    await contract["nft_approve"](
+      {
+        token_id: id,
+        account_id: "market.dev-1645073849820-60274470736035",
+        msg: JSON.stringify({
+          sale_conditions: `${price}000000000000000000000000`,
+        }),
+      },
+      undefined,
+      "1510000000000000000000"
+    );
+    setIsExchange((prev) => ({ ...prev, [ownerId]: true }));
+  };
+
   return (
     <CustomizedModal
       open={isModalOpen}
       handleClose={() => setIsModalOpen(false)}
     >
-      <TitleText title={`Publish certificate no #${id} for sale`} />
+      <TitleText title={`Publish certificate no #${data.id} for sale`} />
       <Grid container flexDirection={"column"} gap="19px">
         {inputNames.map((i, idx) => {
           if (i === "Currency") {
             return (
               <CustomizedSelect
-                options={[{ value: "asd", label: "asd" }]}
+                options={[{ value: "Near", label: "Near" }]}
+                value={"Near"}
                 variant="standard"
                 labelName={i}
                 key={idx}
@@ -30,9 +64,28 @@ const CellsModalSection = ({ id, isModalOpen, setIsModalOpen }) => {
               />
             );
           }
+          if (i === "Price") {
+            return (
+              <Grid key={idx}>
+                <CustomizedReadInput
+                  controlled
+                  type="number"
+                  labelName={i}
+                  value={value}
+                  onChange={(e) => {
+                    setValue(e.target.value);
+                  }}
+                />
+              </Grid>
+            );
+          }
           return (
             <Grid key={idx}>
-              <CustomizedReadInput labelName={i} />
+              <CustomizedReadInput
+                defaultValue={data[i]}
+                disabled
+                labelName={i}
+              />
             </Grid>
           );
         })}
@@ -54,7 +107,11 @@ const CellsModalSection = ({ id, isModalOpen, setIsModalOpen }) => {
             button: { fontSize: "14px" },
           }}
         >
-          <CreateButton text="Publish for sale" />
+          <CreateButton
+            text="Publish for sale"
+            onClick={() => handleSubmit(data.id, data.accountId, value)}
+            disabled={disabled}
+          />
         </Box>
       </Grid>
     </CustomizedModal>

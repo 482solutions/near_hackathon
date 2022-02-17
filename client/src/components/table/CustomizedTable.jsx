@@ -1,4 +1,5 @@
 import {
+  Grid,
   Paper,
   Table,
   TableBody,
@@ -11,6 +12,7 @@ import {
 import React from "react";
 import EacsTableCell from "../../pages/my-eacs/components/EacsTableCell";
 import { TableCellStyle } from "../../pages/my-eacs/MyEacs";
+import CustomizedLoader from "../loader/CustomizedLoader";
 
 const TableContainerStyles = {
   padding: "56px",
@@ -39,64 +41,68 @@ const CustomizedTable = ({ headData, bodyData, renderCell }) => {
   };
   return (
     <>
-      <TableContainer component={Paper} sx={TableContainerStyles}>
-        <Table size="small">
-          <TableHead>
-            <TableRow sx={TableHeadStyle}>
-              {headData.map((i) => {
-                return (
-                  <TableCell key={i} sx={TableCellStyle}>
-                    {i}
-                  </TableCell>
-                );
-              })}
-            </TableRow>
-          </TableHead>
-          <TableBody>
-            {bodyData &&
-              bodyData
-                .slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage)
-                .map((el, idx) => {
-                  return renderCell(el, idx);
+      {!bodyData ? (
+        <CustomizedLoader type="circle" />
+      ) : (
+        <TableContainer component={Paper} sx={TableContainerStyles}>
+          <Table size="small">
+            <TableHead>
+              <TableRow sx={TableHeadStyle}>
+                {headData.map((i) => {
+                  return (
+                    <TableCell key={i} sx={TableCellStyle}>
+                      {i}
+                    </TableCell>
+                  );
                 })}
-          </TableBody>
-        </Table>
-        {
-          <TablePagination
-            rowsPerPageOptions={[10, 25, 100]}
-            component="div"
-            count={bodyData?.length ?? 0}
-            rowsPerPage={rowsPerPage}
-            page={page}
-            onPageChange={handleChangePage}
-            onRowsPerPageChange={handleChangeRowsPerPage}
-            SelectProps={{
-              MenuProps: {
-                sx: {
-                  li: {
-                    color: "rgba(103, 103, 103, 0.6)",
-                    fontWeight: 400,
-                    fontSize: "14px",
+              </TableRow>
+            </TableHead>
+            <TableBody>
+              {bodyData?.length &&
+                bodyData
+                  .slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage)
+                  .map((el, idx) => {
+                    return renderCell(el, idx);
+                  })}
+            </TableBody>
+          </Table>
+          {
+            <TablePagination
+              rowsPerPageOptions={[10, 25, 100]}
+              component="div"
+              count={bodyData?.length ?? 0}
+              rowsPerPage={rowsPerPage}
+              page={page}
+              onPageChange={handleChangePage}
+              onRowsPerPageChange={handleChangeRowsPerPage}
+              SelectProps={{
+                MenuProps: {
+                  sx: {
+                    li: {
+                      color: "rgba(103, 103, 103, 0.6)",
+                      fontWeight: 400,
+                      fontSize: "14px",
+                    },
                   },
                 },
-              },
-            }}
-            sx={{
-              svg: {
-                right: "-5px",
-              },
-              p: {
-                color: "rgba(103, 103, 103, 0.6)",
-                fontWeight: 400,
-                fontSize: "16px",
-              },
-              "p:first-of-type, p:last-of-type": {
-                fontSize: "14px",
-              },
-            }}
-          />
-        }
-      </TableContainer>
+              }}
+              sx={{
+                svg: {
+                  right: "-5px",
+                },
+                p: {
+                  color: "rgba(103, 103, 103, 0.6)",
+                  fontWeight: 400,
+                  fontSize: "16px",
+                },
+                "p:first-of-type, p:last-of-type": {
+                  fontSize: "14px",
+                },
+              }}
+            />
+          }
+        </TableContainer>
+      )}
     </>
   );
 };
