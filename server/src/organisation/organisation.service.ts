@@ -21,13 +21,18 @@ export class OrganisationService {
 
     public async getAllOrganisations(userId: string): Promise<Organisation[]> {
         const query = this.organisationRepository.createQueryBuilder('organisation');
+        let found;
         try {
             query.where('organisation.userId = :userId', { userId: userId });
-            return await query.getMany();
+            found = await query.getMany();
         } catch (error) {
             this.logger.error(`Failed to get all stations: `, error.stack);
             throw new InternalServerErrorException();
         }
+        if (!found || found.length === 0) {
+            throw new NotFoundException(`Organisations not found`);
+        }
+        return found;
     }
 
     public async getOrganisationById(

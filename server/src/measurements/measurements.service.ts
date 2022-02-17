@@ -89,6 +89,19 @@ export class MeasurementsService {
         return found;
     }
 
+    public async update(id: number, measurement: Measurement) {
+        try {
+            await this.measurementRepository
+                .createQueryBuilder()
+                .update(Measurement)
+                .set(measurement)
+                .where('id = :id', { id })
+                .execute();
+        } catch (e) {
+            this.logger.error(`Failed to update measurement ${id}`, e.stack);
+        }
+    }
+
     findOne(id: number) {
         return `This action returns a #${id} measurement`;
     }
