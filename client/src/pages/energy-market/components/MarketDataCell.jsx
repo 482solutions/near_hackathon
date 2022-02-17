@@ -20,7 +20,7 @@ const MarketDataCell = ({ data, keyWord }) => {
   async function handlePurchase(tokenId) {
     const contract = await new Contract(
       window.walletConnection.account(),
-      "market.dev-1645073849820-60274470736035",
+      `market.${process.env.REACT_APP_NFT_DEV_ACCOUNT_ID}`,
       {
         viewMethods: [],
         changeMethods: ["direct_ask_sell"],

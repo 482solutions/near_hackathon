@@ -1,5 +1,5 @@
 import { Box, Grid } from "@mui/material";
-import allCountries from "country-region-data";
+import { allCountries } from "country-region-data";
 import { Contract } from "near-api-js";
 import React, { useCallback, useEffect, useState } from "react";
 import {
@@ -38,17 +38,17 @@ const SelectsData = [
     labelName: "Location",
     options: transformedToSelectCountries,
   },
-  {
-    labelName: "Grid operator",
-    options: [
-      "Solar",
-      "Wind",
-      "Liquid",
-      "Hydro - Electric head",
-      "Gaseous",
-      "Thermal",
-    ].map((i) => ({ label: i, value: i })),
-  },
+  // {
+  //   labelName: "Grid operator",
+  //   options: [
+  //     "Solar",
+  //     "Wind",
+  //     "Liquid",
+  //     "Hydro - Electric head",
+  //     "Gaseous",
+  //     "Thermal",
+  //   ].map((i) => ({ label: i, value: i })),
+  // },
 ];
 
 const toggleData = [
@@ -124,7 +124,7 @@ const FormSection = ({ asks }) => {
               id: i.token_id,
               "Device Type": i.stationInfo.stationEnergyType,
               Date: new Date(i.metadata.issued_at / 1000000),
-              "Grid Operator": allCountries[i.stationInfo.countryId][0],
+              "Grid Operator": allCountries[i.stationInfo?.countryId][0],
               MWh: i.metadata.extra.generatedEnergy,
               Status: "Exchange",
               "Device owner": i.owner_id,
@@ -132,9 +132,9 @@ const FormSection = ({ asks }) => {
               "Generation End Date": new Date(i.metadata.extra.endDate),
               "Certified Energy (MWh)": i.metadata.extra.generatedEnergy,
               "Generation Date": new Date(i.metadata.issued_at / 1000000),
-              // "Certificate ID",
-              // "Certified",
-              // "Facility name",
+              "Certificate ID": i.token_id,
+              Certified: i.metadata.extra.generatedEnergy,
+              "Facility name": i.stationInfo.name,
               // "Certified by registry",
             };
           })
@@ -143,9 +143,7 @@ const FormSection = ({ asks }) => {
     })();
   }, []);
 
-  useEffect(() => {
-    console.log(nfts);
-  }, [nfts]);
+  console.log(nfts);
 
   return (
     <Box sx={FirstBoxStyle}>
@@ -167,19 +165,20 @@ const FormSection = ({ asks }) => {
                 options={i.options}
                 value={form[i.labelName] ?? []}
                 handleChange={(e) => handleFormChange(e, i.labelName)}
+                disabled={!window.walletConnection.isSignedIn()}
               />
             </Grid>
           );
         })}
       </Grid>
-      <Grid container sx={{ marginTop: "24px" }}>
+      {/* <Grid container sx={{ marginTop: "24px" }}>
         <CustomizedToggleButton
           toggleData={toggleData}
           passUpToggleValue={(e) =>
             setForm((prev) => ({ ...prev, toggleValue: e }))
           }
         />
-      </Grid>
+      </Grid> */}
       <Grid container gap={"20px"} sx={{ marginTop: "32px" }}>
         {InputsData.map((i) => {
           return (
@@ -191,13 +190,21 @@ const FormSection = ({ asks }) => {
               labelName={i.labelName}
               adornMent={i.adornMent}
               adornMentDirection={i.adornMentDirection && "startAdornment"}
+              disabled={!window.walletConnection.isSignedIn()}
             />
           );
         })}
       </Grid>
       <Grid container sx={ButtonsContainer}>
-        <SecondaryButton text={"Clear All"} onClick={() => setForm(init)} />
-        <CreateButton text="Place Bid Order" />
+        <SecondaryButton
+          text={"Clear All"}
+          onClick={() => setForm(init)}
+          disabled={!window.walletConnection.isSignedIn()}
+        />
+        <CreateButton
+          text="Place Bid Order"
+          disabled={!window.walletConnection.isSignedIn()}
+        />
       </Grid>
     </Box>
   );

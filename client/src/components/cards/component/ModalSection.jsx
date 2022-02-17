@@ -184,7 +184,8 @@ const ModalSection = ({ btnText, keyWord, img }) => {
                   setInfoModalIsOpen,
                   setInfoType,
                   getAndTransformToSelectStations,
-                  setLoading
+                  setLoading,
+                  toggleValue
                 )
               }
             />
