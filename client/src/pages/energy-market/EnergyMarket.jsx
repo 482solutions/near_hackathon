@@ -37,6 +37,7 @@ const EnergyMarket = () => {
   const [bids, setBids] = useState();
   const [form, setForm] = useState({});
   const immutableData = useRef([]);
+  const immutableBids = useRef([]);
 
   const handleFormChange = useCallback(
     (e, labelName) => {
@@ -47,16 +48,34 @@ const EnergyMarket = () => {
           (!form["Device type"] || !form["Device type"].length)
         ) {
           setAsks(immutableData.current);
+          setBids(immutableBids.current);
         } else if (!e.target.value.length && form["Device type"]) {
           const filtered = immutableData.current.filter((i) =>
             form["Device type"].includes(i.metadata["Device Type"])
           );
+          const filteredBid = immutableBids.current.filter(
+            (i) =>
+              form["Device type"].some((r) =>
+                i.metadata["Device Type"].includes(r)
+              )
+            // form["Device type"].includes(i.metadata["Device Type"])
+          );
           setAsks(filtered);
+          setBids(filteredBid);
         } else {
           const filtered = immutableData.current.filter((i) =>
             e.target.value.includes(i.metadata.Location)
           );
+          const filteredBids = immutableBids.current.filter(
+            (i) =>
+              e.target.value.some(
+                (r) =>
+                  i.metadata["Location"] && i.metadata["Location"].includes(r)
+              )
+            // e.target.value.includes(i.metadata.Location)
+          );
           setAsks(filtered);
+          setBids(filteredBids);
         }
       }
       if (labelName === "Device type") {
@@ -65,15 +84,34 @@ const EnergyMarket = () => {
           (!form["Location"] || !form["Location"].length)
         ) {
           setAsks(immutableData.current);
+          setBids(immutableBids.current);
         } else if (!e.target.value.length && !form["Location"]) {
           const filtered = immutableData.current.filter((i) =>
             form["Location"].includes(i.metadata.Location)
           );
+          const filteredBids = immutableBids.current.filter(
+            (i) => form["Location"].some((r) => i.metadata.Location.includes(r))
+            // form["Location"].includes(i.metadata.Location)
+          );
+          setBids(filteredBids);
           setAsks(filtered);
         } else {
+          debugger;
           const filtered = immutableData.current.filter((i) =>
             e.target.value.includes(i.metadata["Device Type"])
           );
+          const filteredBids = immutableBids.current.filter(
+            (i) =>
+              e.target.value.some(
+                (r) =>
+                  i.metadata["Device Type"] &&
+                  i.metadata["Device Type"].includes(r)
+              )
+
+            // e.target.value.includes(i.metadata["Device Type"])
+          );
+          setBids(filteredBids);
+
           setAsks(filtered);
         }
       }
@@ -81,10 +119,6 @@ const EnergyMarket = () => {
     },
     [immutableData, form]
   );
-
-  useEffect(() => {
-    console.log(form);
-  }, [form]);
 
   useEffect(() => {
     (async () => {
@@ -129,10 +163,13 @@ const EnergyMarket = () => {
           token_id: i.ask.token_id,
         });
         if (resNFT) {
-          NFTs.push({ ...resNFT, sale_conditions: i.ask.sale_conditions });
+          NFTs.push({
+            ...resNFT,
+            sale_conditions: i.ask.sale_conditions,
+            ask_id: i.id,
+          });
         }
       }
-      console.log(resAsks, resBids, NFTs);
       const deviceInfo = NFTs.map((i) => {
         const parsed = JSON.parse(i.metadata.extra);
         return { ...i, metadata: { ...i.metadata, extra: parsed } };
@@ -162,7 +199,7 @@ const EnergyMarket = () => {
                 }
                 onClick={() =>
                   handlePurchase(
-                    i.token_id,
+                    i.ask_id,
                     i.sale_conditions.toLocaleString("fullwide", {
                       useGrouping: false,
                     })
@@ -179,22 +216,32 @@ const EnergyMarket = () => {
       immutableData.current = askPayload;
 
       setAsks(askPayload);
-      setBids(
-        resBids.map((i) => {
-          return {
-            metadata: { id: i.id },
-            view: {
-              price: formatNearAmount(
-                i.bid.sale_conditions.toLocaleString("fullwide", {
-                  useGrouping: false,
-                })
-              ),
-              MWh: "N/A",
-              type: "N/A",
-            },
-          };
-        })
-      );
+
+      const parsedBids = resBids.map((i) => {
+        const parsed = i.bid.extra ? JSON.parse(i.bid.extra) : {};
+        return { ...i, bid: { ...i.bid, extra: parsed } };
+      });
+
+      const bidsPayload = parsedBids.map((i) => {
+        return {
+          metadata: {
+            id: i.id,
+            "Device Type": i.bid.extra["Device type"],
+            Location: i.bid.extra.Location,
+          },
+          view: {
+            price: formatNearAmount(
+              i.bid.sale_conditions.toLocaleString("fullwide", {
+                useGrouping: false,
+              })
+            ),
+            MWh: i.bid.extra.Energy ?? "N/A",
+            type: i.bid.extra["Device type"]?.[0] ?? "N/A",
+          },
+        };
+      });
+      immutableBids.current = bidsPayload;
+      setBids(bidsPayload);
     })();
   }, []);
 
@@ -217,7 +264,13 @@ const EnergyMarket = () => {
   }
 
   const placeBid = async () => {
-    if (!form["Energy*"] || !form["Price*"]) return;
+    if (
+      !form["Energy*"] ||
+      !form["Price*"] ||
+      !form["Device type"] ||
+      !form["Location"]
+    )
+      return;
     const contract = await new Contract(
       window.walletConnection.account(),
       `market.${process.env.REACT_APP_NFT_DEV_ACCOUNT_ID}`,
@@ -230,17 +283,29 @@ const EnergyMarket = () => {
       {
         amount: form["Energy*"],
         conditions: `${form["Price*"]}000000000000000000000000`,
+        extra: JSON.stringify({
+          "Device type": form["Device type"],
+          Location: form["Location"],
+          Energy: form["Energy*"],
+        }),
       },
       "300000000000000",
       `${form["Price*"]}000000000000000000000000`
     );
   };
 
+  const clearForm = useCallback(() => {
+    setForm({});
+    setAsks(immutableData.current);
+    setBids(immutableBids.current);
+  }, []);
+
   return (
     <Grid container sx={MainWrapperStyle} gap="27px" justifyContent={"center"}>
       <FormSection
         asks={asks}
         form={form}
+        clearForm={clearForm}
         setForm={setForm}
         placeBid={placeBid}
         handleFormChange={handleFormChange}

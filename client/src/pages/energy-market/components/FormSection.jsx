@@ -86,7 +86,7 @@ const InputsData = [
   },
 ];
 
-const FormSection = ({ asks, form, setForm, handleFormChange, placeBid }) => {
+const FormSection = ({ asks, form, handleFormChange, placeBid, clearForm }) => {
   return (
     <Box sx={FirstBoxStyle}>
       <RegularText content={"Browse by keyword and attributes"} />
@@ -134,7 +134,7 @@ const FormSection = ({ asks, form, setForm, handleFormChange, placeBid }) => {
       <Grid container sx={ButtonsContainer}>
         <SecondaryButton
           text={"Clear All"}
-          onClick={() => setForm({})}
+          onClick={() => clearForm()}
           disabled={!window.walletConnection.isSignedIn()}
         />
         <CreateButton
