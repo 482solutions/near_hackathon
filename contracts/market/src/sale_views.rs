@@ -189,12 +189,14 @@ impl Contract {
         //where to start pagination - if we have a from_index, we'll use that - otherwise start from 0 index
         let start = from.unwrap_or(0);
 
+        let limit = (limit.unwrap_or(0)) as usize;
+
         //iterate through the keys vector
         keys.iter()
             //skip to the index we specified in the start variable
             .skip(start as usize)
             //take the first "limit" elements in the vector. If we didn't specify a limit, use 0
-            .take(limit.unwrap_or(0) as usize)
+            .take(limit)
             //we'll map the token IDs which are strings into Sale objects
             .map(|id| {
                 log!("Searching id: {}", id);

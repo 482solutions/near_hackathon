@@ -257,8 +257,8 @@ impl Contract {
         let remove_bid = ext_self::resolve_position(bid_id, Position::Bid, current, ONE_YOCTO, CCC);
 
         transfer_nft
-            .then(remove_ask)
             .then(remove_bid)
+            .then(remove_ask)
             .then(Promise::new(ask.owner_id).transfer(ask.sale_conditions))
     }
 
