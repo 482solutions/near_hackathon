@@ -320,7 +320,11 @@ const EnergyMarket = () => {
           return (
             <DataSection
               title={el.title}
-              matchingData={immutableData.current.length}
+              matchingData={
+                el.title === "Asks"
+                  ? immutableData.current.length
+                  : immutableBids.current.length
+              }
               data={el.data}
               bodyData={el.title === "Asks" ? asks : bids}
               key={idx}
