@@ -64,6 +64,9 @@ const CustomizedTable = ({
             </TableHead>
             <TableBody>
               {bodyData?.length > 0 &&
+                bodyData.sort((a, b) => {
+                  return a.id - b.id;
+                }) &&
                 bodyData
                   .slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage)
                   .map((el, idx) => {

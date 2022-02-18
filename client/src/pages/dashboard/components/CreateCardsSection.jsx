@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useRef } from "react";
 import Card from "../../../components/cards/Card";
 import companyImg from "./assets/companyImg.svg";
 import stationsImg from "./assets/stationsImg.svg";
@@ -31,6 +31,8 @@ const cardsData = [
 ];
 
 const CreateCardsSection = () => {
+  const stationDataRef = useRef();
+
   return (
     <Grid container gap="40px" justifyContent={"center"} flexDirection={"row"}>
       {cardsData.map((el) => {
@@ -41,6 +43,7 @@ const CreateCardsSection = () => {
             img={el.img}
             btnText={el.btnText}
             key={el.id}
+            stationData={stationDataRef}
           />
         );
       })}

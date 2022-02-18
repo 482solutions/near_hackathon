@@ -19,7 +19,7 @@ const BoxStyle = {
   justifyContent: "space-between",
 };
 
-const Card = ({ title, img, description, btnText }) => {
+const Card = ({ title, img, description, btnText, stationData }) => {
   return (
     <Box sx={BoxStyle}>
       <TitleText title={title} />
@@ -28,6 +28,7 @@ const Card = ({ title, img, description, btnText }) => {
       <ModalSection
         btnText={btnText}
         keyWord={btnText.split(" ")[1]}
+        stationData={stationData}
         img={img}
       />
     </Box>
