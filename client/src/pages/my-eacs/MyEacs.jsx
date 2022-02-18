@@ -64,7 +64,7 @@ const MyEacs = () => {
   useEffect(() => {
     (async function () {
       const res = await getNFTs(window.accountId);
-      if (res) {
+      if (res && !res.kind) {
         const deviceInfo = res.map((i) => {
           const parsed = JSON.parse(i.metadata.extra);
           return { ...i, metadata: { ...i.metadata, extra: parsed } };
@@ -85,7 +85,7 @@ const MyEacs = () => {
         setBody(
           result.map((i) => {
             return {
-              id: i.token_id,
+              id: +i.token_id,
               "Device Type": i.stationInfo.stationEnergyType,
               Date: new Date(i.metadata.issued_at / 1000000),
               "Grid Operator": allCountries[i.stationInfo.countryId][0],

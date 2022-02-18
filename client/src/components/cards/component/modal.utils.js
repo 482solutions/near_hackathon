@@ -18,7 +18,8 @@ export const passUpValueCallback = async (
   keyWord,
   setData,
   eacMintType,
-  setDisableSubmitBtn
+  setDisableSubmitBtn,
+  clearDatas
 ) => {
   const payload = {
     [currentIterable.title]: value,
@@ -39,8 +40,12 @@ export const passUpValueCallback = async (
     );
     measurmentGlobal = [...res];
 
-    if (res && !res.length) return setDisableSubmitBtn(true);
+    if (res && !res.length) {
+      clearDatas();
+      return setDisableSubmitBtn(true);
+    }
     if (res && res.length) {
+      // clearDatas();
       // const resMocka = [
       //   {
       //     id: 1,

@@ -32,7 +32,7 @@ const CellsModalSection = ({
 
     await contract["nft_approve"](
       {
-        token_id: id,
+        token_id: `${id}`,
         account_id: `market.${process.env.REACT_APP_NFT_DEV_ACCOUNT_ID}`,
         msg: JSON.stringify({
           sale_conditions: `${price}000000000000000000000000`,

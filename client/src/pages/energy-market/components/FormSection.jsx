@@ -103,6 +103,7 @@ const FormSection = ({ asks, form, setForm, handleFormChange, placeBid }) => {
               <RegularText content={i.labelName} variant="small" />
               <CustomizedSelect
                 fullWidth
+                multiple
                 options={i.options}
                 value={form[i.labelName] ?? []}
                 handleChange={(e) => handleFormChange(e, i.labelName)}

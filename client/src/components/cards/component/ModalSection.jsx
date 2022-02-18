@@ -105,6 +105,13 @@ const ModalSection = ({ btnText, keyWord, img }) => {
     );
   };
 
+  const clearDatas = () => {
+    dataRef.current = initDataRef;
+    setError({});
+    setData(InputsData);
+    setDisableSubmitBtn(false);
+  };
+
   return (
     <>
       <CreateButton text={btnText} onClick={handleOpen} disabled={disabled} />
@@ -126,10 +133,7 @@ const ModalSection = ({ btnText, keyWord, img }) => {
               passUpToggleValue={(value) => {
                 setTogglevalue(value);
                 setResetData((prev) => !prev);
-                dataRef.current = initDataRef;
-                setError({});
-                setData(InputsData);
-                setDisableSubmitBtn(false);
+                clearDatas();
               }}
             />
           </Grid>
@@ -159,7 +163,8 @@ const ModalSection = ({ btnText, keyWord, img }) => {
                     keyWord,
                     setData,
                     toggleValue,
-                    setDisableSubmitBtn
+                    setDisableSubmitBtn,
+                    clearDatas
                   )
                 }
               />

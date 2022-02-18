@@ -6,6 +6,7 @@ import { useCallback } from "react";
 import {
   getNFTById,
   getNFTs,
+  getStation,
   getStationByOrgAndStationName,
 } from "../../api/api.service";
 import { BtnStyle } from "../my-eacs/components/EacsTableCell";
@@ -32,22 +33,22 @@ const SectionData = [
 ];
 
 const EnergyMarket = () => {
-  const [asks, setAsks] = useState([]);
-  const [bids, setBids] = useState([]);
+  const [asks, setAsks] = useState();
+  const [bids, setBids] = useState();
   const [form, setForm] = useState({});
   const immutableData = useRef([]);
 
   const handleFormChange = useCallback(
     (e, labelName) => {
       if (labelName === "Location") {
-        const filtered = immutableData.current.filter(
-          (i) => i.metadata.Location === e.target.value
+        const filtered = immutableData.current.filter((i) =>
+          e.target.value.includes(i.metadata.Location)
         );
         setAsks(filtered);
       }
       if (labelName === "Device type") {
-        const filtered = immutableData.current.filter(
-          (i) => i.metadata["Device Type"] === e.target.value
+        const filtered = immutableData.current.filter((i) =>
+          e.target.value.includes(i.metadata["Device Type"])
         );
         setAsks(filtered);
       }
@@ -132,15 +133,20 @@ const EnergyMarket = () => {
         let result = [];
         for await (let data of deviceInfo) {
           if (data.metadata.extra.organisation && data.metadata.extra.station) {
+            const station = await getStation();
             try {
               const resStation = await getStationByOrgAndStationName(
                 data.metadata.extra.organisation,
                 data.metadata.extra.station
               );
               result.push({ ...data, stationInfo: resStation });
-            } catch (e) {}
+            } catch (e) {
+              console.log(e);
+            }
           }
         }
+
+        debugger;
 
         const transRes = result.map((i) => ({
           id: i.token_id,
@@ -148,16 +154,17 @@ const EnergyMarket = () => {
           Location: i.stationInfo.countryId,
         }));
 
-        console.log("Asd");
-        const newArr = a.map((i) => {
-          const idx = transRes.findIndex((el) => el.id === i.metadata.id);
-          if (idx !== -1) {
-            return {
-              ...i,
-              metadata: transRes[idx],
-            };
-          }
-        });
+        const newArr = a
+          .map((i) => {
+            const idx = transRes.findIndex((el) => el.id === i.metadata.id);
+            if (idx !== -1) {
+              return {
+                ...i,
+                metadata: transRes[idx],
+              };
+            }
+          })
+          .filter((i) => i);
 
         setAsks(newArr);
         immutableData.current = newArr;
@@ -182,10 +189,13 @@ const EnergyMarket = () => {
   }, []);
 
   useEffect(() => {
-    getAsksFromContract();
+    if (
+      window.walletConnection.isSignedIn() &&
+      document.cookie.includes("userId")
+    ) {
+      getAsksFromContract();
+    }
   }, [getAsksFromContract]);
-
-  useEffect(() => {}, []);
 
   const placeBid = async () => {
     if (!form["Energy*"] || !form["Price*"]) return;
