@@ -34,14 +34,27 @@ export class MarketService {
         });
 
 
-        for (const bid of bids) {
-            const ask = asks.find(pred => pred.ask.sale_conditions === bid.bid.sale_conditions);
+        for (const currentBid of bids) {
+            const ask = asks.find(currentAsk => {
+                if (currentAsk.ask.sale_conditions === currentBid.bid.sale_conditions) {
+                    this.logger.log(`Find matching sale conditions Ask #${currentAsk.id} for Bid ${currentBid.id}`);
+                    if (currentAsk.ask.owner_id !== currentBid.bid.owner_id) {
+                        this.logger.log("Owners don't match, processing bid");
+                        return true
+                    } else {
+                        this.logger.warn("Owners match, skipping ask")
+                        return false
+                    }
+                } else {
+                    return false
+                }
+            });
 
             if (ask !== undefined) {
-                this.logger.log(`Processing ask #${ask.id} for bid #${bid.id}`)
+                this.logger.log(`Processing ask #${ask.id} for bid #${currentBid.id}`)
                 await this.contract["process_bid"]({
                     ask_id: ask.id,
-                    bid_id: bid.id
+                    bid_id: currentBid.id
                 }, GAS_FOR_CALL);
                 break;
             }
