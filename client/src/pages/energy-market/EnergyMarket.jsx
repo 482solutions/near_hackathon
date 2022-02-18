@@ -212,7 +212,7 @@ const EnergyMarket = () => {
         id: tokenId,
       },
       "300000000000000",
-      deposit
+      `${deposit.slice(0, -1)}2`
     );
   }
 
@@ -229,10 +229,10 @@ const EnergyMarket = () => {
     await contract["place_bid"](
       {
         amount: form["Energy*"],
-        conditions: `${form["Price*"]}000000000000000000000003`,
+        conditions: `${form["Price*"]}000000000000000000000000`,
       },
       "300000000000000",
-      `${form["Price*"]}000000000000000000000003`
+      `${form["Price*"]}000000000000000000000000`
     );
   };
 
