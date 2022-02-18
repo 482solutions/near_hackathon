@@ -38,6 +38,9 @@ pub struct Bid {
     /// Sale prices in yoctoNEAR that the token is listed for.
     /// Acts as a trigger
     pub sale_conditions: Balance,
+
+    /// Field for storing serialized object with any info
+    pub extra: String,
 }
 
 #[derive(BorshDeserialize, BorshSerialize, Serialize, Deserialize)]
@@ -66,7 +69,7 @@ impl Contract {
     /// returns: Bid that was created
     ///
     #[payable]
-    pub fn place_bid(&mut self, conditions: U128) -> Bid {
+    pub fn place_bid(&mut self, conditions: U128, extra: String) -> Bid {
         let deposit = env::attached_deposit();
         let caller = env::predecessor_account_id();
 
@@ -80,6 +83,7 @@ impl Contract {
         let bid = Bid {
             owner_id: env::predecessor_account_id(),
             sale_conditions: deposit,
+            extra,
         };
         log!("Creating new bid: {:?}", bid);
 
