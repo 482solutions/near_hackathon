@@ -134,7 +134,8 @@ export const handleSubmit = async (
   setInfoType,
   getAndTransformToSelectStations,
   setLoading,
-  toggleValue
+  toggleValue,
+  stationData
 ) => {
   setLoading(true);
   const requiredFilds = inputsData[keyWord]
@@ -144,6 +145,8 @@ export const handleSubmit = async (
 
   if (requiredFilds.length) {
     setError(requiredFilds.reduce((acc, i) => ({ ...acc, [i]: true }), {}));
+    setLoading(false);
+
     return;
   }
 
@@ -195,6 +198,20 @@ export const handleSubmit = async (
     },
   };
 
+  if (keyWord === "EAC") {
+    const finded = stationData.current.find((i) => i.name === data["Stations"]);
+    if (finded) {
+      payload.EAC.metadata.extra = JSON.stringify({
+        startDate: new Date(data["Start date of creation"]),
+        endDate: new Date(data["End date of creation"]),
+        generatedEnergy: +data["Amount of energy in MWh"],
+        station: data["Stations"],
+        organisation: localStorage.organisation,
+        location: finded.countryId,
+        deviceType: finded.stationEnergyType,
+      });
+    }
+  }
   try {
     const res = await mapOfBackendCalls[keyWord](
       payload[keyWord],

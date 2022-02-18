@@ -115,7 +115,7 @@ const FormSection = ({ asks, form, setForm, handleFormChange, placeBid }) => {
       </Grid>
 
       <Grid container gap={"20px"} sx={{ marginTop: "32px" }}>
-        {InputsData.map((i) => {
+        {InputsData.map((i, idx) => {
           return (
             <CustomizedReadInput
               controlled
@@ -126,6 +126,7 @@ const FormSection = ({ asks, form, setForm, handleFormChange, placeBid }) => {
               adornMent={i.adornMent}
               adornMentDirection={i.adornMentDirection && "startAdornment"}
               disabled={!window.walletConnection.isSignedIn()}
+              key={idx}
             />
           );
         })}
