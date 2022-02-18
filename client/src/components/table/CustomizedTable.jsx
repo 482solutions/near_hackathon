@@ -27,9 +27,14 @@ const TableHeadStyle = {
   background: "rgba(15, 184, 195, 0.06)",
 };
 
-const CustomizedTable = ({ headData, bodyData, renderCell }) => {
+const CustomizedTable = ({
+  headData,
+  bodyData,
+  renderCell,
+  paginationChunkSize = 10,
+}) => {
   const [page, setPage] = React.useState(0);
-  const [rowsPerPage, setRowsPerPage] = React.useState(10);
+  const [rowsPerPage, setRowsPerPage] = React.useState(paginationChunkSize);
 
   const handleChangePage = (event, newPage) => {
     setPage(newPage);
@@ -68,7 +73,7 @@ const CustomizedTable = ({ headData, bodyData, renderCell }) => {
           </Table>
           {
             <TablePagination
-              rowsPerPageOptions={[10, 25, 100]}
+              rowsPerPageOptions={[paginationChunkSize, 10, 25, 100]}
               component="div"
               count={bodyData?.length ?? 0}
               rowsPerPage={rowsPerPage}

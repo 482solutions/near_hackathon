@@ -60,6 +60,7 @@ const ModalSection = ({ btnText, keyWord, img }) => {
   const [resetData, setResetData] = useState(false);
   const [disableSubmitBtn, setDisableSubmitBtn] = useState(false);
   const [loading, setLoading] = useState(false);
+  const stationData = useRef();
 
   useEffect(() => {
     if (location.state?.nextModal) {
@@ -75,6 +76,7 @@ const ModalSection = ({ btnText, keyWord, img }) => {
 
   const getAndTransformToSelectStations = useCallback(async () => {
     const res = await getStation();
+    stationData.current = res;
     if (res && res.length) {
       const toSelectData = res.map((i) => ({
         value: i.name,
@@ -190,7 +192,8 @@ const ModalSection = ({ btnText, keyWord, img }) => {
                   setInfoType,
                   getAndTransformToSelectStations,
                   setLoading,
-                  toggleValue
+                  toggleValue,
+                  stationData
                 )
               }
             />

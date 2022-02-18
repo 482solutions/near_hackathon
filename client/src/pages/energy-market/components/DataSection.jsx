@@ -11,7 +11,6 @@ const SecondBoxStyle = {
   height: "100%",
   backgroundColor: "#fff",
   padding: "40px 43px 31px",
-  maxHeight: "427px",
 };
 
 const TableContainerStyle = {
@@ -33,6 +32,7 @@ const DataSection = ({ title, matchingData, data, bodyData }) => {
         <CustomizedTable
           headData={data}
           bodyData={bodyData}
+          paginationChunkSize={3}
           renderCell={(el, idx) => {
             return <MarketDataCell data={el} key={idx} keyWord={title} />;
           }}
