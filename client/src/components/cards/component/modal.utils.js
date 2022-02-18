@@ -1,4 +1,5 @@
 import { allCountries } from "country-region-data";
+import moment from "moment";
 import { Contract } from "near-api-js";
 import {
   createMeasurment,
@@ -6,10 +7,89 @@ import {
   createOrganisation,
   createStation,
   getMeasurments,
+  getNFTs,
+  getStation,
 } from "../../../api/api.service";
 import { InputsData } from "./constants";
 
 let measurmentGlobal;
+let stationGlobal;
+
+function overlap(dateRanges) {
+  var sortedRanges = dateRanges.sort((previous, current) => {
+    // get the start date from previous and current
+    var previousTime = previous.start.getTime();
+    var currentTime = current.start.getTime();
+
+    // if the previous is earlier than the current
+    if (previousTime < currentTime) {
+      return -1;
+    }
+
+    // if the previous time is the same as the current time
+    if (previousTime === currentTime) {
+      return 0;
+    }
+
+    // if the previous time is later than the current time
+    return 1;
+  });
+
+  var result = sortedRanges.reduce(
+    (result, current, idx, arr) => {
+      // get the previous range
+      if (idx === 0) {
+        return result;
+      }
+      var previous = arr[idx - 1];
+
+      // check for any overlap
+      var previousEnd = previous.end.getTime();
+      var currentStart = current.start.getTime();
+      var overlap = previousEnd >= currentStart;
+
+      // store the result
+      if (overlap) {
+        // yes, there is overlap
+        result.overlap = true;
+        // store the specific ranges that overlap
+        result.ranges.push({
+          previous: previous,
+          current: current,
+        });
+      }
+
+      return result;
+
+      // seed the reduce
+    },
+    { overlap: false, ranges: [] }
+  );
+
+  // return the final results
+  return result;
+}
+
+// var r1 = {
+//   start: new Date("2/4/2001"),
+//   end: new Date("7/1/2002")
+// };
+
+// var r2 = {
+//   start: new Date("7/2/2002"),
+//   end: new Date("2/4/2003")
+// };
+
+// // start date overlaps with end date of previous
+// var r3 = {
+//   start: new Date("8/2/2002"),
+//   end: new Date("5/12/2002")
+// };
+
+// var ranges = [r1, r3, r2];
+
+// var output = overlap(ranges);
+// console.log(output);
 
 export const passUpValueCallback = async (
   value,
@@ -19,12 +99,16 @@ export const passUpValueCallback = async (
   setData,
   eacMintType,
   setDisableSubmitBtn,
-  clearDatas
+  clearDatas,
+  setMinDate
 ) => {
   const payload = {
     [currentIterable.title]: value,
   };
   localDataRefereance.current = { ...localDataRefereance.current, ...payload };
+  if (currentIterable.title === "Start date of creation") {
+    setMinDate(value);
+  }
   if (currentIterable.title === "Country") {
     const idx = InputsData[keyWord].findIndex((i) => i.title === "Region");
     InputsData[keyWord][idx].options = allCountries[value][2].map((i, idx) => ({
@@ -42,9 +126,10 @@ export const passUpValueCallback = async (
 
     if (res && !res.length) {
       clearDatas();
-      return setDisableSubmitBtn(true);
+      return setDisableSubmitBtn(false);
     }
     if (res && res.length) {
+      setDisableSubmitBtn(false);
       // clearDatas();
       // const resMocka = [
       //   {
@@ -138,6 +223,8 @@ export const handleSubmit = async (
   stationData
 ) => {
   setLoading(true);
+  console.log(keyWord, data);
+
   const requiredFilds = inputsData[keyWord]
     .filter((i) => i.required)
     .map((i) => i.title)
@@ -211,6 +298,55 @@ export const handleSubmit = async (
         deviceType: finded.stationEnergyType,
       });
     }
+    const res = await getNFTs(window.accountId);
+    const deviceInfo = res.map((i) => {
+      const parsed = JSON.parse(i.metadata.extra);
+      return { ...i, metadata: { ...i.metadata, extra: parsed } };
+    });
+    const filteredNFT = deviceInfo.filter((i) => {
+      return i.metadata.extra.station === data["Stations"];
+    });
+
+    if (filteredNFT.length) {
+      const isOverlap = filteredNFT.some((i) => {
+        return (
+          moment(data["Start date of creation"]).isBetween(
+            i.metadata.extra.startDate.split("T")[0],
+            i.metadata.extra.endDate.split("T")[0],
+            null,
+            []
+          ) ||
+          moment(data["End date of creation"]).isBetween(
+            i.metadata.extra.startDate.split("T")[0],
+            i.metadata.extra.endDate.split("T")[0],
+            null,
+            []
+          ) ||
+          moment(i.metadata.extra.startDate.split("T")[0]).isBetween(
+            data["Start date of creation"],
+            data["End date of creation"],
+            null,
+            []
+          ) ||
+          moment(i.metadata.extra.endDate.split("T")[0]).isBetween(
+            data["Start date of creation"],
+            data["End date of creation"],
+            null,
+            []
+          )
+        );
+      });
+      if (isOverlap) {
+        setInfoType({
+          type: "error",
+          msg: "Dates are overalaped with already created EAC with this station",
+        });
+        handleClose();
+        setInfoModalIsOpen(true);
+        setLoading(false);
+        return;
+      }
+    }
   }
   try {
     const res = await mapOfBackendCalls[keyWord](
@@ -227,7 +363,7 @@ export const handleSubmit = async (
         setDisabled(true);
       }
       if (keyWord === "Station") {
-        getAndTransformToSelectStations();
+        await getAndTransformToSelectStations();
       }
       setInfoType({ type: "success" });
     }

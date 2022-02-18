@@ -33,7 +33,7 @@ const TitleContainerStyle = {
   marginBottom: "32px",
 };
 
-const ModalSection = ({ btnText, keyWord, img }) => {
+const ModalSection = ({ btnText, keyWord, img, stationData }) => {
   const [open, setOpen] = useState(false);
   const [infoModalIsOpen, setInfoModalIsOpen] = useState(false);
   const [error, setError] = useState({});
@@ -60,7 +60,7 @@ const ModalSection = ({ btnText, keyWord, img }) => {
   const [resetData, setResetData] = useState(false);
   const [disableSubmitBtn, setDisableSubmitBtn] = useState(false);
   const [loading, setLoading] = useState(false);
-  const stationData = useRef();
+  const [minDate, setMinDate] = useState();
 
   useEffect(() => {
     if (location.state?.nextModal) {
@@ -86,11 +86,12 @@ const ModalSection = ({ btnText, keyWord, img }) => {
 
       InputsData["EAC"][idx].options = toSelectData;
     }
-  }, []);
+  }, [stationData]);
 
   useEffect(() => {
     (async () => {
       if (keyWord === "EAC") {
+        console.log("Asd");
         await getAndTransformToSelectStations();
       }
     })();
@@ -153,6 +154,9 @@ const ModalSection = ({ btnText, keyWord, img }) => {
                 resetData={resetData}
                 initialValue={i?.default ?? ""}
                 type={i.type}
+                minValue={
+                  i.title === "End date of creation" ? minDate : undefined
+                }
                 disabled={
                   (i.title === "Region" && !dataRef.current?.["Country"]) ||
                   (i.title !== "Stations" && toggleValue === "Automatically")
@@ -166,7 +170,8 @@ const ModalSection = ({ btnText, keyWord, img }) => {
                     setData,
                     toggleValue,
                     setDisableSubmitBtn,
-                    clearDatas
+                    clearDatas,
+                    setMinDate
                   )
                 }
               />

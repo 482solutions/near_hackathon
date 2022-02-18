@@ -96,7 +96,7 @@ const EacsTableCell = ({ data, idx }) => {
   return (
     <>
       <TableRow>
-        <TableCell>{data["id"]}</TableCell>
+        <TableCell>{+data["id"]}</TableCell>
         <TableCell>
           <IconButton size="small" onClick={() => setIsOpen((prev) => !prev)}>
             <img
@@ -110,7 +110,7 @@ const EacsTableCell = ({ data, idx }) => {
           .slice(1, 6)
           .map((i, index) => {
             return (
-              <TableCell key={i} sx={TableCellStyle}>
+              <TableCell key={index} sx={TableCellStyle}>
                 {index === 4 && (
                   <span
                     style={

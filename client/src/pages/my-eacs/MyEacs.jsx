@@ -62,6 +62,7 @@ const MyEacs = () => {
   const [body, setBody] = useState();
 
   useEffect(() => {
+    let mounted = true;
     (async function () {
       const res = await getNFTs(window.accountId);
       if (res && !res.kind) {
@@ -70,30 +71,34 @@ const MyEacs = () => {
           return { ...i, metadata: { ...i.metadata, extra: parsed } };
         });
 
-        setBody(
-          deviceInfo.map((i) => {
-            return {
-              id: +i.token_id,
-              "Device Type": i.metadata.extra?.deviceType ?? "N/A",
-              Date: new Date(i.metadata.issued_at / 1000000),
-              "Grid Operator":
-                allCountries?.[i.metadata.extra?.location]?.[0] ?? "N/A",
-              MWh: i.metadata.extra.generatedEnergy ?? "N/A",
-              Status: "Exchange",
-              "Device owner": i.owner_id,
-              "Generation Start Date": new Date(i.metadata.extra.startDate),
-              "Generation End Date": new Date(i.metadata.extra.endDate),
-              "Certified Energy (MWh)":
-                i.metadata.extra.generatedEnergy ?? "N/A",
-              "Generation Date": new Date(i.metadata.issued_at / 1000000),
-              "Certificate ID": i.token_id,
-              Certified: i.metadata.extra.generatedEnergy ?? "N/A",
-              "Facility name": i.metadata.extra.station ?? "N/A",
-            };
-          })
-        );
+        mounted &&
+          setBody(
+            deviceInfo.map((i) => {
+              return {
+                id: +i.token_id,
+                "Device Type": i.metadata.extra?.deviceType ?? "N/A",
+                Date: new Date(i.metadata.issued_at / 1000000),
+                "Grid Operator":
+                  allCountries?.[i.metadata.extra?.location]?.[0] ?? "N/A",
+                MWh: i.metadata.extra.generatedEnergy ?? "N/A",
+                Status: "Exchange",
+                "Device owner": i.owner_id,
+                "Generation Start Date": new Date(i.metadata.extra.startDate),
+                "Generation End Date": new Date(i.metadata.extra.endDate),
+                "Certified Energy (MWh)":
+                  i.metadata.extra.generatedEnergy ?? "N/A",
+                "Generation Date": new Date(i.metadata.issued_at / 1000000),
+                "Certificate ID": i.token_id,
+                Certified: i.metadata.extra.generatedEnergy ?? "N/A",
+                "Facility name": i.metadata.extra.station ?? "N/A",
+              };
+            })
+          );
       }
     })();
+    return () => {
+      mounted = false;
+    };
   }, []);
 
   return (
