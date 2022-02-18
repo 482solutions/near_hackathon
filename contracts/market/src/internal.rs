@@ -33,18 +33,25 @@ impl Contract {
 
         require!(self.bids.insert(&id, &bid).is_none(), "Bid already exist");
 
-        let by_owner = self.bids_by_owner_id.get(&bid.owner_id);
-
-        match by_owner {
-            Some(mut by_owner) => {
-                by_owner.insert(&id);
-            }
-            None => {
-                let mut new_set = UnorderedSet::new(StorageKey::BidsByOwnerId);
-                new_set.insert(&id);
-                self.bids_by_owner_id.insert(&bid.owner_id, &new_set);
-            }
-        }
+        // let by_owner = self.bids_by_owner_id.get(&bid.owner_id);
+        //
+        // match by_owner {
+        //     Some(mut by_owner) => {
+        //         log!("Inserting in by_owner new id: {}", id);
+        //         by_owner.insert(&id);
+        //     }
+        //     None => {
+        //         let mut new_set = UnorderedSet::new(StorageKey::BidsByOwnerId);
+        //         new_set.insert(&id);
+        //         log!("Inserting in by_owner new id: {}", id);
+        //         log!(
+        //             "Inserting new set for user: {}. {:?}",
+        //             bid.owner_id,
+        //             new_set
+        //         );
+        //         self.bids_by_owner_id.insert(&bid.owner_id, &new_set);
+        //     }
+        // }
 
         bid
     }
@@ -76,40 +83,25 @@ impl Contract {
     pub fn internal_remove_bid(&mut self, id: TokenId) -> Bid {
         // Get the unique sale ID (contract + DELIMITER + token ID)
         // Get the sale object by removing the unique sale ID. If there was no sale, panic
-        let bid = self.bids.remove(&id).expect("No ask");
-        // Get the set of sales for the sale's owner. If there's no sale, panic.
-        let mut by_owner_id = self
-            .bids_by_owner_id
-            .get(&bid.owner_id)
-            .expect("No ask by_owner_id");
+        let bid = self.bids.remove(&id).expect("No bid");
 
-        //remove the unique sale ID from the set of sales
-        by_owner_id.remove(&id);
-
-        //if the set of sales is now empty after removing the unique sale ID, we simply remove that owner from the map
-        if by_owner_id.is_empty() {
-            self.bids_by_owner_id.remove(&bid.owner_id);
-            //if the set of sales is not empty after removing, we insert the set back into the map for the owner
-        } else {
-            self.bids_by_owner_id.insert(&bid.owner_id, &by_owner_id);
-        }
+        // // Get the set of sales for the sale's owner. If there's no sale, panic.
+        // let mut by_owner_id = self
+        //     .bids_by_owner_id
+        //     .get(&bid.owner_id)
+        //     .expect("No bid by_owner_id");
+        //
+        // //remove the unique sale ID from the set of sales
+        // by_owner_id.remove(&id);
+        //
+        // //if the set of sales is now empty after removing the unique sale ID, we simply remove that owner from the map
+        // if by_owner_id.is_empty() {
+        //     self.bids_by_owner_id.remove(&bid.owner_id);
+        //     //if the set of sales is not empty after removing, we insert the set back into the map for the owner
+        // } else {
+        //     self.bids_by_owner_id.insert(&bid.owner_id, &by_owner_id);
+        // }
 
         bid
     }
-}
-
-pub fn get_token_account_id(account_id: &AccountId) -> AccountId {
-    // Split account by '.'
-    // Example i3ima.testnet -> ["i3ima", "testnet"]
-    let split = utils::split_account(account_id);
-    // Get prefix for subaccount
-    let prefix = split[0].to_string();
-
-    let current = env::current_account_id();
-
-    let split_current = utils::split_account(&current);
-
-    let postfix = split_current[1].to_string();
-
-    AccountId::new_unchecked(format!("{}.{}", prefix, postfix))
 }
