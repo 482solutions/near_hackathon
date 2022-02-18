@@ -1,5 +1,4 @@
 use crate::*;
-use near_contract_standards::non_fungible_token::hash_account_id;
 
 impl Contract {
     pub fn internal_place_ask(&mut self, ask: Ask) -> Ask {
@@ -22,24 +21,6 @@ impl Contract {
                 self.asks_by_owner_id.insert(&ask.owner_id, &new_set);
             }
         }
-
-        let mut by_nft_contract_id = self
-            .by_nft_token_id
-            .get(&ask.nft_contract_id)
-            .unwrap_or_else(|| {
-                UnorderedSet::new(
-                    StorageKey::ByNFTContractIdInner {
-                        // Hash the owner to avoid collisions
-                        account_id_hash: hash_account_id(&ask.nft_contract_id),
-                    }
-                    .try_to_vec()
-                    .unwrap(),
-                )
-            });
-
-        by_nft_contract_id.insert(&ask.token_id);
-        self.by_nft_token_id
-            .insert(&ask.nft_contract_id, &by_nft_contract_id);
 
         ask
     }
@@ -87,12 +68,6 @@ impl Contract {
         } else {
             self.asks_by_owner_id.insert(&ask.owner_id, &by_owner_id);
         }
-
-        let mut by_nft_contract_id = self.by_nft_token_id.get(&ask.nft_contract_id).unwrap();
-
-        by_nft_contract_id.remove(&id);
-        self.by_nft_token_id
-            .insert(&ask.nft_contract_id, &by_nft_contract_id);
 
         ask
     }
