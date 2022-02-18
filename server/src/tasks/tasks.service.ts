@@ -11,7 +11,7 @@ export class TasksService {
     this.market = market;
   }
 
-  @Cron(CronExpression.EVERY_SECOND)
+  @Cron(CronExpression.EVERY_10_SECONDS)
   async updateMarket() {
     this.logger.log("Executing market update task");
     await this.market.update_market()

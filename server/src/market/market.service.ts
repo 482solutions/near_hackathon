@@ -37,6 +37,7 @@ export class MarketService {
         for (const currentBid of bids) {
             const ask = asks.find(currentAsk => {
                 if (currentAsk.ask.sale_conditions === currentBid.bid.sale_conditions) {
+                    this.logger.log(`Ask cond: ${currentAsk.ask.sale_conditions}, Bid cond: ${currentBid.bid.sale_conditions}`);
                     this.logger.log(`Find matching sale conditions Ask #${currentAsk.id} for Bid ${currentBid.id}`);
                     if (currentAsk.ask.owner_id !== currentBid.bid.owner_id) {
                         this.logger.log("Owners don't match, processing bid");
@@ -60,5 +61,4 @@ export class MarketService {
             }
         }
     }
-
 }
