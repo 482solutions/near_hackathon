@@ -83,10 +83,11 @@ const EacsTableCell = ({ data, idx }) => {
       );
       const asks = await contract["get_asks_by_owner_id"]({
         account_id: window.accountId,
+        from: 0,
+        limit: 100,
       });
-      console.log("asks: ", asks);
       if (asks && asks.length) {
-        const finded = asks.find((i) => i.token_id === data["id"]);
+        const finded = asks.find((i) => i.ask.token_id == data["id"]);
         if (finded) setIsExchange(true);
       }
     })();
