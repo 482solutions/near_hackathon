@@ -223,6 +223,12 @@ impl Contract {
         let ask = self.get_ask(&ask_id).expect("This ask does not exist").ask;
         let bid = self.get_bid(&bid_id).expect("This bid does not exist").bid;
 
+        log!(
+            "Ask sale conditions: {}, Bid sale condition: {}",
+            ask.sale_conditions,
+            bid.sale_conditions
+        );
+
         require!(
             ask.sale_conditions.eq(&bid.sale_conditions),
             "Sale conditions don't match"
