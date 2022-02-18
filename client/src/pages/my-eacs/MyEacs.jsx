@@ -70,25 +70,13 @@ const MyEacs = () => {
           return { ...i, metadata: { ...i.metadata, extra: parsed } };
         });
 
-        let result = [];
-        for await (let data of deviceInfo) {
-          if (data.metadata.extra.organisation && data.metadata.extra.station) {
-            try {
-              const resStation = await getStationByOrgAndStationName(
-                data.metadata.extra.organisation,
-                data.metadata.extra.station
-              );
-              result.push({ ...data, stationInfo: resStation });
-            } catch (e) {}
-          }
-        }
         setBody(
-          result.map((i) => {
+          deviceInfo.map((i) => {
             return {
               id: +i.token_id,
-              "Device Type": i.stationInfo.stationEnergyType,
+              "Device Type": i.metadata.extra.deviceType,
               Date: new Date(i.metadata.issued_at / 1000000),
-              "Grid Operator": allCountries[i.stationInfo.countryId][0],
+              "Grid Operator": allCountries[i.metadata.extra.location][0],
               MWh: i.metadata.extra.generatedEnergy,
               Status: "Exchange",
               "Device owner": i.owner_id,
@@ -98,7 +86,7 @@ const MyEacs = () => {
               "Generation Date": new Date(i.metadata.issued_at / 1000000),
               "Certificate ID": i.token_id,
               Certified: i.metadata.extra.generatedEnergy,
-              "Facility name": i.stationInfo.name,
+              "Facility name": i.metadata.extra.station,
             };
           })
         );
