@@ -36,6 +36,8 @@ export async function initContract() {
 export function logout() {
   window.walletConnection.signOut();
   document.cookie = "privateKey=;expires=Thu, 01 Jan 1970 00:00:00 GMT";
+  document.cookie = "userId=;expires=Thu, 01 Jan 1970 00:00:00 GMT";
+
   localStorage.clear();
   // reload page
   window.location.replace(window.location.origin + window.location.pathname);
