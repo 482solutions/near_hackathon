@@ -6,11 +6,6 @@ import { BN } from "bn.js";
 
 const GAS_FOR_CALL = new BN("300000000000000", 10);
 
-interface SaleArg {
-    ask_id: string,
-    bid_id: string
-}
-
 @Injectable()
 export class MarketService {
     private readonly logger = new Logger(MarketService.name);
@@ -30,11 +25,11 @@ export class MarketService {
 
     async update_market() {
         const bids: BidResponse[] = await this.contract["get_bids"]({
-            from: "0",
+            from: 0,
             limit: 100
         });
         const asks: AskResponse[] = await this.contract["get_asks"]({
-            from: "0",
+            from: 0,
             limit: 100
         });
 
