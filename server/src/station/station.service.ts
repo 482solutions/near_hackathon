@@ -115,7 +115,7 @@ export class StationService {
                 `${process.env.BROKER_HOST}:${process.env.BROKER_PORT}/v2/entities?options=keyValues`,
                 {
                     type: 'Station',
-                    id: `${station.organisationRegistryNumber}.${station.name}`,
+                    id: `${station.organisationRegistryNumber}.${station.name.replace(/ /g, '_')}`,
                     startDate: '',
                     endDate: '',
                     generatedEnergy: '0',
