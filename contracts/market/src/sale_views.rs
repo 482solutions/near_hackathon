@@ -117,9 +117,9 @@ impl Contract {
     ///
     /// returns: List of bids
     ///
-    pub fn get_bids(&self, from: Option<U128>, limit: Option<u64>) -> Vec<BidResponse> {
+    pub fn get_bids(&self, from: Option<u128>, limit: Option<u64>) -> Vec<BidResponse> {
         //where to start pagination - if we have a from_index, we'll use that - otherwise start from 0 index
-        let start = u128::from(from.unwrap_or(U128(0)));
+        let start = from.unwrap_or(0);
 
         //iterate through the keys vector
         self.bids
@@ -142,9 +142,9 @@ impl Contract {
     ///
     /// returns: List of asks
     ///  
-    pub fn get_asks(&self, from: Option<U128>, limit: Option<u64>) -> Vec<AskResponse> {
+    pub fn get_asks(&self, from: Option<u128>, limit: Option<u64>) -> Vec<AskResponse> {
         //where to start pagination - if we have a from_index, we'll use that - otherwise start from 0 index
-        let start = u128::from(from.unwrap_or(U128(0)));
+        let start = from.unwrap_or(0);
 
         //iterate through the keys vector
         self.asks
@@ -171,7 +171,7 @@ impl Contract {
     pub fn get_bids_by_owner_id(
         &self,
         account_id: AccountId,
-        from: Option<U128>,
+        from: Option<u128>,
         limit: Option<u64>,
     ) -> Vec<BidResponse> {
         //get the set of token IDs for sale for the given account ID
@@ -187,14 +187,16 @@ impl Contract {
         let keys = bids.as_vector();
 
         //where to start pagination - if we have a from_index, we'll use that - otherwise start from 0 index
-        let start = u128::from(from.unwrap_or(U128(0)));
+        let start = from.unwrap_or(0);
+
+        let limit = (limit.unwrap_or(0)) as usize;
 
         //iterate through the keys vector
         keys.iter()
             //skip to the index we specified in the start variable
             .skip(start as usize)
             //take the first "limit" elements in the vector. If we didn't specify a limit, use 0
-            .take(limit.unwrap_or(0) as usize)
+            .take(limit)
             //we'll map the token IDs which are strings into Sale objects
             .map(|id| {
                 log!("Searching id: {}", id);

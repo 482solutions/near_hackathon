@@ -27,16 +27,12 @@ export const createStation = async (body) => {
 };
 
 export const createMeasurment = async (body) => {
-  const res = await httpClient.post(MEASURMENTS, body);
+  const res = await httpClient.patch(MEASURMENTS, body);
   return res?.data;
 };
 
 export const getMeasurments = async (org = null, station = null) => {
-  let path = `${MEASURMENTS}`;
-  if (org && station) {
-    path += `/${org}/${station}`;
-  }
-  const res = await httpClient.get(path);
+  const res = await httpClient.get(`${MEASURMENTS}/${org}/${station}`);
   return res?.data;
 };
 
@@ -49,5 +45,10 @@ export const getNFTs = async (owner) => {
   const res = await httpClient.get(
     `${NFT}${owner !== undefined ? `?owner=${owner}` : ""}`
   );
+  return res?.data;
+};
+
+export const getNFTById = async (id) => {
+  const res = await httpClient.get(`${NFT}/${id}`);
   return res?.data;
 };

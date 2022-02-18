@@ -1,12 +1,15 @@
 import { allCountries } from "country-region-data";
 import { Contract } from "near-api-js";
 import {
+  createMeasurment,
   createNFT,
   createOrganisation,
   createStation,
   getMeasurments,
 } from "../../../api/api.service";
 import { InputsData } from "./constants";
+
+let measurmentGlobal;
 
 export const passUpValueCallback = async (
   value,
@@ -15,7 +18,8 @@ export const passUpValueCallback = async (
   keyWord,
   setData,
   eacMintType,
-  setDisableSubmitBtn
+  setDisableSubmitBtn,
+  clearDatas
 ) => {
   const payload = {
     [currentIterable.title]: value,
@@ -30,33 +34,64 @@ export const passUpValueCallback = async (
     setData((prev) => ({ ...prev, ...InputsData }));
   }
   if (currentIterable.title === "Stations" && eacMintType === "Automatically") {
-    const res = await getMeasurments(localStorage.organization, value);
-    console.log(res);
-    if (res && !res.length) return setDisableSubmitBtn(true);
+    const res = await getMeasurments(
+      localStorage.getItem("organisation"),
+      value
+    );
+    measurmentGlobal = [...res];
+
+    if (res && !res.length) {
+      clearDatas();
+      return setDisableSubmitBtn(true);
+    }
     if (res && res.length) {
-      // const resMock = [
+      // clearDatas();
+      // const resMocka = [
       //   {
-      //     startDate: "2/20/2022",
-      //     endDate: "3/5/2022",
-      //     generatedEnergy: 1500,
-      //     station: "Station1",
-      //     organisation: "1",
+      //     id: 1,
+      //     stationName: "test",
+      //     stationOrganisationRegistryNumber: "43659632",
+      //     startDate: "",
+      //     endDate: "",
+      //     generatedEnergy: 0,
+      //     minted: false,
       //   },
       //   {
-      //     startDate: "1/2/2022",
-      //     endDate: "2/2/2022",
-      //     generatedEnergy: 1500,
-      //     station: "Station1",
-      //     organisation: "1",
+      //     id: 2,
+      //     stationName: "test",
+      //     stationOrganisationRegistryNumber: "43659632",
+      //     startDate: "18.01.2021",
+      //     endDate: "20.02.2021",
+      //     generatedEnergy: 1444,
+      //     minted: false,
       //   },
       // ];
-      res.sort((a, b) => {
-        console.log(new Date(a.startDate), new Date(b.startDate));
-        return new Date(a.startDate) - new Date(b.startDate);
+      const filteredResponse = res.filter((i) => {
+        return i.startDate || i.endDate;
       });
-      const amountTotal = res.reduce((acc, i) => (acc += i.generatedEnergy), 0);
-      const startDate = new Date(res[0].startDate).toISOString().split("T")[0];
-      const endDate = new Date(res[res.length - 1].endDate)
+      filteredResponse.forEach((i) => {
+        if (i.startDate) {
+          const splited = i.startDate.split(".");
+          i.startDate = new Date(+splited[2], splited[1] - 1, +splited[0]);
+        }
+        if (i.endDate) {
+          const splited = i.endDate.split(".");
+          i.endDate = new Date(+splited[2], splited[1] - 1, +splited[0]);
+        }
+      });
+
+      filteredResponse.sort((a, b) => {
+        return a.startDate - b.startDate;
+      });
+
+      const amountTotal = filteredResponse.reduce(
+        (acc, i) => (acc += i.generatedEnergy),
+        0
+      );
+      const startDate = filteredResponse[0].startDate
+        .toISOString()
+        .split("T")[0];
+      const endDate = filteredResponse[filteredResponse.length - 1].endDate
         .toISOString()
         .split("T")[0];
       const EACTotal = {
@@ -76,6 +111,7 @@ export const passUpValueCallback = async (
         }
         return i;
       });
+
       setData((prev) => {
         return {
           ...prev,
@@ -97,17 +133,20 @@ export const handleSubmit = async (
   setInfoModalIsOpen,
   setInfoType,
   getAndTransformToSelectStations,
-  setLoading
+  setLoading,
+  toggleValue,
+  stationData
 ) => {
   setLoading(true);
   const requiredFilds = inputsData[keyWord]
     .filter((i) => i.required)
     .map((i) => i.title)
     .filter((i) => data[i] === "");
-  console.log(requiredFilds);
 
   if (requiredFilds.length) {
     setError(requiredFilds.reduce((acc, i) => ({ ...acc, [i]: true }), {}));
+    setLoading(false);
+
     return;
   }
 
@@ -159,11 +198,28 @@ export const handleSubmit = async (
     },
   };
 
+  if (keyWord === "EAC") {
+    const finded = stationData.current.find((i) => i.name === data["Stations"]);
+    if (finded) {
+      payload.EAC.metadata.extra = JSON.stringify({
+        startDate: new Date(data["Start date of creation"]),
+        endDate: new Date(data["End date of creation"]),
+        generatedEnergy: +data["Amount of energy in MWh"],
+        station: data["Stations"],
+        organisation: localStorage.organisation,
+        location: finded.countryId,
+        deviceType: finded.stationEnergyType,
+      });
+    }
+  }
   try {
     const res = await mapOfBackendCalls[keyWord](
       payload[keyWord],
       clientInstance
     );
+    if (toggleValue === "Automatically") {
+      await createMeasurment({ measurements: measurmentGlobal });
+    }
 
     if (res) {
       if (keyWord === "Company") {

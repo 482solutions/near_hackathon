@@ -49,9 +49,9 @@ pub struct Contract {
     /// To keep track of the ask, we map the ContractAndTokenId to a Sale.
     /// the ContractAndTokenId is the unique identifier for every sale. It is made
     /// up of the `contract ID + DELIMITER + UUIDv4`
-    pub asks: UnorderedMap<TokenId, Ask>,
+    pub asks: UnorderedMap<PositionId, Ask>,
     /// Same with bids
-    pub bids: UnorderedMap<TokenId, Bid>,
+    pub bids: UnorderedMap<PositionId, Bid>,
 
     /// Current id for asks
     pub asks_id: u128,
@@ -59,13 +59,13 @@ pub struct Contract {
     pub bids_id: u128,
 
     /// Keep track of all the Ask IDs for every account ID
-    pub asks_by_owner_id: LookupMap<AccountId, UnorderedSet<TokenId>>,
+    pub asks_by_owner_id: LookupMap<AccountId, UnorderedSet<PositionId>>,
 
     /// Keep track of all the Bids IDs for every account ID
-    pub bids_by_owner_id: LookupMap<AccountId, UnorderedSet<TokenId>>,
+    pub bids_by_owner_id: LookupMap<AccountId, UnorderedSet<PositionId>>,
 
     /// By NFT Token Id
-    pub by_nft_token_id: LookupMap<AccountId, UnorderedSet<TokenId>>,
+    pub by_nft_token_id: LookupMap<AccountId, UnorderedSet<PositionId>>,
 
     /// Keep track of the storage that accounts have paid
     pub storage_deposits: LookupMap<AccountId, Balance>,

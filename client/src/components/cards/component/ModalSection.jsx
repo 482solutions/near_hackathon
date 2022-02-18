@@ -60,6 +60,7 @@ const ModalSection = ({ btnText, keyWord, img }) => {
   const [resetData, setResetData] = useState(false);
   const [disableSubmitBtn, setDisableSubmitBtn] = useState(false);
   const [loading, setLoading] = useState(false);
+  const stationData = useRef();
 
   useEffect(() => {
     if (location.state?.nextModal) {
@@ -75,6 +76,7 @@ const ModalSection = ({ btnText, keyWord, img }) => {
 
   const getAndTransformToSelectStations = useCallback(async () => {
     const res = await getStation();
+    stationData.current = res;
     if (res && res.length) {
       const toSelectData = res.map((i) => ({
         value: i.name,
@@ -105,6 +107,13 @@ const ModalSection = ({ btnText, keyWord, img }) => {
     );
   };
 
+  const clearDatas = () => {
+    dataRef.current = initDataRef;
+    setError({});
+    setData(InputsData);
+    setDisableSubmitBtn(false);
+  };
+
   return (
     <>
       <CreateButton text={btnText} onClick={handleOpen} disabled={disabled} />
@@ -126,10 +135,7 @@ const ModalSection = ({ btnText, keyWord, img }) => {
               passUpToggleValue={(value) => {
                 setTogglevalue(value);
                 setResetData((prev) => !prev);
-                dataRef.current = initDataRef;
-                setError({});
-                setData(InputsData);
-                setDisableSubmitBtn(false);
+                clearDatas();
               }}
             />
           </Grid>
@@ -159,7 +165,8 @@ const ModalSection = ({ btnText, keyWord, img }) => {
                     keyWord,
                     setData,
                     toggleValue,
-                    setDisableSubmitBtn
+                    setDisableSubmitBtn,
+                    clearDatas
                   )
                 }
               />
@@ -184,7 +191,9 @@ const ModalSection = ({ btnText, keyWord, img }) => {
                   setInfoModalIsOpen,
                   setInfoType,
                   getAndTransformToSelectStations,
-                  setLoading
+                  setLoading,
+                  toggleValue,
+                  stationData
                 )
               }
             />

@@ -36,7 +36,7 @@ const deviceData = [
   "Certificate ID",
   "Certified",
   "Facility name",
-  "Certified Energy  (MWh)",
+  "Certified Energy (MWh)",
   "Generation Start Date",
   "Device Type",
   "Certified by registry",
@@ -75,7 +75,7 @@ const EacsTableCell = ({ data, idx }) => {
     (async () => {
       const contract = await new Contract(
         window.walletConnection.account(),
-        "market.dev-1645073849820-60274470736035",
+        `market.${process.env.REACT_APP_NFT_DEV_ACCOUNT_ID}`,
         {
           viewMethods: ["get_asks_by_owner_id"],
           changeMethods: [],
@@ -83,10 +83,11 @@ const EacsTableCell = ({ data, idx }) => {
       );
       const asks = await contract["get_asks_by_owner_id"]({
         account_id: window.accountId,
+        from: 0,
+        limit: 100,
       });
-      console.log("asks: ", asks);
       if (asks && asks.length) {
-        const finded = asks.find((i) => i.token_id === data["id"]);
+        const finded = asks.find((i) => i.ask.token_id == data["id"]);
         if (finded) setIsExchange(true);
       }
     })();
@@ -195,6 +196,7 @@ const EacsTableCell = ({ data, idx }) => {
           MWh: data.MWh,
           id: data.id,
           accountId: data["Device owner"],
+          Facility: data["Facility name"],
         }}
       />
     </>

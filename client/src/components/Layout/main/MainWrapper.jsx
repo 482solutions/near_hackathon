@@ -30,7 +30,11 @@ const MainWrapper = ({ children }) => {
   const navigate = useNavigate();
 
   useEffect(() => {
-    if (location.pathname !== "/" && !window.walletConnection.isSignedIn()) {
+    if (
+      location.pathname !== "/" &&
+      (!window.walletConnection.isSignedIn() ||
+        !document.cookie.includes("userId"))
+    ) {
       navigate("/");
     }
   }, [location]);

@@ -1,5 +1,5 @@
 import { Box, Grid } from "@mui/material";
-import allCountries from "country-region-data";
+import { allCountries } from "country-region-data";
 import { Contract } from "near-api-js";
 import React, { useCallback, useEffect, useState } from "react";
 import {
@@ -38,17 +38,17 @@ const SelectsData = [
     labelName: "Location",
     options: transformedToSelectCountries,
   },
-  {
-    labelName: "Grid operator",
-    options: [
-      "Solar",
-      "Wind",
-      "Liquid",
-      "Hydro - Electric head",
-      "Gaseous",
-      "Thermal",
-    ].map((i) => ({ label: i, value: i })),
-  },
+  // {
+  //   labelName: "Grid operator",
+  //   options: [
+  //     "Solar",
+  //     "Wind",
+  //     "Liquid",
+  //     "Hydro - Electric head",
+  //     "Gaseous",
+  //     "Thermal",
+  //   ].map((i) => ({ label: i, value: i })),
+  // },
 ];
 
 const toggleData = [
@@ -86,67 +86,7 @@ const InputsData = [
   },
 ];
 
-const init = { toggleValue: "one_time_purchase" };
-
-const FormSection = ({ asks }) => {
-  const [form, setForm] = useState({ toggleValue: "one_time_purchase" });
-  const [nfts, setNfts] = useState();
-
-  const handleFormChange = useCallback((e, labelName) => {
-    setForm((prev) => ({ ...prev, [labelName]: e.target.value }));
-  }, []);
-
-  useEffect(() => {
-    (async () => {
-      const res = await getNFTs();
-      if (res) {
-        const deviceInfo = res.map((i) => {
-          const parsed = JSON.parse(i.metadata.extra);
-          return { ...i, metadata: { ...i.metadata, extra: parsed } };
-        });
-
-        let result = [];
-        for await (let data of deviceInfo) {
-          if (data.metadata.extra.organisation && data.metadata.extra.station) {
-            try {
-              const resStation = await getStationByOrgAndStationName(
-                data.metadata.extra.organisation,
-                data.metadata.extra.station
-              );
-              result.push({ ...data, stationInfo: resStation });
-            } catch (e) {}
-          }
-        }
-
-        setNfts(
-          result.map((i) => {
-            return {
-              id: i.token_id,
-              "Device Type": i.stationInfo.stationEnergyType,
-              Date: new Date(i.metadata.issued_at / 1000000),
-              "Grid Operator": allCountries[i.stationInfo.countryId][0],
-              MWh: i.metadata.extra.generatedEnergy,
-              Status: "Exchange",
-              "Device owner": i.owner_id,
-              "Generation Start Date": new Date(i.metadata.extra.startDate),
-              "Generation End Date": new Date(i.metadata.extra.endDate),
-              "Certified Energy (MWh)": i.metadata.extra.generatedEnergy,
-              "Generation Date": new Date(i.metadata.issued_at / 1000000),
-              // "Certificate ID",
-              // "Certified",
-              // "Facility name",
-              // "Certified by registry",
-            };
-          })
-        );
-      }
-    })();
-  }, []);
-
-  useEffect(() => {
-    console.log(nfts);
-  }, [nfts]);
-
+const FormSection = ({ asks, form, handleFormChange, placeBid, clearForm }) => {
   return (
     <Box sx={FirstBoxStyle}>
       <RegularText content={"Browse by keyword and attributes"} />
@@ -167,21 +107,15 @@ const FormSection = ({ asks }) => {
                 options={i.options}
                 value={form[i.labelName] ?? []}
                 handleChange={(e) => handleFormChange(e, i.labelName)}
+                disabled={!window.walletConnection.isSignedIn()}
               />
             </Grid>
           );
         })}
       </Grid>
-      <Grid container sx={{ marginTop: "24px" }}>
-        <CustomizedToggleButton
-          toggleData={toggleData}
-          passUpToggleValue={(e) =>
-            setForm((prev) => ({ ...prev, toggleValue: e }))
-          }
-        />
-      </Grid>
+
       <Grid container gap={"20px"} sx={{ marginTop: "32px" }}>
-        {InputsData.map((i) => {
+        {InputsData.map((i, idx) => {
           return (
             <CustomizedReadInput
               controlled
@@ -191,13 +125,23 @@ const FormSection = ({ asks }) => {
               labelName={i.labelName}
               adornMent={i.adornMent}
               adornMentDirection={i.adornMentDirection && "startAdornment"}
+              disabled={!window.walletConnection.isSignedIn()}
+              key={idx}
             />
           );
         })}
       </Grid>
       <Grid container sx={ButtonsContainer}>
-        <SecondaryButton text={"Clear All"} onClick={() => setForm(init)} />
-        <CreateButton text="Place Bid Order" />
+        <SecondaryButton
+          text={"Clear All"}
+          onClick={() => clearForm()}
+          disabled={!window.walletConnection.isSignedIn()}
+        />
+        <CreateButton
+          text="Place Bid Order"
+          disabled={!window.walletConnection.isSignedIn()}
+          onClick={() => placeBid()}
+        />
       </Grid>
     </Box>
   );

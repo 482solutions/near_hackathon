@@ -64,42 +64,31 @@ const MyEacs = () => {
   useEffect(() => {
     (async function () {
       const res = await getNFTs(window.accountId);
-      if (res) {
+      if (res && !res.kind) {
         const deviceInfo = res.map((i) => {
           const parsed = JSON.parse(i.metadata.extra);
           return { ...i, metadata: { ...i.metadata, extra: parsed } };
         });
 
-        let result = [];
-        for await (let data of deviceInfo) {
-          if (data.metadata.extra.organisation && data.metadata.extra.station) {
-            try {
-              const resStation = await getStationByOrgAndStationName(
-                data.metadata.extra.organisation,
-                data.metadata.extra.station
-              );
-              result.push({ ...data, stationInfo: resStation });
-            } catch (e) {}
-          }
-        }
         setBody(
-          result.map((i) => {
+          deviceInfo.map((i) => {
             return {
-              id: i.token_id,
-              "Device Type": i.stationInfo.stationEnergyType,
+              id: +i.token_id,
+              "Device Type": i.metadata.extra?.deviceType ?? "N/A",
               Date: new Date(i.metadata.issued_at / 1000000),
-              "Grid Operator": allCountries[i.stationInfo.countryId][0],
-              MWh: i.metadata.extra.generatedEnergy,
+              "Grid Operator":
+                allCountries?.[i.metadata.extra?.location]?.[0] ?? "N/A",
+              MWh: i.metadata.extra.generatedEnergy ?? "N/A",
               Status: "Exchange",
               "Device owner": i.owner_id,
               "Generation Start Date": new Date(i.metadata.extra.startDate),
               "Generation End Date": new Date(i.metadata.extra.endDate),
-              "Certified Energy (MWh)": i.metadata.extra.generatedEnergy,
+              "Certified Energy (MWh)":
+                i.metadata.extra.generatedEnergy ?? "N/A",
               "Generation Date": new Date(i.metadata.issued_at / 1000000),
-              // "Certificate ID",
-              // "Certified",
-              // "Facility name",
-              // "Certified by registry",
+              "Certificate ID": i.token_id,
+              Certified: i.metadata.extra.generatedEnergy ?? "N/A",
+              "Facility name": i.metadata.extra.station ?? "N/A",
             };
           })
         );

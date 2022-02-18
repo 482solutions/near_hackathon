@@ -25,7 +25,7 @@ pub struct Ask {
 #[serde(crate = "near_sdk::serde")]
 pub struct AskArgs {
     /// Sale prices in yoctoNEAR that the token is listed for
-    pub sale_conditions: Balance,
+    pub sale_conditions: String,
 }
 
 /// Bid struct defines who want to buy, how much, and on what conditions
@@ -38,6 +38,9 @@ pub struct Bid {
     /// Sale prices in yoctoNEAR that the token is listed for.
     /// Acts as a trigger
     pub sale_conditions: Balance,
+
+    /// Field for storing serialized object with any info
+    pub extra: String,
 }
 
 #[derive(BorshDeserialize, BorshSerialize, Serialize, Deserialize)]
@@ -66,7 +69,7 @@ impl Contract {
     /// returns: Bid that was created
     ///
     #[payable]
-    pub fn place_bid(&mut self, conditions: U128) -> Bid {
+    pub fn place_bid(&mut self, conditions: U128, extra: String) -> Bid {
         let deposit = env::attached_deposit();
         let caller = env::predecessor_account_id();
 
@@ -80,6 +83,7 @@ impl Contract {
         let bid = Bid {
             owner_id: env::predecessor_account_id(),
             sale_conditions: deposit,
+            extra,
         };
         log!("Creating new bid: {:?}", bid);
 
@@ -223,6 +227,12 @@ impl Contract {
         let ask = self.get_ask(&ask_id).expect("This ask does not exist").ask;
         let bid = self.get_bid(&bid_id).expect("This bid does not exist").bid;
 
+        log!(
+            "Ask sale conditions: {}, Bid sale condition: {}",
+            ask.sale_conditions,
+            bid.sale_conditions
+        );
+
         require!(
             ask.sale_conditions.eq(&bid.sale_conditions),
             "Sale conditions don't match"
@@ -247,8 +257,8 @@ impl Contract {
         let remove_bid = ext_self::resolve_position(bid_id, Position::Bid, current, ONE_YOCTO, CCC);
 
         transfer_nft
-            .then(remove_ask)
             .then(remove_bid)
+            .then(remove_ask)
             .then(Promise::new(ask.owner_id).transfer(ask.sale_conditions))
     }
 

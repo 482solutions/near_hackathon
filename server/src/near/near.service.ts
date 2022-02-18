@@ -14,7 +14,7 @@ const INITIAL_BALANCE = new BN("3464010000000000000000000", 10);
 
 @Injectable()
 export class NearService {
-  private logger = new Logger("NearService");
+  private readonly logger = new Logger("NearService");
   private readonly session: Session;
   private near: Near
   private ownerAccount: Account;
@@ -64,7 +64,6 @@ export class NearService {
       })
   }
 
-  // TODO: Add saving of keyPair to JSON-file
   async createSubAccount(id: string): Promise<Account> {
     const account = `${id}.${this.session.id}`;
     const keyPair = KeyPairEd25519.fromRandom();

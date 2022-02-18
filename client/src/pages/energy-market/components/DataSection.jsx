@@ -11,7 +11,6 @@ const SecondBoxStyle = {
   height: "100%",
   backgroundColor: "#fff",
   padding: "40px 43px 31px",
-  maxHeight: "427px",
 };
 
 const TableContainerStyle = {
@@ -28,11 +27,14 @@ const DataSection = ({ title, matchingData, data, bodyData }) => {
   return (
     <Box sx={SecondBoxStyle}>
       <TitleText title={title} />
-      <RegularText content={`${matchingData} matching`} />
+      <RegularText
+        content={`${bodyData ? bodyData.length : 0}/${matchingData} matching`}
+      />
       <Grid sx={TableContainerStyle}>
         <CustomizedTable
           headData={data}
           bodyData={bodyData}
+          paginationChunkSize={3}
           renderCell={(el, idx) => {
             return <MarketDataCell data={el} key={idx} keyWord={title} />;
           }}
