@@ -52,7 +52,7 @@ export class DeployService implements OnModuleInit {
           await this.near.initContract(market, "new", { owner_id: ownerId });
         }
         this.logger.log(`${JSON.stringify(market_state)}`)
-      }, 1000);
+      }, 7000);
 
 
     }

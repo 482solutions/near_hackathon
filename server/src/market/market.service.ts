@@ -33,9 +33,10 @@ export class MarketService {
             limit: 100
         });
 
+        const corresponding: Map<BidResponse, AskResponse> = new Map();
 
         for (const currentBid of bids) {
-            const ask = asks.find(currentAsk => {
+            const askIndex = asks.findIndex(currentAsk => {
                 if (currentAsk.ask.sale_conditions === currentBid.bid.sale_conditions) {
                     this.logger.log(`Ask cond: ${currentAsk.ask.sale_conditions}, Bid cond: ${currentBid.bid.sale_conditions}`);
                     this.logger.log(`Find matching sale conditions Ask #${currentAsk.id} for Bid ${currentBid.id}`);
@@ -51,14 +52,20 @@ export class MarketService {
                 }
             });
 
-            if (ask !== undefined) {
-                this.logger.log(`Processing ask #${ask.id} for bid #${currentBid.id}`)
-                await this.contract["process_bid"]({
-                    ask_id: ask.id,
-                    bid_id: currentBid.id
-                }, GAS_FOR_CALL);
-                break;
+            if (askIndex !== -1) {
+                const ask = asks.splice(askIndex, 1)[0];
+
+                corresponding.set(currentBid, ask);
             }
         }
+
+        await Promise.all(Array.from(corresponding).map(async ([bid, ask]) => {
+            this.logger.log(`Processing ask #${ask.id} for bid #${bid.id}`);
+            return await this.contract["process_bid"]({
+                ask_id: ask.id,
+                bid_id: bid.id
+            }, GAS_FOR_CALL)
+        }))
+
     }
 }
