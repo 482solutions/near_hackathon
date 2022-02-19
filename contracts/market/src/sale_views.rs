@@ -35,11 +35,11 @@ impl Contract {
     ///
     /// # Arguments
     ///
-    /// * `account_id`: [AccountId]
-    /// * `from`:
-    /// * `limit`:
+    /// * `account_id`: [AccountId] - which user we search for
+    /// * `from`: Starting index
+    /// * `limit`: Ending index
     ///
-    /// returns: Vec<Ask, Global>
+    /// returns: Vec<AskResponse>
     ///
     pub fn get_asks_by_owner_id(
         &self,
@@ -47,34 +47,34 @@ impl Contract {
         from: Option<u128>,
         limit: Option<u64>,
     ) -> Vec<AskResponse> {
-        //get the set of token IDs for sale for the given account ID
+        // Get the set of token IDs for sale for the given account ID
         let by_owner_id = self.asks_by_owner_id.get(&account_id);
-        //if there was some set, we set the sales variable equal to that set. If there wasn't, sales is set to an empty vector
+        // If there was some set, we set the sales variable equal to that set. If there wasn't, sales is set to an empty vector
         let asks = if let Some(by_owner_id) = by_owner_id {
             by_owner_id
         } else {
             return vec![];
         };
 
-        //we'll convert the UnorderedSet into a vector of strings
+        // We'll convert the UnorderedSet into a vector of strings
         let keys = asks.as_vector();
 
-        //where to start pagination - if we have a from_index, we'll use that - otherwise start from 0 index
+        // Where to start pagination - if we have a from_index, we'll use that - otherwise start from 0 index
         let start = from.unwrap_or(0);
 
-        //iterate through the keys vector
+        // Iterate through the keys vector
         keys.iter()
-            //skip to the index we specified in the start variable
+            // Skip to the index we specified in the start variable
             .skip(start as usize)
-            //take the first "limit" elements in the vector. If we didn't specify a limit, use 0
+            // Take the first "limit" elements in the vector. If we didn't specify a limit, use 0
             .take(limit.unwrap_or(0) as usize)
-            //we'll map the token IDs which are strings into Sale objects
+            // We'll map the token IDs which are strings into Sale objects
             .map(|id| {
                 log!("Searching id: {}", id);
                 let ask = self.asks.get(&id).unwrap();
                 AskResponse { id, ask }
             })
-            //since we turned the keys into an iterator, we need to turn it back into a vector to return
+            // Since we turned the keys into an iterator, we need to turn it back into a vector to return
             .collect()
     }
 
@@ -82,24 +82,24 @@ impl Contract {
     ///
     /// # Arguments
     ///
-    /// * `from`:
-    /// * `limit`i:
+    /// * `from`: Starting index
+    /// * `limit`: Ending index
     ///
     /// returns: List of bids
     ///
     pub fn get_bids(&self, from: Option<u128>, limit: Option<u64>) -> Vec<BidResponse> {
-        //where to start pagination - if we have a from_index, we'll use that - otherwise start from 0 index
+        // Where to start pagination - if we have a from_index, we'll use that - otherwise start from 0 index
         let start = from.unwrap_or(0);
 
-        //iterate through the keys vector
+        // Iterate through the keys vector
         self.bids
             .iter()
-            //skip to the index we specified in the start variable
+            // Skip to the index we specified in the start variable
             .skip(start as usize)
-            //take the first "limit" elements in the vector. If we didn't specify a limit, use 0
+            // Take the first "limit" elements in the vector. If we didn't specify a limit, use 0
             .take(limit.unwrap_or(0) as usize)
             .map(|(id, bid)| BidResponse { id, bid })
-            //since we turned the keys into an iterator, we need to turn it back into a vector to return
+            // Since we turned the keys into an iterator, we need to turn it back into a vector to return
             .collect()
     }
 
@@ -107,31 +107,26 @@ impl Contract {
     ///
     /// # Arguments
     ///
-    /// * `from`:
-    /// * `limit`:
+    /// * `from`: Starting index
+    /// * `limit`: Ending index
     ///
     /// returns: List of asks
     ///  
     pub fn get_asks(&self, from: Option<u128>, limit: Option<u64>) -> Vec<AskResponse> {
-        //where to start pagination - if we have a from_index, we'll use that - otherwise start from 0 index
         let start = from.unwrap_or(0);
 
-        //iterate through the keys vector
         self.asks
             .iter()
-            //skip to the index we specified in the start variable
             .skip(start as usize)
-            //take the first "limit" elements in the vector. If we didn't specify a limit, use 0
             .take(limit.unwrap_or(0) as usize)
             .map(|(id, ask)| AskResponse { id, ask })
-            //since we turned the keys into an iterator, we need to turn it back into a vector to return
             .collect()
     }
 
     /// Get a ask information for a given unique ask ID (contract + DELIMITER + uuid)
-    pub fn get_ask(&self, id: &TokenId) -> Option<AskResponse> {
-        //try and get the sale object for the given unique sale ID. Will return an option since
-        //we're not guaranteed that the unique sale ID passed in will be valid.
+    pub fn get_ask(&self, id: &PositionId) -> Option<AskResponse> {
+        // Try and get the sale object for the given unique sale ID. Will return an option since
+        // We're not guaranteed that the unique sale ID passed in will be valid.
         let ask = self.asks.get(id).unwrap();
         Some(AskResponse {
             id: id.to_owned(),
@@ -139,10 +134,7 @@ impl Contract {
         })
     }
 
-    /// Get a bid information for a given unique bid ID (contract + DELIMITER + uuid)
-    pub fn get_bid(&self, id: &TokenId) -> Option<BidResponse> {
-        //try and get the sale object for the given unique sale ID. Will return an option since
-        //we're not guaranteed that the unique sale ID passed in will be valid.
+    pub fn get_bid(&self, id: &PositionId) -> Option<BidResponse> {
         let bid = self.bids.get(id).unwrap();
         Some(BidResponse {
             id: id.to_owned(),
