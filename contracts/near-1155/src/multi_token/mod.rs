@@ -1,11 +1,11 @@
 pub mod core;
 
-pub mod views;
-
 pub mod token;
 
 pub mod approval;
 
 pub mod metadata;
 
-use self::token::TokenId;
+pub mod utils;
+
+pub mod events;
