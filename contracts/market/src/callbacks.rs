@@ -29,6 +29,7 @@ impl NonFungibleTokenApprovalReceiver for Contract {
             "This token already placed on market"
         );
 
+        // TODO: We should find a way to cover storage using something else
         // let mut balance: u128 = self.storage_deposits.get(&signer_id).unwrap_or(0);
         //
         // balance += deposit;
