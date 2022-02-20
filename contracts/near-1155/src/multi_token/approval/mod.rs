@@ -1,10 +1,12 @@
+mod approval_impl;
 mod receiver;
+
+pub use approval_impl::*;
+pub use receiver::*;
 
 use crate::multi_token::token::TokenId;
 use near_sdk::collections::Vector;
 use near_sdk::{AccountId, Balance, PromiseOrValue};
-
-use receiver::*;
 
 /// Trait used in approval management
 /// Specs - https://github.com/shipsgold/NEPs/blob/master/specs/Standards/MultiToken/ApprovalManagement.md
