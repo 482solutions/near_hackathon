@@ -43,3 +43,5 @@ pub struct TokenMetadata {
     /// Base64-encoded sha256 hash of JSON from reference field. Required if `reference` is included.
     pub reference_hash: Option<String>,
 }
+
+// TODO: Add impl for asserting (validating) metadata

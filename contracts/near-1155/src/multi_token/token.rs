@@ -1,6 +1,6 @@
 use crate::multi_token::metadata::TokenMetadata;
 use near_sdk::serde::{Deserialize, Serialize};
-use near_sdk::{AccountId, Balance};
+pub use near_sdk::{AccountId, Balance};
 use std::collections::HashMap;
 
 /// Type alias for convenience
