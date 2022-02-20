@@ -22,19 +22,18 @@ pub trait MultiTokenCore {
     ///
     /// # Arguments
     ///
-    /// * `from`:
-    /// * `to`:
-    /// * `id`:
+    /// * `receiver_id`:
+    /// * `token_ids`:
     /// * `amount`:
     ///
     /// returns: ()
     ///
     fn transfer(
         &mut self,
-        to: AccountId,
-        id: Vector<TokenId>,
-        amount: Vector<Balance>,
-        approval: Option<u128>,
+        receiver_id: AccountId,
+        token_id: TokenId,
+        amount: Balance,
+        approval: Option<u64>,
     );
 
     /// Transfer MT and call a method on receiver contract. A successful
@@ -58,7 +57,6 @@ pub trait MultiTokenCore {
         token_id: TokenId,
         amount: Balance,
         approval_id: Option<u64>,
-        memo: Option<String>,
         msg: String,
     ) -> PromiseOrValue<bool>;
 

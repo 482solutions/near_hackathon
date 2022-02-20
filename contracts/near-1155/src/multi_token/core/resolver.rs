@@ -1,4 +1,5 @@
 use crate::multi_token::token::TokenId;
+use near_sdk::collections::Vector;
 use near_sdk::{AccountId, Balance};
 use std::collections::HashMap;
 
@@ -21,21 +22,25 @@ pub trait MultiTokenResolver {
     ///   `sender_id`
     ///
     /// Arguments:
-    /// * `previous_owner_id`: the owner prior to the call to `nft_transfer_call`
-    /// * `receiver_id`: the `receiver_id` argument given to `nft_transfer_call`
-    /// * `token_id`: the `token_id` argument given to `ft_transfer_call`
-    /// * `amount`: the amount of tokens that transfers
+    /// * `previous_owner_id`: the owner prior to the call to `transfer_call`
+    /// * `receiver_id`: the `receiver_id` argument given to `transfer_call`
+    /// * `token_ids`: the vector of `token_id` argument given to `transfer_call`
     /// * `approvals`: if using Approval Management, contract MUST provide
     ///   set of original approved accounts in this argument, and restore these
     ///   approved accounts in case of revert.
     ///
     /// Returns true if token was successfully transferred to `receiver_id`.
+    /// The amount returned
+    ///
+    /// Example: if sender_id calls `transfer_call({ "amounts": ["100"], token_ids: ["55"], receiver_id: "games" })`,
+    /// but `receiver_id` only uses 80, `on_transfer` will resolve with `["20"]`, and `resolve_transfer`
+    /// will return `[80]`.
+
     fn resolve_transfer(
         &mut self,
-        previous_owner_id: AccountId,
+        sender_id: AccountId,
         receiver: AccountId,
-        token_id: TokenId,
-        amount: Balance,
+        token_ids: Vec<TokenId>,
         approvals: Option<HashMap<AccountId, u64>>,
-    ) -> bool;
+    ) -> Vec<Balance>;
 }
