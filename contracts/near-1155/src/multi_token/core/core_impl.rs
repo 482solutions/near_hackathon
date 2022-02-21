@@ -1,12 +1,13 @@
-use crate::multi_token::core::MultiTokenCore;
+use crate::multi_token::core::{MultiTokenCore, MultiTokenResolver};
 use crate::multi_token::metadata::TokenMetadata;
 use crate::multi_token::token::{Approval, Token, TokenId};
 use crate::multi_token::utils::refund_deposit_to_account;
 use near_sdk::borsh::{self, BorshDeserialize, BorshSerialize};
 use near_sdk::collections::{LookupMap, TreeMap, UnorderedSet, Vector};
+use near_sdk::json_types::U128;
 use near_sdk::{
-    assert_one_yocto, env, ext_contract, require, AccountId, Balance, BorshStorageKey, CryptoHash,
-    Gas, PromiseOrValue, StorageUsage,
+    assert_one_yocto, env, ext_contract, log, require, AccountId, Balance, BorshStorageKey,
+    CryptoHash, Gas, PromiseOrValue, PromiseResult, StorageUsage,
 };
 use std::collections::HashMap;
 
@@ -421,8 +422,67 @@ impl MultiTokenCore for MultiToken {
             balances,
             metadata,
             approvals: approved_accounts,
-
             next_approval_id,
         })
+    }
+}
+
+impl MultiToken {
+    pub fn internal_resolve_transfer(
+        &mut self,
+        sender_id: &AccountId,
+        receiver: AccountId,
+        token_id: TokenId,
+        amount: U128,
+    ) -> (Balance, Balance) {
+        let amount: Balance = amount.into();
+
+        let unused = match env::promise_result(0) {
+            PromiseResult::NotReady => env::abort(),
+            PromiseResult::Successful(value) => {
+                if let Ok(unused) = near_sdk::serde_json::from_slice::<U128>(&value) {
+                    std::cmp::min(amount, unused.0)
+                } else {
+                    amount
+                }
+            }
+            PromiseResult::Failed => 0,
+        };
+
+        // All this `.get()` will not fail since it would fail before it gets to this call
+        if unused > 0 {
+            let mut balances = self.balances_per_token.get(&token_id).unwrap();
+            let receiver_balance = balances.get(&receiver).unwrap_or(0);
+
+            if receiver_balance > 0 {
+                let refund = std::cmp::min(receiver_balance, unused);
+                balances.insert(&receiver, &(receiver_balance - refund));
+
+                return if let Some(sender_balance) = balances.get(sender_id) {
+                    balances.insert(sender_id, &(sender_balance + refund));
+                    log!("Refund {} from {} to {}", refund, receiver, sender_id);
+                    (amount - refund, 0)
+                } else {
+                    *self.total_supply.get(&token_id).as_mut().unwrap() -= refund;
+                    log!("The account of the sender was deleted");
+                    (amount, refund)
+                };
+            }
+        }
+        (amount, 0)
+    }
+}
+
+impl MultiTokenResolver for MultiToken {
+    fn resolve_transfer(
+        &mut self,
+        sender_id: AccountId,
+        receiver: AccountId,
+        token_id: TokenId,
+        amount: U128,
+    ) -> U128 {
+        self.internal_resolve_transfer(&sender_id, receiver, token_id, amount)
+            .0
+            .into()
     }
 }

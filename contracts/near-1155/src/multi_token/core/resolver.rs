@@ -1,6 +1,6 @@
 use crate::multi_token::token::TokenId;
-use near_sdk::{AccountId, Balance};
-use std::collections::HashMap;
+use near_sdk::json_types::U128;
+use near_sdk::AccountId;
 
 /// `resolve_transfer` will be called after `on_transfer`
 pub trait MultiTokenResolver {
@@ -40,6 +40,6 @@ pub trait MultiTokenResolver {
         sender_id: AccountId,
         receiver: AccountId,
         token_id: TokenId,
-        approvals: Option<HashMap<AccountId, u64>>,
-    ) -> Balance;
+        amount: U128,
+    ) -> U128;
 }
