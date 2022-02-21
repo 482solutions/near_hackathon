@@ -1,4 +1,4 @@
-# WIP Implementation of EIP-1155 for NEAR Protocol
+# WIP Implementation of [NEP-246](https://github.com/near/NEPs/issues/246) for NEAR Protocol
 
 TODO:
 
