@@ -1,19 +1,17 @@
 use crate::multi_token::core::MultiTokenCore;
 use crate::multi_token::metadata::TokenMetadata;
-use crate::multi_token::token::{Token, TokenId};
+use crate::multi_token::token::{Approval, Token, TokenId};
 use crate::multi_token::utils::refund_deposit_to_account;
 use near_sdk::borsh::{self, BorshDeserialize, BorshSerialize};
 use near_sdk::collections::{LookupMap, TreeMap, UnorderedSet, Vector};
 use near_sdk::{
     assert_one_yocto, env, ext_contract, require, AccountId, Balance, BorshStorageKey, CryptoHash,
-    Gas, IntoStorageKey, PromiseOrValue, StorageUsage,
+    Gas, PromiseOrValue, StorageUsage,
 };
 use std::collections::HashMap;
-use std::ops::{Add, Sub};
-use std::u128::MAX;
 
 const GAS_FOR_RESOLVE_TRANSFER: Gas = Gas(5_000_000_000_000);
-const GAS_FOR_NFT_TRANSFER_CALL: Gas = Gas(25_000_000_000_000 + GAS_FOR_RESOLVE_TRANSFER.0);
+const GAS_FOR_MT_TRANSFER_CALL: Gas = Gas(25_000_000_000_000 + GAS_FOR_RESOLVE_TRANSFER.0);
 
 const NO_DEPOSIT: Balance = 0;
 
@@ -23,8 +21,8 @@ trait MTResolver {
         &mut self,
         sender_id: AccountId,
         receiver: AccountId,
-        token_ids: Vec<TokenId>,
-        approvals: Option<HashMap<AccountId, u64>>,
+        token_id: TokenId,
+        approvals: Option<HashMap<AccountId, Approval>>,
     ) -> Vector<Balance>;
 }
 
@@ -34,8 +32,8 @@ pub trait MultiTokenReceiver {
         &mut self,
         sender_id: AccountId,
         previous_owner_id: AccountId,
-        token_ids: Vec<TokenId>,
-        amounts: Vec<Balance>,
+        token_ids: TokenId,
+        amounts: Balance,
         msg: String,
     ) -> PromiseOrValue<Balance>;
 }
@@ -71,7 +69,7 @@ pub struct MultiToken {
     pub balances_per_token: LookupMap<TokenId, LookupMap<AccountId, u128>>,
 
     /// All approvals of user
-    pub approvals_by_id: Option<LookupMap<TokenId, HashMap<AccountId, u64>>>,
+    pub approvals_by_id: Option<LookupMap<TokenId, HashMap<AccountId, Approval>>>,
 
     /// Next id of approval
     pub next_approval_id_by_id: LookupMap<TokenId, u64>,
@@ -188,7 +186,7 @@ impl MultiToken {
         token_id: &TokenId,
         approval_id: u64,
         amount: Balance,
-    ) -> (AccountId, HashMap<AccountId, u64>) {
+    ) -> (AccountId, HashMap<AccountId, Approval>) {
         // Safety checks
         require!(sender_id != receiver_id);
         require!(amount > 0);
@@ -206,7 +204,7 @@ impl MultiToken {
             let actual_id = approvals.get(sender_id).expect("Sender not approved");
 
             require!(
-                actual_id == &approval_id,
+                actual_id.approval_id == approval_id,
                 "Approval id differs from the actual"
             );
 
@@ -316,7 +314,7 @@ impl MultiToken {
             token_id,
             owner_id,
             supply: 0,
-            balances: Default::default(),
+            balances: LookupMap::new(StorageKey::Balances),
             metadata: token_metadata,
             approvals: approved_account_ids,
             next_approval_id: 0,
@@ -356,13 +354,13 @@ impl MultiTokenCore for MultiToken {
     ) -> PromiseOrValue<bool> {
         assert_one_yocto();
         require!(
-            env::prepaid_gas() > GAS_FOR_NFT_TRANSFER_CALL + GAS_FOR_RESOLVE_TRANSFER,
+            env::prepaid_gas() > GAS_FOR_MT_TRANSFER_CALL + GAS_FOR_RESOLVE_TRANSFER,
             "GAS!GAS!GAS! I gonna to step on the gas"
         );
-        let sender = env::predecessor_account_id();
+        let sender_id = env::predecessor_account_id();
 
         let (old_owner, old_approvals) = self.internal_transfer(
-            &sender,
+            &sender_id,
             &receiver_id,
             &token_id,
             approval_id.unwrap(),
@@ -371,6 +369,26 @@ impl MultiTokenCore for MultiToken {
 
         // TODO: Add cross-contract call to receiver
         // For the rest see near-contract-standards implementation
+        ext_receiver::on_transfer(
+            sender_id,
+            old_owner.clone(),
+            token_id.clone(),
+            amount,
+            msg,
+            receiver_id.clone(),
+            NO_DEPOSIT,
+            env::prepaid_gas() - GAS_FOR_MT_TRANSFER_CALL,
+        )
+        .then(ext_self::resolve_transfer(
+            old_owner,
+            receiver_id,
+            token_id,
+            Some(old_approvals),
+            env::current_account_id(),
+            NO_DEPOSIT,
+            GAS_FOR_RESOLVE_TRANSFER,
+        ))
+        .into()
     }
 
     fn approval_for_all(&mut self, owner: AccountId, approved: bool) {
@@ -379,5 +397,32 @@ impl MultiTokenCore for MultiToken {
 
     fn balance_of(&self, owner: AccountId, id: Vector<TokenId>) -> Vector<Balance> {
         todo!()
+    }
+
+    fn token(&self, token_id: TokenId) -> Option<Token> {
+        let metadata = if let Some(metadata_by_id) = &self.token_metadata_by_id {
+            metadata_by_id.get(&token_id)
+        } else {
+            None
+        };
+        let next_approval_id = self.next_approval_id_by_id.get(&token_id)?;
+        let supply = self.total_supply.get(&token_id)?;
+        let owner_id = self.owner_by_id.get(&token_id)?;
+        let approved_accounts = self
+            .approvals_by_id
+            .as_ref()
+            .and_then(|by_id| by_id.get(&token_id).or_else(|| Some(HashMap::new())));
+        let balances = self.balances_per_token.get(&token_id)?;
+
+        Some(Token {
+            token_id,
+            owner_id,
+            supply,
+            balances,
+            metadata,
+            approvals: approved_accounts,
+
+            next_approval_id,
+        })
     }
 }

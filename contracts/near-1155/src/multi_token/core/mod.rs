@@ -15,6 +15,8 @@ use crate::multi_token::token::TokenId;
 use near_sdk::collections::Vector;
 use near_sdk::{AccountId, Balance, PromiseOrValue};
 
+use super::token::Token;
+
 /// Describes functionality according to this - https://eips.ethereum.org/EIPS/eip-1155
 /// And this - https://github.com/shipsgold/NEPs/blob/master/specs/Standards/MultiToken/Core.md
 pub trait MultiTokenCore {
@@ -63,4 +65,6 @@ pub trait MultiTokenCore {
     fn approval_for_all(&mut self, owner: AccountId, approved: bool);
 
     fn balance_of(&self, owner: AccountId, id: Vector<TokenId>) -> Vector<Balance>;
+
+    fn token(&self, token_id: TokenId) -> Option<Token>;
 }

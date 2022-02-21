@@ -1,5 +1,4 @@
 use crate::multi_token::token::TokenId;
-use near_sdk::collections::Vector;
 use near_sdk::{AccountId, Balance};
 use std::collections::HashMap;
 
@@ -40,7 +39,7 @@ pub trait MultiTokenResolver {
         &mut self,
         sender_id: AccountId,
         receiver: AccountId,
-        token_ids: Vec<TokenId>,
+        token_id: TokenId,
         approvals: Option<HashMap<AccountId, u64>>,
-    ) -> Vec<Balance>;
+    ) -> Balance;
 }

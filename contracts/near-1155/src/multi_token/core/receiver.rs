@@ -1,5 +1,4 @@
 use crate::multi_token::token::TokenId;
-use near_sdk::collections::Vector;
 use near_sdk::{AccountId, Balance, PromiseOrValue};
 
 /// Used when an MT is transferred using `transfer_call`. This trait should be implemented on receiving contract
@@ -30,8 +29,8 @@ pub trait MultiTokenReceiver {
         &mut self,
         sender_id: AccountId,
         previous_owner_id: AccountId,
-        token_ids: Vec<TokenId>,
-        amounts: Vec<Balance>,
+        token_id: TokenId,
+        amounts: Balance,
         msg: String,
-    ) -> PromiseOrValue<Vec<Balance>>;
+    ) -> PromiseOrValue<Balance>;
 }
