@@ -10,11 +10,5 @@ fi
 
 # Because we include bytes from FT contract we need to build it before factory
 
-cargo build --release -p nft
-cp target/wasm32-unknown-unknown/release/nft.wasm $OUT_DIR
-
-cargo build --release -p market
-cp target/wasm32-unknown-unknown/release/market.wasm $OUT_DIR
-
 cargo build --release -p near-1155
 cp target/wasm32-unknown-unknown/release/near_1155.wasm $OUT_DIR

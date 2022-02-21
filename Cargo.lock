@@ -460,14 +460,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "eef78b64d87775463c549fbd80e19249ef436ea3bf1de2a1eb7e717ec7fab1e9"
 
 [[package]]
-name = "market"
-version = "0.1.0"
-dependencies = [
- "near-contract-standards",
- "near-sdk",
-]
-
-[[package]]
 name = "matches"
 version = "0.1.9"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -500,15 +492,6 @@ checksum = "4cd61f43cedc1bb7a7c097ef3adbab0092a51185dca0e48d5851b37818e13978"
 dependencies = [
  "borsh",
  "serde",
-]
-
-[[package]]
-name = "near-contract-standards"
-version = "4.0.0-pre.6"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b291a51228ed563f684ed75d9e61bb3b2881e957c72e9d9868971b453d958c46"
-dependencies = [
- "near-sdk",
 ]
 
 [[package]]
@@ -682,15 +665,6 @@ dependencies = [
  "serde",
  "sha2",
  "sha3",
-]
-
-[[package]]
-name = "nft"
-version = "0.1.0"
-dependencies = [
- "near-contract-standards",
- "near-sdk",
- "utils",
 ]
 
 [[package]]
@@ -1205,13 +1179,6 @@ dependencies = [
  "idna",
  "matches",
  "percent-encoding",
-]
-
-[[package]]
-name = "utils"
-version = "0.0.1"
-dependencies = [
- "near-sdk",
 ]
 
 [[package]]
