@@ -11,3 +11,4 @@
 //! * The contract must track the change in storage when adding to and removing from collections. This is not included in this core multi token standard but instead in the Storage Standard.
 //! * To prevent the deployed contract from being modified or deleted, it should not have any access keys on its account.
 pub mod multi_token;
+pub mod event;
