@@ -5,7 +5,7 @@ use near_sdk::AccountId;
 /// Approval receiver is the trait for the method called (or attempted to be called) when an MT contract adds an approval for an account.
 pub trait MultiTokenApprovalReceiver {
     /// Respond to notification that contract has been granted approval for a token.
-    fn mt_on_approve(
+    fn on_approve(
         &mut self,
         tokens: Vector<TokenId>,
         owner_id: AccountId,

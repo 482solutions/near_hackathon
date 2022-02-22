@@ -11,8 +11,8 @@ use near_sdk::{
 };
 use std::collections::HashMap;
 
-const GAS_FOR_RESOLVE_TRANSFER: Gas = Gas(5_000_000_000_000);
-const GAS_FOR_MT_TRANSFER_CALL: Gas = Gas(25_000_000_000_000 + GAS_FOR_RESOLVE_TRANSFER.0);
+pub const GAS_FOR_RESOLVE_TRANSFER: Gas = Gas(5_000_000_000_000);
+pub const GAS_FOR_MT_TRANSFER_CALL: Gas = Gas(25_000_000_000_000 + GAS_FOR_RESOLVE_TRANSFER.0);
 
 const NO_DEPOSIT: Balance = 0;
 
@@ -73,7 +73,7 @@ pub struct MultiToken {
     pub approvals_by_id: Option<LookupMap<TokenId, HashMap<AccountId, Approval>>>,
 
     /// Next id of approval
-    pub next_approval_id_by_id: LookupMap<TokenId, u64>,
+    pub next_approval_id_by_id: Option<LookupMap<TokenId, u64>>,
 
     /// Next id for token
     pub next_token_id: u64,
@@ -106,7 +106,7 @@ impl MultiToken {
             tokens_per_owner: Some(LookupMap::new(StorageKey::PerOwner)),
             balances_per_token: LookupMap::new(StorageKey::Balances),
             approvals_by_id: Some(LookupMap::new(StorageKey::Approvals)),
-            next_approval_id_by_id: LookupMap::new(StorageKey::ApprovalById),
+            next_approval_id_by_id: Some(LookupMap::new(StorageKey::ApprovalById)),
             next_token_id: 0,
         }
     }
@@ -238,7 +238,10 @@ impl MultiToken {
         }
     }
 
-    // pub fn internal_mint() -> Token {}
+    pub fn internal_mint(&mut self, owner_id: AccountId, metadata: Option<TokenMetadata>, refund_id: Option<AccountId>) -> Token {
+        self.internal_mint_with_refund(owner_id, metadata, refund_id)
+        // TODO: Add mint event emit
+    }
 
     /// Mint a new token without checking:
     /// * Whether the caller id is equal to the `owner_id`
@@ -318,14 +321,13 @@ impl MultiToken {
             balances: LookupMap::new(StorageKey::Balances),
             metadata: token_metadata,
             approvals: approved_account_ids,
-            next_approval_id: 0,
+            next_approval_id: Some(0),
         }
     }
 
     // TODO: Add method to change owner of token & `emit_transfer`
 }
 
-// TODO: Core Impl
 impl MultiTokenCore for MultiToken {
     fn transfer(
         &mut self,
@@ -368,8 +370,6 @@ impl MultiTokenCore for MultiToken {
             amount,
         );
 
-        // TODO: Add cross-contract call to receiver
-        // For the rest see near-contract-standards implementation
         ext_receiver::on_transfer(
             sender_id,
             old_owner.clone(),
@@ -406,7 +406,7 @@ impl MultiTokenCore for MultiToken {
         } else {
             None
         };
-        let next_approval_id = self.next_approval_id_by_id.get(&token_id)?;
+        let next_approval_id = self.next_approval_id_by_id.as_ref().unwrap().get(&token_id);
         let supply = self.total_supply.get(&token_id)?;
         let owner_id = self.owner_by_id.get(&token_id)?;
         let approved_accounts = self

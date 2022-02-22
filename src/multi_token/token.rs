@@ -25,5 +25,5 @@ pub struct Token {
     pub balances: LookupMap<AccountId, Balance>,
     pub metadata: Option<TokenMetadata>,
     pub approvals: Option<HashMap<AccountId, Approval>>,
-    pub next_approval_id: u64,
+    pub next_approval_id: Option<u64>,
 }

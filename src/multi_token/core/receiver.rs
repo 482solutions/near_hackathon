@@ -1,5 +1,6 @@
 use crate::multi_token::token::TokenId;
-use near_sdk::{AccountId, Balance, PromiseOrValue};
+use near_sdk::json_types::U128;
+use near_sdk::{AccountId, PromiseOrValue};
 
 /// Used when an MT is transferred using `transfer_call`. This trait should be implemented on receiving contract
 pub trait MultiTokenReceiver {
@@ -30,7 +31,7 @@ pub trait MultiTokenReceiver {
         sender_id: AccountId,
         previous_owner_id: AccountId,
         token_id: TokenId,
-        amounts: Balance,
+        amounts: U128,
         msg: String,
-    ) -> PromiseOrValue<Balance>;
+    ) -> PromiseOrValue<U128>;
 }
