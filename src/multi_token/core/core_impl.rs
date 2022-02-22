@@ -1,4 +1,5 @@
 use crate::multi_token::core::{MultiTokenCore, MultiTokenResolver};
+use crate::multi_token::events::{MTTransfer, MTMint};
 use crate::multi_token::metadata::TokenMetadata;
 use crate::multi_token::token::{Approval, Token, TokenId};
 use crate::multi_token::utils::refund_deposit_to_account;
@@ -204,43 +205,39 @@ impl MultiToken {
         let sender_id = if sender_id != &owner_id {
             let actual_id = approvals.get(sender_id).expect("Sender not approved");
 
-            require!(
-                actual_id.approval_id == approval_id,
-                "Approval id differs from the actual"
-            );
+            require!(actual_id.approval_id == approval_id, "Approval id differs from the actual");
 
             Some(sender_id)
         } else {
             None
         };
 
-        require!(
-            &owner_id != receiver_id,
-            "Current and next owner must differ"
-        );
+        require!(&owner_id != receiver_id, "Current and next owner must differ");
 
         self.internal_withdraw(token_id, sender_id.unwrap(), amount);
         self.internal_deposit(token_id, receiver_id, amount);
-        // TODO: Add MTTransfer event emit for indexer to pick up
+        
+        MultiToken::emit_transfer(&owner_id, receiver_id, &token_id, amount, sender_id, None);
 
         (owner_id, approvals)
     }
 
     pub fn internal_register_account(&mut self, token_id: &TokenId, account_id: &AccountId) {
-        if self
-            .balances_per_token
-            .get(token_id)
-            .unwrap()
-            .insert(account_id, &0)
-            .is_some()
-        {
+        if self.balances_per_token.get(token_id).unwrap().insert(account_id, &0).is_some() {
             env::panic_str("The account is already registered");
         }
     }
 
-    pub fn internal_mint(&mut self, owner_id: AccountId, metadata: Option<TokenMetadata>, refund_id: Option<AccountId>) -> Token {
-        self.internal_mint_with_refund(owner_id, metadata, refund_id)
-        // TODO: Add mint event emit
+    pub fn internal_mint(
+        &mut self,
+        owner_id: AccountId,
+        metadata: Option<TokenMetadata>,
+        refund_id: Option<AccountId>,
+    ) -> Token {
+        let token = self.internal_mint_with_refund(owner_id.clone(), metadata, refund_id);
+        MultiToken::emit_mint(&owner_id, &token.token_id, &token.supply, None);
+
+        token
     }
 
     /// Mint a new token without checking:
@@ -265,9 +262,7 @@ impl MultiToken {
         }
 
         // Increment next id of the token. Panic if it's overflowing u64::MAX
-        self.next_token_id
-            .checked_add(1)
-            .expect("u64 overflow, cannot mint any more tokens");
+        self.next_token_id.checked_add(1).expect("u64 overflow, cannot mint any more tokens");
 
         let token_id: TokenId = self.next_token_id.to_string();
 
@@ -304,11 +299,8 @@ impl MultiToken {
         }
 
         // Stuff for Approval Management extension, also check for presence of it first
-        let approved_account_ids = if self.approvals_by_id.is_some() {
-            Some(HashMap::new())
-        } else {
-            None
-        };
+        let approved_account_ids =
+            if self.approvals_by_id.is_some() { Some(HashMap::new()) } else { None };
 
         if let Some((id, usage)) = initial_storage_usage {
             refund_deposit_to_account(env::storage_usage() - usage, id);
@@ -325,7 +317,38 @@ impl MultiToken {
         }
     }
 
-    // TODO: Add method to change owner of token & `emit_transfer`
+    fn emit_transfer(
+        owner_id: &AccountId,
+        receiver_id: &AccountId,
+        token_id: &str,
+        amount: Balance,
+        sender_id: Option<&AccountId>,
+        memo: Option<String>,
+    ) {
+        MTTransfer {
+            old_owner_id: owner_id,
+            new_owner_id: receiver_id,
+            token_ids: &[token_id],
+            amounts: &[&amount.to_string()],
+            authorized_id: sender_id.filter(|sender_id| *sender_id == owner_id),
+            memo: memo.as_deref(),
+        }
+        .emit();
+    }
+
+    fn emit_mint(
+        owner_id: &AccountId,
+        token_id: &TokenId,
+        amount: &Balance,
+        memo: Option<String>,
+    ) {
+        MTMint {
+            owner_id: &owner_id,
+            token_ids: &[token_id],
+            amounts: &[&amount.to_string()],
+            memo: memo.as_deref(),
+        }.emit()
+    }
 }
 
 impl MultiTokenCore for MultiToken {
@@ -338,13 +361,7 @@ impl MultiTokenCore for MultiToken {
     ) {
         assert_one_yocto();
         let sender_id = env::predecessor_account_id();
-        self.internal_transfer(
-            &sender_id,
-            &receiver_id,
-            &token_id,
-            approval.unwrap(),
-            amount,
-        );
+        self.internal_transfer(&sender_id, &receiver_id, &token_id, approval.unwrap(), amount);
     }
 
     fn transfer_call(
@@ -481,8 +498,6 @@ impl MultiTokenResolver for MultiToken {
         token_id: TokenId,
         amount: U128,
     ) -> U128 {
-        self.internal_resolve_transfer(&sender_id, receiver, token_id, amount)
-            .0
-            .into()
+        self.internal_resolve_transfer(&sender_id, receiver, token_id, amount).0.into()
     }
 }
