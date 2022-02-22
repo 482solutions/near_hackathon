@@ -482,6 +482,8 @@ name = "near-1155"
 version = "0.1.0"
 dependencies = [
  "near-sdk",
+ "serde",
+ "serde_json",
 ]
 
 [[package]]
