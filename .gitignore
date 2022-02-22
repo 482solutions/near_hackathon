@@ -1,23 +1,11 @@
 # compiled output
-/dist
-/node_modules
-/server/src/truffle/build
-
-# Logs
-logs
-*.loglo
-npm-debug.log*
-pnpm-debug.log*
-yarn-debug.log*
-yarn-error.log*
-lerna-debug.log*
+target/
 
 # OS
 .DS_Store
 
-# Tests
-/coverage
-/.nyc_output
+# Other
+neardev/
 
 # IDEs and editors
 .idea/

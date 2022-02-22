@@ -1,5 +1,6 @@
 #![allow(clippy::too_many_arguments)]
 #![allow(clippy::ptr_arg)]
+#![allow(unused_variables)]
 
 //! ERC-1155 Implementation
 //!
