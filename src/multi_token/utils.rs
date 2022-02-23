@@ -53,7 +53,7 @@ impl Display for Entity {
 }
 
 pub fn expect_approval<T>(o: Option<T>, entity: Entity) -> T {
-    o.expect(format!("Approval Management is not supported by {}", entity.to_string()).as_str())
+    o.unwrap_or_else(|| panic!("Approval Management is not supported by {}", entity.to_string()))
 }
 
 pub fn unauthorized_assert(account_id: &AccountId) {
