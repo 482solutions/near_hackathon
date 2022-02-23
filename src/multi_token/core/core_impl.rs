@@ -1,10 +1,10 @@
 use crate::multi_token::core::{MultiTokenCore, MultiTokenResolver};
-use crate::multi_token::events::{MTTransfer, MTMint};
+use crate::multi_token::events::{MtTransfer, MtMint};
 use crate::multi_token::metadata::TokenMetadata;
 use crate::multi_token::token::{Approval, Token, TokenId};
 use crate::multi_token::utils::refund_deposit_to_account;
 use near_sdk::borsh::{self, BorshDeserialize, BorshSerialize};
-use near_sdk::collections::{LookupMap, TreeMap, UnorderedSet, Vector};
+use near_sdk::collections::{LookupMap, TreeMap, UnorderedSet};
 use near_sdk::json_types::U128;
 use near_sdk::{
     assert_one_yocto, env, ext_contract, log, require, AccountId, Balance, BorshStorageKey,
@@ -97,7 +97,7 @@ pub enum StorageKey {
 }
 
 impl MultiToken {
-    fn new(owner_id: AccountId) -> Self {
+    pub fn new(owner_id: AccountId) -> Self {
         Self {
             owner_id,
             extra_storage_in_bytes_per_emission: 0,
@@ -309,8 +309,8 @@ impl MultiToken {
         Token {
             token_id,
             owner_id,
-            supply: 0,
-            balances: LookupMap::new(StorageKey::Balances),
+            supply: u128::MAX,
+            balances: HashMap::new(),
             metadata: token_metadata,
             approvals: approved_account_ids,
             next_approval_id: Some(0),
@@ -325,7 +325,7 @@ impl MultiToken {
         sender_id: Option<&AccountId>,
         memo: Option<String>,
     ) {
-        MTTransfer {
+        MtTransfer {
             old_owner_id: owner_id,
             new_owner_id: receiver_id,
             token_ids: &[token_id],
@@ -342,7 +342,7 @@ impl MultiToken {
         amount: &Balance,
         memo: Option<String>,
     ) {
-        MTMint {
+        MtMint {
             owner_id: &owner_id,
             token_ids: &[token_id],
             amounts: &[&amount.to_string()],
@@ -413,7 +413,7 @@ impl MultiTokenCore for MultiToken {
         todo!()
     }
 
-    fn balance_of(&self, owner: AccountId, id: Vector<TokenId>) -> Vector<Balance> {
+    fn balance_of(&self, owner: AccountId, id: Vec<TokenId>) -> Vec<U128> {
         todo!()
     }
 
@@ -436,7 +436,7 @@ impl MultiTokenCore for MultiToken {
             token_id,
             owner_id,
             supply,
-            balances,
+            balances: HashMap::new(),
             metadata,
             approvals: approved_accounts,
             next_approval_id,
