@@ -1,12 +1,9 @@
 [package]
-name = "near-1155"
+name = "nep-246"
 version = "0.1.0"
 edition = "2021"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
-
-[lib]
-crate-type = ["cdylib"]
 
 [dependencies]
 near-sdk = "4.0.0-pre.6"
