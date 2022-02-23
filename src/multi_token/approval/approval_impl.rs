@@ -1,4 +1,4 @@
-use near_sdk::{assert_one_yocto, env, ext_contract, AccountId, Balance, Promise};
+use near_sdk::{assert_one_yocto, env, ext_contract, AccountId, Balance, Promise, require};
 
 
 use crate::multi_token::{
@@ -30,19 +30,32 @@ impl MultiTokenApproval for MultiToken {
         // Check if caller is authorized
         unauthorized_assert(&owner_id);
 
+        // Get the balance to check if user have enough tokens
+        let balance = self.balances_per_token.get(&token_id).unwrap().get(&owner_id).unwrap_or(0);
+
+        require!(balance >= amount, "Not enough balance to approve");
+
+        // Unwrap to check if approval supported
+        let approvals_by_id = expect_approval(self.approvals_by_id.as_mut(), Entity::Token);
+
         // Get some IDs and check if approval management supported both for contract & token
         let next_id = expect_approval(self.next_approval_id_by_id.as_mut(), Entity::Token);
         let mut current_next_id =
             expect_approval(next_id.get(&token_id), Entity::Token);
 
-        let new_approval = Approval { amount, approval_id: current_next_id.clone() };
+        let new_approval = Approval { amount, approval_id: current_next_id };
+        env::log_str(format!("New approva: {:?}", new_approval).as_str());
 
         // Get approvals for this token
-        let mut approvals = self.approvals_by_id.as_mut().unwrap().get(&token_id).unwrap();
-        let updated_approval = approvals.insert(account_id.clone(), new_approval);
+        let approvals = &mut approvals_by_id.get(&token_id).unwrap_or_default();
+        let old_approval_id = approvals.insert(account_id.clone(), new_approval);
+
+        approvals_by_id.insert(&token_id, &approvals);
+
+        env::log_str(format!("Updated approvals by id: {:?}", old_approval_id).as_str());
 
         let used_storage =
-            if updated_approval.is_none() { bytes_for_approved_account_id(&account_id) } else { 0 };
+            if old_approval_id.is_none() { bytes_for_approved_account_id(&account_id) } else { 0 };
 
         refund_deposit(used_storage);
 
@@ -52,7 +65,7 @@ impl MultiTokenApproval for MultiToken {
             ext_approval_receiver::on_approve(
                 token_id,
                 owner_id,
-                current_next_id.clone(),
+                current_next_id,
                 msg,
                 account_id,
                 NO_DEPOSIT,
@@ -93,6 +106,9 @@ impl MultiTokenApproval for MultiToken {
         approval: Option<u64>,
     ) -> bool {
         let approvals = expect_approval(self.approvals_by_id.as_ref(), Entity::Contract);
+
+
+        env::log_str(format!("{:?}", approvals).as_str());
 
         let by_token = expect_approval(approvals.get(&token), Entity::Token);
 
