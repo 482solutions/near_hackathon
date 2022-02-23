@@ -2,8 +2,5 @@
 
 TODO:
 
-* Events
-* Basic implementation (transfers, mint, burn)
-* Logic of resolves & receivers
-* Enumeration methods
-* Batch transfers
+- [ ] Enumeration methods
+- [ ] Batch transfers
