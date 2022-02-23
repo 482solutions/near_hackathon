@@ -212,8 +212,10 @@ impl MultiToken {
 
             Some(sender_id)
         } else {
-            None
+            Some(sender_id)
         };
+
+        env::log_str(format!("Sender: {:?}", sender_id).as_str());
 
         require!(
             &owner_id != receiver_id,
@@ -379,6 +381,7 @@ impl MultiTokenCore for MultiToken {
     ) {
         assert_one_yocto();
         let sender_id = env::predecessor_account_id();
+        env::log_str(format!("Predecessor {}", sender_id).as_str());
         self.internal_transfer(
             &sender_id,
             &receiver_id,
