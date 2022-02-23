@@ -1,4 +1,5 @@
 use near_sdk::borsh::{self, BorshDeserialize, BorshSerialize};
+use near_sdk::require;
 use near_sdk::serde::{Deserialize, Serialize};
 
 /// Version of standard
@@ -7,7 +8,7 @@ pub const MT_METADATA_SPEC: &str = "mt-0.0.1";
 /// Metadata that will be permanently set at the contract init
 #[derive(BorshDeserialize, BorshSerialize, Serialize, Deserialize, Clone, Debug, PartialEq)]
 #[serde(crate = "near_sdk::serde")]
-pub struct MTContractMetadata {
+pub struct MtContractMetadata {
     pub spec: String,
     pub name: String,
     pub symbol: String,
@@ -44,4 +45,34 @@ pub struct TokenMetadata {
     pub reference_hash: Option<String>,
 }
 
-// TODO: Add impl for asserting (validating) metadata
+/// Offers details on the contract-level metadata.
+pub trait MultiTokenMetadataProvider {
+    fn mt_metadata(&self) -> MtContractMetadata;
+}
+
+impl MtContractMetadata {
+    pub fn assert_valid(&self) {
+        require!(self.spec == MT_METADATA_SPEC, "Spec is not NFT metadata");
+        require!(
+            self.reference.is_some() == self.reference_hash.is_some(),
+            "Reference and reference hash must be present"
+        );
+        if let Some(reference_hash) = &self.reference_hash {
+            require!(reference_hash.len() == 32, "Hash has to be 32 bytes");
+        }
+    }
+}
+
+impl TokenMetadata {
+    pub fn assert_valid(&self) {
+        require!(self.media.is_some() == self.media_hash.is_some());
+        if let Some(media_hash) = &self.media_hash {
+            require!(media_hash.len() == 32, "Media hash has to be 32 bytes");
+        }
+
+        require!(self.reference.is_some() == self.reference_hash.is_some());
+        if let Some(reference_hash) = &self.reference_hash {
+            require!(reference_hash.len() == 32, "Reference hash has to be 32 bytes");
+        }
+    }
+}
