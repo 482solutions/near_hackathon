@@ -12,7 +12,7 @@ pub use self::receiver::*;
 pub use self::resolver::*;
 
 use crate::multi_token::token::TokenId;
-use near_sdk::collections::Vector;
+use near_sdk::json_types::U128;
 use near_sdk::{AccountId, Balance, PromiseOrValue};
 
 use super::token::Token;
@@ -64,7 +64,7 @@ pub trait MultiTokenCore {
 
     fn approval_for_all(&mut self, owner: AccountId, approved: bool);
 
-    fn balance_of(&self, owner: AccountId, id: Vector<TokenId>) -> Vector<Balance>;
+    fn balance_of(&self, owner: AccountId, id: Vec<TokenId>) -> Vec<U128>;
 
     fn token(&self, token_id: TokenId) -> Option<Token>;
 }
