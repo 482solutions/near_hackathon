@@ -1,8 +1,8 @@
 use crate::multi_token::core::{MultiTokenCore, MultiTokenResolver};
-use crate::multi_token::events::{MtTransfer, MtMint};
+use crate::multi_token::events::{MtMint, MtTransfer};
 use crate::multi_token::metadata::TokenMetadata;
 use crate::multi_token::token::{Approval, Token, TokenId};
-use crate::multi_token::utils::refund_deposit_to_account;
+use crate::multi_token::utils::{refund_deposit_to_account, expect_approval};
 use near_sdk::borsh::{self, BorshDeserialize, BorshSerialize};
 use near_sdk::collections::{LookupMap, TreeMap, UnorderedSet};
 use near_sdk::json_types::U128;
@@ -18,7 +18,7 @@ pub const GAS_FOR_MT_TRANSFER_CALL: Gas = Gas(25_000_000_000_000 + GAS_FOR_RESOL
 const NO_DEPOSIT: Balance = 0;
 
 #[ext_contract(ext_self)]
-trait MTResolver {
+trait MtResolver {
     fn resolve_transfer(
         &mut self,
         sender_id: AccountId,
@@ -41,12 +41,12 @@ pub trait MultiTokenReceiver {
 }
 
 /// Implementation of the multi-token standard
-/// Allows to include NEP-1155 compatible tokens to any contract.
+/// Allows to include NEP-246 compatible tokens to any contract.
 /// There are next traits that any contract may implement:
 ///     - MultiTokenCore -- interface with transfer methods. MultiToken provides methods for it.
 ///     - MultiTokenApproval -- interface with approve methods. MultiToken provides methods for it.
 ///     - MultiTokenEnumeration -- interface for getting lists of tokens. MultiToken provides methods for it.
-///     - MultiTokenMetadata -- return metadata for the token in NEP-1155, up to contract to implement.
+///     - MultiTokenMetadata -- return metadata for the token in NEP-246, up to contract to implement.
 #[derive(BorshDeserialize, BorshSerialize)]
 pub struct MultiToken {
     /// Owner of contract
@@ -90,7 +90,7 @@ pub enum StorageKey {
     TokenMetadata,
     Approvals,
     ApprovalById,
-    ApprovalsInner,
+    ApprovalsInner { account_id_hash: CryptoHash },
     TotalSupply { supply: u128 },
     Balances,
     BalancesInner { token_id: Vec<u8> },
@@ -205,25 +205,37 @@ impl MultiToken {
         let sender_id = if sender_id != &owner_id {
             let actual_id = approvals.get(sender_id).expect("Sender not approved");
 
-            require!(actual_id.approval_id == approval_id, "Approval id differs from the actual");
+            require!(
+                actual_id.approval_id == approval_id,
+                "Approval id differs from the actual"
+            );
 
             Some(sender_id)
         } else {
             None
         };
 
-        require!(&owner_id != receiver_id, "Current and next owner must differ");
+        require!(
+            &owner_id != receiver_id,
+            "Current and next owner must differ"
+        );
 
         self.internal_withdraw(token_id, sender_id.unwrap(), amount);
         self.internal_deposit(token_id, receiver_id, amount);
-        
-        MultiToken::emit_transfer(&owner_id, receiver_id, &token_id, amount, sender_id, None);
+
+        MultiToken::emit_transfer(&owner_id, receiver_id, token_id, amount, sender_id, None);
 
         (owner_id, approvals)
     }
 
     pub fn internal_register_account(&mut self, token_id: &TokenId, account_id: &AccountId) {
-        if self.balances_per_token.get(token_id).unwrap().insert(account_id, &0).is_some() {
+        if self
+            .balances_per_token
+            .get(token_id)
+            .unwrap()
+            .insert(account_id, &0)
+            .is_some()
+        {
             env::panic_str("The account is already registered");
         }
     }
@@ -262,9 +274,16 @@ impl MultiToken {
         }
 
         // Increment next id of the token. Panic if it's overflowing u64::MAX
-        self.next_token_id.checked_add(1).expect("u64 overflow, cannot mint any more tokens");
+        self.next_token_id
+            .checked_add(1)
+            .expect("u64 overflow, cannot mint any more tokens");
 
         let token_id: TokenId = self.next_token_id.to_string();
+
+        // If contract uses approval management create new LookupMap for approvals
+        self.next_approval_id_by_id
+            .as_mut()
+            .and_then(|internal| internal.insert(&token_id, &0));
 
         // Alias
         let owner_id: AccountId = token_owner_id;
@@ -299,8 +318,11 @@ impl MultiToken {
         }
 
         // Stuff for Approval Management extension, also check for presence of it first
-        let approved_account_ids =
-            if self.approvals_by_id.is_some() { Some(HashMap::new()) } else { None };
+        let approved_account_ids = if self.approvals_by_id.is_some() {
+            Some(HashMap::new())
+        } else {
+            None
+        };
 
         if let Some((id, usage)) = initial_storage_usage {
             refund_deposit_to_account(env::storage_usage() - usage, id);
@@ -336,18 +358,14 @@ impl MultiToken {
         .emit();
     }
 
-    fn emit_mint(
-        owner_id: &AccountId,
-        token_id: &TokenId,
-        amount: &Balance,
-        memo: Option<String>,
-    ) {
+    fn emit_mint(owner_id: &AccountId, token_id: &TokenId, amount: &Balance, memo: Option<String>) {
         MtMint {
-            owner_id: &owner_id,
+            owner_id,
             token_ids: &[token_id],
             amounts: &[&amount.to_string()],
             memo: memo.as_deref(),
-        }.emit()
+        }
+        .emit()
     }
 }
 
@@ -361,7 +379,13 @@ impl MultiTokenCore for MultiToken {
     ) {
         assert_one_yocto();
         let sender_id = env::predecessor_account_id();
-        self.internal_transfer(&sender_id, &receiver_id, &token_id, approval.unwrap(), amount);
+        self.internal_transfer(
+            &sender_id,
+            &receiver_id,
+            &token_id,
+            approval.unwrap(),
+            amount,
+        );
     }
 
     fn transfer_call(
@@ -498,6 +522,8 @@ impl MultiTokenResolver for MultiToken {
         token_id: TokenId,
         amount: U128,
     ) -> U128 {
-        self.internal_resolve_transfer(&sender_id, receiver, token_id, amount).0.into()
+        self.internal_resolve_transfer(&sender_id, receiver, token_id, amount)
+            .0
+            .into()
     }
 }

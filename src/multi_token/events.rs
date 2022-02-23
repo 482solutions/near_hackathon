@@ -1,5 +1,3 @@
-// TODO: Events for MT
-
 use near_sdk::AccountId;
 use serde::Serialize;
 
