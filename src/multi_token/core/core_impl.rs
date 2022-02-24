@@ -2,9 +2,9 @@ use crate::multi_token::core::{MultiTokenCore, MultiTokenResolver};
 use crate::multi_token::events::{MtMint, MtTransfer};
 use crate::multi_token::metadata::TokenMetadata;
 use crate::multi_token::token::{Approval, Token, TokenId};
-use crate::multi_token::utils::{refund_deposit_to_account};
+use crate::multi_token::utils::refund_deposit_to_account;
 use near_sdk::borsh::{self, BorshDeserialize, BorshSerialize};
-use near_sdk::collections::{LookupMap, TreeMap, UnorderedSet};
+use near_sdk::collections::{LookupMap, LookupSet, TreeMap, UnorderedSet, Vector};
 use near_sdk::json_types::U128;
 use near_sdk::{
     assert_one_yocto, env, ext_contract, log, require, AccountId, Balance, BorshStorageKey,
@@ -208,48 +208,58 @@ impl MultiToken {
         sender_id: &AccountId,
         receiver_id: &AccountId,
         token_id: &TokenId,
-        approval_id: u64,
+        approval_id: Option<u64>,
         amount: Balance,
-    ) -> (AccountId, HashMap<AccountId, Approval>) {
+    ) -> (AccountId, Option<HashMap<AccountId, Approval>>) {
         // Safety checks
         require!(sender_id != receiver_id);
         require!(amount > 0);
 
-        // Get owner
-        let owner_id = self.owner_by_id.get(token_id).expect("Token not found");
-        // This will be reverted in case of panic
+        let owner_of_token = self.owner_by_id.get(&token_id).expect("Token not found");
+
         let approvals = self
             .approvals_by_id
             .as_mut()
-            .and_then(|by_id| by_id.remove(token_id))
-            .expect("No such token");
+            .and_then(|by_id| by_id.remove(token_id));
 
-        let sender_id = if sender_id != &owner_id {
-            let actual_id = approvals.get(sender_id).expect("Sender not approved");
+        let owner_id = if sender_id != &owner_of_token {
+            let approved_accounts = approvals.as_ref().expect("Unauthorized");
+
+            let approval = approved_accounts.get(sender_id);
+
+            if approval.is_none() {
+                env::panic_str("Sender not approved");
+            }
 
             require!(
-                actual_id.approval_id == approval_id,
-                "Approval id differs from the actual"
+                approval_id.is_none() || approval.unwrap().approval_id == approval_id.unwrap(),
+                "The actual approval_id is different from given"
             );
-
             Some(sender_id)
         } else {
             Some(sender_id)
         };
 
-        env::log_str(format!("Sender: {:?}", sender_id).as_str());
-
         require!(
-            &owner_id != receiver_id,
-            "Current and next owner must differ"
+            owner_id.unwrap() != receiver_id,
+            "Sender and receiver must differ"
         );
 
-        self.internal_withdraw(token_id, sender_id.unwrap(), amount);
+        let owner_id = owner_id.unwrap();
+
+        self.internal_withdraw(token_id, owner_id, amount);
         self.internal_deposit(token_id, receiver_id, amount);
 
-        MultiToken::emit_transfer(&owner_id, receiver_id, token_id, amount, sender_id, None);
+        MultiToken::emit_transfer(
+            &owner_id,
+            receiver_id,
+            token_id,
+            amount,
+            Some(sender_id),
+            None,
+        );
 
-        (owner_id, approvals)
+        (owner_id.to_owned(), approvals)
     }
 
     pub fn internal_register_account(&mut self, token_id: &TokenId, account_id: &AccountId) {
@@ -267,10 +277,12 @@ impl MultiToken {
     pub fn internal_mint(
         &mut self,
         owner_id: AccountId,
+        owner_amount: Option<Balance>,
         metadata: Option<TokenMetadata>,
         refund_id: Option<AccountId>,
     ) -> Token {
-        let token = self.internal_mint_with_refund(owner_id.clone(), metadata, refund_id);
+        let token =
+            self.internal_mint_with_refund(owner_id.clone(), owner_amount, metadata, refund_id);
         MultiToken::emit_mint(&owner_id, &token.token_id, &token.supply, None);
 
         token
@@ -286,6 +298,7 @@ impl MultiToken {
     pub fn internal_mint_with_refund(
         &mut self,
         token_owner_id: AccountId,
+        owner_amount: Option<Balance>,
         token_metadata: Option<TokenMetadata>,
         refund_id: Option<AccountId>,
     ) -> Token {
@@ -327,7 +340,7 @@ impl MultiToken {
         let mut new_set: LookupMap<AccountId, u128> = LookupMap::new(StorageKey::BalancesInner {
             token_id: env::sha256(token_id.as_bytes()),
         });
-        new_set.insert(&owner_id, &0);
+        new_set.insert(&owner_id, &owner_amount.unwrap_or(0));
         self.balances_per_token.insert(&token_id, &new_set);
 
         // Updates enumeration if extension is used
@@ -404,13 +417,7 @@ impl MultiTokenCore for MultiToken {
         assert_one_yocto();
         let sender_id = env::predecessor_account_id();
         env::log_str(format!("Predecessor {}", sender_id).as_str());
-        self.internal_transfer(
-            &sender_id,
-            &receiver_id,
-            &token_id,
-            approval.unwrap(),
-            amount,
-        );
+        self.internal_transfer(&sender_id, &receiver_id, &token_id, approval, amount);
     }
 
     fn transfer_call(
@@ -432,7 +439,7 @@ impl MultiTokenCore for MultiToken {
             &sender_id,
             &receiver_id,
             &token_id,
-            approval_id.unwrap(),
+            approval_id,
             amount,
         );
 
@@ -450,7 +457,7 @@ impl MultiTokenCore for MultiToken {
             old_owner,
             receiver_id,
             token_id,
-            Some(old_approvals),
+            old_approvals,
             env::current_account_id(),
             NO_DEPOSIT,
             GAS_FOR_RESOLVE_TRANSFER,
