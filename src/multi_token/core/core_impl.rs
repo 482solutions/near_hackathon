@@ -2,13 +2,13 @@ use crate::multi_token::core::{MultiTokenCore, MultiTokenResolver};
 use crate::multi_token::events::{MtMint, MtTransfer};
 use crate::multi_token::metadata::TokenMetadata;
 use crate::multi_token::token::{Approval, Token, TokenId};
-use crate::multi_token::utils::{refund_deposit_to_account, expect_approval};
+use crate::multi_token::utils::{refund_deposit_to_account};
 use near_sdk::borsh::{self, BorshDeserialize, BorshSerialize};
 use near_sdk::collections::{LookupMap, TreeMap, UnorderedSet};
 use near_sdk::json_types::U128;
 use near_sdk::{
     assert_one_yocto, env, ext_contract, log, require, AccountId, Balance, BorshStorageKey,
-    CryptoHash, Gas, PromiseOrValue, PromiseResult, StorageUsage,
+    CryptoHash, Gas, IntoStorageKey, PromiseOrValue, PromiseResult, StorageUsage,
 };
 use std::collections::HashMap;
 
@@ -97,17 +97,39 @@ pub enum StorageKey {
 }
 
 impl MultiToken {
-    pub fn new(owner_id: AccountId) -> Self {
+    pub fn new<Q, R, S, T>(
+        owner_by_id_prefix: Q,
+        owner_id: AccountId,
+        token_metadata_prefix: Option<R>,
+        enumeration_prefix: Option<S>,
+        approval_prefix: Option<T>,
+    ) -> Self
+    where
+        Q: IntoStorageKey,
+        R: IntoStorageKey,
+        S: IntoStorageKey,
+        T: IntoStorageKey,
+    {
+        let (approvals_by_id, next_approval_id_by_id) = if let Some(prefix) = approval_prefix {
+            let prefix: Vec<u8> = prefix.into_storage_key();
+            (
+                Some(LookupMap::new(prefix.clone())),
+                Some(LookupMap::new([prefix, "n".into()].concat())),
+            )
+        } else {
+            (None, None)
+        };
+
         Self {
             owner_id,
             extra_storage_in_bytes_per_emission: 0,
             owner_by_id: TreeMap::new(StorageKey::OwnerById),
             total_supply: LookupMap::new(StorageKey::TotalSupply { supply: u128::MAX }),
-            token_metadata_by_id: Some(LookupMap::new(StorageKey::TokenMetadata)),
-            tokens_per_owner: Some(LookupMap::new(StorageKey::PerOwner)),
+            token_metadata_by_id: token_metadata_prefix.map(LookupMap::new),
+            tokens_per_owner: enumeration_prefix.map(LookupMap::new),
             balances_per_token: LookupMap::new(StorageKey::Balances),
-            approvals_by_id: Some(LookupMap::new(StorageKey::Approvals)),
-            next_approval_id_by_id: Some(LookupMap::new(StorageKey::ApprovalById)),
+            approvals_by_id,
+            next_approval_id_by_id,
             next_token_id: 0,
         }
     }
