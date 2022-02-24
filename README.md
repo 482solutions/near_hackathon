@@ -4,3 +4,4 @@ TODO:
 
 - [ ] Enumeration methods
 - [ ] Batch transfers
+- [ ] Fix some types to follow NEP-246 standard
