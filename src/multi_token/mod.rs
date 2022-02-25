@@ -6,6 +6,8 @@ pub mod approval;
 
 pub mod metadata;
 
+pub mod enumeration;
+
 pub mod utils;
 
 pub mod events;
