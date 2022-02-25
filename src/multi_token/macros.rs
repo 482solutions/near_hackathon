@@ -35,7 +35,9 @@ macro_rules! impl_multi_token_core {
                 self.$token.token(token_id)
             }
             
-            fn balance_of(&self, owner: AccountId, id: Vec<TokenId>) -> Vec<U128> { todo!() }
+            fn balance_of(&self, owner: AccountId, id: Vec<TokenId>) -> Vec<u128> { 
+                self.$token.balance_of(owner, id)
+             }
             
             fn approval_for_all(&mut self, owner_id: AccountId, approved: bool) { todo!() }
         }

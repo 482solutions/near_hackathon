@@ -70,7 +70,7 @@ pub trait MultiTokenCore {
     /// 
     /// * `owner`: Account to check
     /// # `id`: Vector of token IDs
-    fn balance_of(&self, owner: AccountId, id: Vec<TokenId>) -> Vec<U128>;
+    fn balance_of(&self, owner: AccountId, id: Vec<TokenId>) -> Vec<u128>;
 
 
     /// Get all possible info about token

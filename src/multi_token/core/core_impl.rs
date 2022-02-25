@@ -4,7 +4,7 @@ use crate::multi_token::metadata::TokenMetadata;
 use crate::multi_token::token::{Approval, Token, TokenId};
 use crate::multi_token::utils::refund_deposit_to_account;
 use near_sdk::borsh::{self, BorshDeserialize, BorshSerialize};
-use near_sdk::collections::{LookupMap, LookupSet, TreeMap, UnorderedSet, Vector};
+use near_sdk::collections::{LookupMap, LookupSet, TreeMap, UnorderedMap, UnorderedSet, Vector};
 use near_sdk::json_types::U128;
 use near_sdk::{
     assert_one_yocto, env, ext_contract, log, require, AccountId, Balance, BorshStorageKey,
@@ -68,7 +68,7 @@ pub struct MultiToken {
     pub tokens_per_owner: Option<LookupMap<AccountId, UnorderedSet<TokenId>>>,
 
     /// Balance of user for given token
-    pub balances_per_token: LookupMap<TokenId, LookupMap<AccountId, u128>>,
+    pub balances_per_token: UnorderedMap<TokenId, LookupMap<AccountId, u128>>,
 
     /// All approvals of user
     pub approvals_by_id: Option<LookupMap<TokenId, HashMap<AccountId, Approval>>>,
@@ -127,7 +127,7 @@ impl MultiToken {
             total_supply: LookupMap::new(StorageKey::TotalSupply { supply: u128::MAX }),
             token_metadata_by_id: token_metadata_prefix.map(LookupMap::new),
             tokens_per_owner: enumeration_prefix.map(LookupMap::new),
-            balances_per_token: LookupMap::new(StorageKey::Balances),
+            balances_per_token: UnorderedMap::new(StorageKey::Balances),
             approvals_by_id,
             next_approval_id_by_id,
             next_token_id: 0,
@@ -435,13 +435,8 @@ impl MultiTokenCore for MultiToken {
         );
         let sender_id = env::predecessor_account_id();
 
-        let (old_owner, old_approvals) = self.internal_transfer(
-            &sender_id,
-            &receiver_id,
-            &token_id,
-            approval_id,
-            amount,
-        );
+        let (old_owner, old_approvals) =
+            self.internal_transfer(&sender_id, &receiver_id, &token_id, approval_id, amount);
 
         ext_receiver::on_transfer(
             sender_id,
@@ -469,8 +464,16 @@ impl MultiTokenCore for MultiToken {
         todo!()
     }
 
-    fn balance_of(&self, owner: AccountId, id: Vec<TokenId>) -> Vec<U128> {
-        todo!()
+    fn balance_of(&self, owner: AccountId, id: Vec<TokenId>) -> Vec<u128> {
+        self.balances_per_token
+            .iter()
+            .filter(|(token_id, _)| id.contains(&token_id))
+            .map(|(_, balances)| {
+                balances
+                    .get(&owner)
+                    .expect("User does not have account in of the tokens")
+            })
+            .collect()
     }
 
     fn token(&self, token_id: TokenId) -> Option<Token> {
