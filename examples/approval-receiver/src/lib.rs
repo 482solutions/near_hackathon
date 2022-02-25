@@ -1,4 +1,4 @@
-use near_sdk::{near_bindgen, borsh::{self, BorshDeserialize, BorshSerialize}, PanicOnDefault, AccountId, env, collections::Vector, PromiseOrValue};
+use near_sdk::{near_bindgen, borsh::{self, BorshDeserialize, BorshSerialize}, PanicOnDefault, AccountId, env, PromiseOrValue};
 use nep_246::multi_token::{approval::MultiTokenApprovalReceiver, token::TokenId};
 
 

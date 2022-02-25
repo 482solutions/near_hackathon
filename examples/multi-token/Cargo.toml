@@ -9,7 +9,7 @@ edition = "2021"
 crate-type = ["cdylib"]
 
 [dependencies]
-nep-246 = { path = "../eacs" }
+nep-246 = { path = "../../" }
 near-sdk = "4.0.0-pre.6"
 
 [profile.release]
