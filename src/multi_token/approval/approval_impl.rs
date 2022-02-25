@@ -1,3 +1,5 @@
+use std::{collections::HashMap};
+
 use near_sdk::{assert_one_yocto, env, ext_contract, AccountId, Balance, Promise, require};
 
 
@@ -13,7 +15,7 @@ const NO_DEPOSIT: Balance = 0;
 
 #[ext_contract(ext_approval_receiver)]
 pub trait MultiTokenReceiver {
-    fn on_approve(&mut self, token: TokenId, owner_id: AccountId, approval_id: u64, msg: String);
+    fn on_approve(&mut self, tokens: Vec<TokenId>, owner_id: AccountId, approval_id: u64, msg: String);
 }
 
 impl MultiTokenApproval for MultiToken {
@@ -50,7 +52,7 @@ impl MultiTokenApproval for MultiToken {
         let approvals = &mut approvals_by_id.get(&token_id).unwrap_or_default();
         let old_approval_id = approvals.insert(account_id.clone(), new_approval);
 
-        approvals_by_id.insert(&token_id, &approvals);
+        approvals_by_id.insert(&token_id, approvals);
 
         env::log_str(format!("Updated approvals by id: {:?}", old_approval_id).as_str());
 
@@ -63,7 +65,7 @@ impl MultiTokenApproval for MultiToken {
 
         msg.map(|msg| {
             ext_approval_receiver::on_approve(
-                token_id,
+                vec![token_id],
                 owner_id,
                 current_next_id,
                 msg,
@@ -110,7 +112,7 @@ impl MultiTokenApproval for MultiToken {
 
         env::log_str(format!("{:?}", approvals).as_str());
 
-        let by_token = expect_approval(approvals.get(&token), Entity::Token);
+        let by_token = approvals.get(&token).unwrap_or_default();
 
         match by_token.get(&approved_account) {
             Some(approve) => {
