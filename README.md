@@ -2,12 +2,12 @@
 
 ## What's done?
 
-* Approvals & Metadata extenstions
+* Approvals, Metadata, Enumeration extenstions
 * Transfers
 * Resolvers & receivers
 
 TODO:
 
-* [ ] Enumeration extension
 * [ ] Batch transfers (are these really needed?)
+* [X] Enumeration extension
 * [X] Fix some types to follow NEP-246 standard
