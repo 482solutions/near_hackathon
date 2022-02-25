@@ -4,7 +4,7 @@ use crate::multi_token::metadata::TokenMetadata;
 use crate::multi_token::token::{Approval, Token, TokenId};
 use crate::multi_token::utils::refund_deposit_to_account;
 use near_sdk::borsh::{self, BorshDeserialize, BorshSerialize};
-use near_sdk::collections::{LookupMap, LookupSet, TreeMap, UnorderedMap, UnorderedSet, Vector};
+use near_sdk::collections::{LookupMap, TreeMap, UnorderedMap, UnorderedSet};
 use near_sdk::json_types::U128;
 use near_sdk::{
     assert_one_yocto, env, ext_contract, log, require, AccountId, Balance, BorshStorageKey,
@@ -215,7 +215,7 @@ impl MultiToken {
         require!(sender_id != receiver_id);
         require!(amount > 0);
 
-        let owner_of_token = self.owner_by_id.get(&token_id).expect("Token not found");
+        let owner_of_token = self.owner_by_id.get(token_id).expect("Token not found");
 
         let approvals = self
             .approvals_by_id
@@ -251,7 +251,7 @@ impl MultiToken {
         self.internal_deposit(token_id, receiver_id, amount);
 
         MultiToken::emit_transfer(
-            &owner_id,
+            owner_id,
             receiver_id,
             token_id,
             amount,
@@ -467,7 +467,7 @@ impl MultiTokenCore for MultiToken {
     fn balance_of(&self, owner: AccountId, id: Vec<TokenId>) -> Vec<u128> {
         self.balances_per_token
             .iter()
-            .filter(|(token_id, _)| id.contains(&token_id))
+            .filter(|(token_id, _)| id.contains(token_id))
             .map(|(_, balances)| {
                 balances
                     .get(&owner)

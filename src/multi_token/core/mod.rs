@@ -12,7 +12,6 @@ pub use self::receiver::*;
 pub use self::resolver::*;
 
 use crate::multi_token::token::TokenId;
-use near_sdk::json_types::U128;
 use near_sdk::{AccountId, Balance, PromiseOrValue};
 
 use super::token::Token;
